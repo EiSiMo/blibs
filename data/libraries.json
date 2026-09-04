@@ -16,7 +16,46 @@
   "url": "http://staatsbibliothek-berlin.de",
   "opac": "http://stabikat.de",
   "email": "info@sbb.spk-berlin.de",
-  "phone": "0049 30 2 66-433888"
+  "phone": "0049 30 2 66-433888",
+  "kobvid": "BIB000000004",
+  "branches": [
+   {
+    "kobvid": "BIB000000001",
+    "isil": "DE-1a",
+    "name": "Staatsbibliothek zu Berlin - Preußischer Kulturbesitz, Haus Potsdamer Straße",
+    "short_name": "Haus Potsdamer Straße",
+    "aliases": [],
+    "lat": 52.50771,
+    "lon": 13.37063,
+    "address": "Potsdamer Str. 33, 10785 Berlin",
+    "match": [
+     "Im Netz der Staatsbibliothek",
+     "Potsdamer Straße"
+    ]
+   },
+   {
+    "kobvid": "BIB000000302",
+    "isil": "DE-1w",
+    "name": "Staatsbibliothek zu Berlin - Preußischer Kulturbesitz, Zeitungssammlung",
+    "short_name": "Zeitungssammlung",
+    "aliases": [],
+    "lat": 52.51755,
+    "lon": 13.39162,
+    "address": "Unter den Linden 8, 10117 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00127",
+    "isil": "DE-1b",
+    "name": "Staatsbibliothek zu Berlin, bpk-Fotoarchiv",
+    "short_name": "Staatsbibliothek zu Berlin, bpk-Fotoarchiv",
+    "aliases": [],
+    "lat": 52.51745,
+    "lon": 13.39166,
+    "address": "Unter den Linden 8, 10117 Berlin",
+    "match": []
+   }
+  ]
  },
  {
   "isil": "DE-11",
@@ -36,7 +75,120 @@
   "url": "http://www.ub.hu-berlin.de",
   "opac": "http://primus.ub.hu-berlin.de",
   "email": "info@ub.hu-berlin.de",
-  "phone": "0049 30 20 93-99370"
+  "phone": "0049 30 20 93-99370",
+  "kobvid": "HUB00028",
+  "branches": [
+   {
+    "kobvid": "HUB00068",
+    "isil": null,
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Asien- und Afrikawissenschaften, Teilbibliothek Japanzentrum",
+    "short_name": "Zweigbibliothek Asien- und Afrikawissenschaften, Teilbibliot",
+    "aliases": [],
+    "lat": 52.52439,
+    "lon": 13.39183,
+    "address": "Johannisstr. 10, 10117 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "HUB00011",
+    "isil": "DE-11-103",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Asien-/Afrikawissenschaften und Islamische Theologie",
+    "short_name": "Zweigbibliothek Asien-/Afrikawissenschaften und Islamische T",
+    "aliases": [],
+    "lat": 52.53064,
+    "lon": 13.38574,
+    "address": "Invalidenstraße 118, 10117 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "HUB00029",
+    "isil": "DE-11-97",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Campus Nord",
+    "short_name": "Zweigbibliothek Campus Nord",
+    "aliases": [],
+    "lat": 52.52879,
+    "lon": 13.38156,
+    "address": "Hessische Str. 1/2, 10115 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "HUB00053",
+    "isil": "DE-11-131",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Fremdsprachliche Philologien / Teilbibliothek Großbritannien-Zentrum",
+    "short_name": "Teilbibliothek Großbritannien-Zentrum",
+    "aliases": [],
+    "lat": 52.51851,
+    "lon": 13.38633,
+    "address": "Dorotheenstr. 65, 10117 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "HUB00043",
+    "isil": "DE-11-105",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Germanistik/Skandinavistik",
+    "short_name": "Zweigbibliothek Germanistik/Skandinavistik",
+    "aliases": [],
+    "lat": 52.51964,
+    "lon": 13.39273,
+    "address": "Dorotheenstr. 24, 10117 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "HUB00037",
+    "isil": "DE-11-88",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Klassische Archäologie",
+    "short_name": "Zweigbibliothek Klassische Archäologie",
+    "aliases": [],
+    "lat": 52.51815,
+    "lon": 13.39369,
+    "address": "Unter den Linden 6, 10099 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "HUB00046",
+    "isil": "DE-11-128",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Musikwissenschaft",
+    "short_name": "Zweigbibliothek Musikwissenschaft",
+    "aliases": [],
+    "lat": 52.52034,
+    "lon": 13.39506,
+    "address": "Am Kupfergraben 5, 10117 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000025",
+    "isil": "DE-11-87",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Naturwissenschaften",
+    "short_name": "Zweigbibliothek Naturwissenschaften",
+    "aliases": [],
+    "lat": 52.43106,
+    "lon": 13.53142,
+    "address": "Rudower Chaussee 26, 12489 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "HUB00032",
+    "isil": "DE-11-68",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Rechtswissenschaft",
+    "short_name": "Zweigbibliothek Rechtswissenschaft",
+    "aliases": [],
+    "lat": 52.51642,
+    "lon": 13.39323,
+    "address": "Bebelpl. 1, 10179 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "HUB00027",
+    "isil": "DE-11-133",
+    "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Zweigbibliothek Theologie",
+    "short_name": "Zweigbibliothek Theologie",
+    "aliases": [],
+    "lat": 52.52099,
+    "lon": 13.40121,
+    "address": "Anna-Louisa-Karsch-Str. 1, 10178 Berlin",
+    "match": []
+   }
+  ]
  },
  {
   "isil": "DE-83",
@@ -55,7 +207,648 @@
   "url": "https://www.tu.berlin/ub/",
   "opac": "https://tu-berlin.hosted.exlibrisgroup.com/primo-explore/search?vid=TUB&lang=de_DE",
   "email": "info@ub.tu-berlin.de",
-  "phone": "0049 30 314-76101"
+  "phone": "0049 30 314-76101",
+  "kobvid": "TUB00001",
+  "branches": [
+   {
+    "kobvid": "TUB00015",
+    "isil": "DE-83-1001",
+    "name": "TU Berlin, Die Bibliothek Wirtschaft & Management",
+    "short_name": "Die Bibliothek Wirtschaft & Management",
+    "aliases": [],
+    "lat": 52.51192,
+    "lon": 13.32724,
+    "address": "Straße des 17. Juni 135, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00020",
+    "isil": "DE-83-1016",
+    "name": "TU Berlin, Fachgebiet Bau- und Stadtbaugeschichte, Bibliothek",
+    "short_name": "Fachgebiet Bau- und Stadtbaugeschichte",
+    "aliases": [],
+    "lat": 52.51331,
+    "lon": 13.3316,
+    "address": "Straße des 17. Juni 152 (Zi A 904, Sekr. A 22), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00140",
+    "isil": "DE-83-264",
+    "name": "TU Berlin, Fakultät VI, Planen, Bauen, Umwelt, Studiengang Bühnenbild - Szenischer Raum, Bibliothek",
+    "short_name": "Fakultät VI, Planen, Bauen, Umwelt, Studiengang Bühnenbild -",
+    "aliases": [],
+    "lat": 52.53858,
+    "lon": 13.38438,
+    "address": "Ackerstr. 76, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00048",
+    "isil": "DE-83-1066",
+    "name": "TU Berlin, Institut für Architektur, FG Tragwerksentwurf und -konstruktion, Bibliothek",
+    "short_name": "Institut für Architektur, FG Tragwerksentwurf und -konstrukt",
+    "aliases": [],
+    "lat": 52.51362,
+    "lon": 13.32311,
+    "address": "Straße des 17. Juni 152, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00125",
+    "isil": "DE-83-1255",
+    "name": "TU Berlin, Institut für Architektur, Fachgebiet Architekturdarstellung und Gestaltung, Bibliothek",
+    "short_name": "Institut für Architektur, Fachgebiet Architekturdarstellung ",
+    "aliases": [],
+    "lat": 52.53858,
+    "lon": 13.38438,
+    "address": "Straße des 17. Juni 152 (Sekr. A 28), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00065",
+    "isil": "DE-83-1108",
+    "name": "TU Berlin, Institut für Architektur, Fachgebiet Bildende Kunst, Plastisches Gestalten / Intermediäre künstlerische Praxis, Bibliothek",
+    "short_name": "Intermediäre künstlerische Praxis, Bibliothek",
+    "aliases": [],
+    "lat": 52.51362,
+    "lon": 13.32311,
+    "address": "Straße des 17. Juni 152, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00117",
+    "isil": "DE-83-1240",
+    "name": "TU Berlin, Institut für Architektur, Fachgebiet Entwerfen und Baukonstruktion, Bibliothek",
+    "short_name": "Institut für Architektur, Fachgebiet Entwerfen und Baukonstr",
+    "aliases": [],
+    "lat": 52.51331,
+    "lon": 13.3316,
+    "address": "Straße des 17. Juni 150/152 (Zi A 414, Sekr. A 15), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00105",
+    "isil": "DE-83-1201",
+    "name": "TU Berlin, Institut für Architektur, Fachgebiet Entwerfen und Konstruieren, Wohnungsbau und Kulturbauten, Bibliothek",
+    "short_name": "Institut für Architektur, Fachgebiet Entwerfen und Konstruie",
+    "aliases": [],
+    "lat": 52.51362,
+    "lon": 13.32311,
+    "address": "Straße des 17. Juni 152, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00138",
+    "isil": "DE-83-262",
+    "name": "TU Berlin, Institut für Architektur, Fachgebiet Gebäudetechnik und Entwerfen, Bibliothek",
+    "short_name": "Institut für Architektur, Fachgebiet Gebäudetechnik und Entw",
+    "aliases": [],
+    "lat": 52.51362,
+    "lon": 13.32311,
+    "address": "Straße des 17. Juni 152 (Zi. A 302, Sekr. A 59), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00044",
+    "isil": "DE-83-1060",
+    "name": "TU Berlin, Institut für Bauingenieurwesen der TU Berlin, Fachgebiet Entwerfen und Konstruieren - Stahlbau, Bibliothek",
+    "short_name": "Institut für Bauingenieurwesen der TU Berlin, Fachgebiet Ent",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00025",
+    "isil": "DE-83-1030",
+    "name": "TU Berlin, Institut für Bauingenieurwesen, FG Bauwirtschaft und Baubetrieb, Bibliothek",
+    "short_name": "Institut für Bauingenieurwesen, FG Bauwirtschaft und Baubetr",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00109",
+    "isil": "DE-83-1215",
+    "name": "TU Berlin, Institut für Bauingenieurwesen, Fachgebiet Bauinformatik, Bibliothek",
+    "short_name": "Institut für Bauingenieurwesen, Fachgebiet Bauinformatik",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00031",
+    "isil": "DE-83-1039",
+    "name": "TU Berlin, Institut für Bauingenieurwesen, Fachgebiet Bauphysik und Baukonstruktionen, Bibliothek",
+    "short_name": "Institut für Bauingenieurwesen, Fachgebiet Bauphysik und Bau",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00068",
+    "isil": "DE-83-1130",
+    "name": "TU Berlin, Institut für Bauingenieurwesen, Fachgebiet Baustoffe und Baustoffprüfung, Bibliothek",
+    "short_name": "Institut für Bauingenieurwesen, Fachgebiet Baustoffe und Bau",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00033",
+    "isil": "DE-83-1043",
+    "name": "TU Berlin, Institut für Bauingenieurwesen, Fachgebiet Grundbau und Bodenmechanik, Bibliothek",
+    "short_name": "Institut für Bauingenieurwesen, Fachgebiet Grundbau und Bode",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00030",
+    "isil": "DE-83-1038",
+    "name": "TU Berlin, Institut für Bauingenieurwesen, Fachgebiet Massivbau, Bibliothek",
+    "short_name": "Institut für Bauingenieurwesen, Fachgebiet Massivbau",
+    "aliases": [],
+    "lat": 52.54078,
+    "lon": 13.38513,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00026",
+    "isil": "DE-83-1031",
+    "name": "TU Berlin, Institut für Bauingenieurwesen, Fachgebiet Statik und Dynamik der Baukonstruktionen, Bibliothek",
+    "short_name": "Institut für Bauingenieurwesen, Fachgebiet Statik und Dynami",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00039",
+    "isil": "DE-83-1052",
+    "name": "TU Berlin, Institut für Energie- und Automatisierungstechnik, Fachgebiet Elektrische Maschinen/Erneuerbare Energien und Antriebstechnik, Bibliothek",
+    "short_name": "Institut für Energie- und Automatisierungstechnik, Fachgebie",
+    "aliases": [],
+    "lat": 52.51437,
+    "lon": 13.32773,
+    "address": "Einsteinufer 11 (Zi. EM 161, Sekr. EM 4), 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00079",
+    "isil": "DE-83-1157",
+    "name": "TU Berlin, Institut für Energie- und Automatisierungstechnik, Fachgebiet Elektronische Systeme der Medizintechnik, Bibliothek",
+    "short_name": "Institut für Energie- und Automatisierungstechnik, Fachgebie",
+    "aliases": [],
+    "lat": 52.51476,
+    "lon": 13.32646,
+    "address": "Einsteinufer 17, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00021",
+    "isil": "DE-83-1018",
+    "name": "TU Berlin, Institut für Energie- und Automatisierungstechnik, Fachgebiet Lichttechnik, Bibliothek",
+    "short_name": "Institut für Energie- und Automatisierungstechnik, Fachgebie",
+    "aliases": [],
+    "lat": 52.51498,
+    "lon": 13.32617,
+    "address": "Einsteinufer 19, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00062",
+    "isil": "DE-83-1101",
+    "name": "TU Berlin, Institut für Energietechnik, Fachgebiet Energietechnik und Umweltschutz, Bibliothek",
+    "short_name": "Institut für Energietechnik, Fachgebiet Energietechnik und U",
+    "aliases": [],
+    "lat": 52.51561,
+    "lon": 13.32451,
+    "address": "Marchstr. 18, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00050",
+    "isil": "DE-83-1068",
+    "name": "TU Berlin, Institut für Energietechnik, Fachgebiete Energieverfahrenstechnik und Umwandlungstechniken regenerativer Energien (EvUR), Reaktionstechnik, Bibliothek",
+    "short_name": "Institut für Energietechnik, Fachgebiete Energieverfahrenste",
+    "aliases": [],
+    "lat": 52.54535,
+    "lon": 13.34348,
+    "address": "Seestr. 13, 13353 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00121",
+    "isil": "DE-83-1250",
+    "name": "TU Berlin, Institut für Entwerfen, Baukonstruktion und Gebäudekunde, Fachgebiet Entwerfen, Architektur und Stadtentwicklung im globalen Zusammenhang, Bibliothek",
+    "short_name": "Institut für Entwerfen, Baukonstruktion und Gebäudekunde, Fa",
+    "aliases": [],
+    "lat": 52.51362,
+    "lon": 13.32311,
+    "address": "Straße des 17. Juni 152 (Zi. A 621, Sekr. A 53), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00099",
+    "isil": "DE-83-1191",
+    "name": "TU Berlin, Institut für Entwerfen, Baukonstruktion und Städtebau, Fachgebiet Baukonstruktion und Entwerfen, Bibliothek",
+    "short_name": "Institut für Entwerfen, Baukonstruktion und Städtebau, Fachg",
+    "aliases": [],
+    "lat": 52.51362,
+    "lon": 13.32311,
+    "address": "Straße des 17. Juni 152, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00058",
+    "isil": "DE-83-1085",
+    "name": "TU Berlin, Institut für Festkörperphysik, Bibliothek",
+    "short_name": "Institut für Festkörperphysik",
+    "aliases": [],
+    "lat": 52.51027,
+    "lon": 13.32487,
+    "address": "Hardenbergstr. 36, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00100",
+    "isil": "DE-83-1192",
+    "name": "TU Berlin, Institut für Festkörperphysik, Fachgebiet Experimentierphysik, Bibliothek",
+    "short_name": "Institut für Festkörperphysik, Fachgebiet Experimentierphysi",
+    "aliases": [],
+    "lat": 52.51027,
+    "lon": 13.32487,
+    "address": "Hardenbergstr. 36, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00009",
+    "isil": "DE-83-728",
+    "name": "TU Berlin, Institut für Geodäsie und Geoinformationstechnik, Bibliothek Geodäsie",
+    "short_name": "Institut für Geodäsie und Geoinformationstechnik, Bibliothek",
+    "aliases": [],
+    "lat": 52.51192,
+    "lon": 13.32724,
+    "address": "Kaiserin-Augusta-Allee 104-106, 10553 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00061",
+    "isil": "DE-83-1095",
+    "name": "TU Berlin, Institut für Hochfrequenz- und Halbleiter-Systemtechnologie, Fachgebiet Hochfrequenztechnik, Bibliothek",
+    "short_name": "Institut für Hochfrequenz- und Halbleiter-Systemtechnologie,",
+    "aliases": [],
+    "lat": 52.51578,
+    "lon": 13.32634,
+    "address": "Einsteinufer 25 (HFT 302, Sekr. HFT 4), 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00093",
+    "isil": "DE-83-1179",
+    "name": "TU Berlin, Institut für Konstruktion, Mikro- und Medizintechnik, Fachgebiet Elektromechanische Konstruktionen, Bibliothek",
+    "short_name": "Institut für Konstruktion, Mikro- und Medizintechnik, Fachge",
+    "aliases": [],
+    "lat": 52.51027,
+    "lon": 13.32487,
+    "address": "Hardenbergstr. 36, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00076",
+    "isil": "DE-83-1147",
+    "name": "TU Berlin, Institut für Land- und Seeverkehr, Fachgebiet Bahnbetrieb und Infrastruktur, Bibliothek",
+    "short_name": "Institut für Land- und Seeverkehr, Fachgebiet Bahnbetrieb un",
+    "aliases": [],
+    "lat": 52.5197,
+    "lon": 13.322,
+    "address": "Salzufer 17/19 (Gebäude SG 12, R 302, Sekr. SG 18), 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00120",
+    "isil": "DE-83-1249",
+    "name": "TU Berlin, Institut für Land- und Seeverkehr, Fachgebiet Integrierte Verkehrsplanung, Bibliothek",
+    "short_name": "Institut für Land- und Seeverkehr, Fachgebiet Integrierte Ve",
+    "aliases": [],
+    "lat": 52.51934,
+    "lon": 13.32172,
+    "address": "Salzufer 17/19 (Sekr. SG 4), 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00028",
+    "isil": "DE-83-1034",
+    "name": "TU Berlin, Institut für Land- und Seeverkehr, Fachgebiet Kraftfahrzeuge, Bibliothek",
+    "short_name": "Institut für Land- und Seeverkehr, Fachgebiet Kraftfahrzeuge",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00136",
+    "isil": "DE-83-1034a",
+    "name": "TU Berlin, Institut für Land- und Seeverkehr, Fachgebiet Schienenfahrzeuge, Bibliothek",
+    "short_name": "Institut für Land- und Seeverkehr, Fachgebiet Schienenfahrze",
+    "aliases": [],
+    "lat": 52.51382,
+    "lon": 13.33117,
+    "address": "Salzufer 17/19 (SG 12, Zi. 411, Sekr. SG 14), 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00283",
+    "isil": "DE-83-1054a",
+    "name": "TU Berlin, Institut für Land- und Seeverkehr, Fachgebiet Straßenplanung und Straßenbetrieb, Bibliothek",
+    "short_name": "Institut für Land- und Seeverkehr, Fachgebiet Straßenplanung",
+    "aliases": [],
+    "lat": 52.54287,
+    "lon": 13.38758,
+    "address": "Gustav-Meyer-Allee 25, 13355 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00111",
+    "isil": "DE-83-1221",
+    "name": "TU Berlin, Institut für Land- und Seeverkehr, Verkehrswesen-Seminar, Bibliothek",
+    "short_name": "Institut für Land- und Seeverkehr, Verkehrswesen-Seminar",
+    "aliases": [],
+    "lat": 52.51332,
+    "lon": 13.3316,
+    "address": "Salzufer 17-19, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00011",
+    "isil": "DE-83-748",
+    "name": "TU Berlin, Institut für Landschaftsarchitektur und Umweltplanung, Fachgebiet Vegetationstechnik und Pflanzenverwendung, Bibliothek",
+    "short_name": "Institut für Landschaftsarchitektur und Umweltplanung, Fachg",
+    "aliases": [],
+    "lat": 52.45901,
+    "lon": 13.30579,
+    "address": "Königin-Luise Str. 22, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00135",
+    "isil": "DE-83-265",
+    "name": "TU Berlin, Institut für Lebensmitteltechnologie und Lebensmittelchemie, FG Lebensmittelbiotechnologie und -prozeßtechnik, Bibliothek",
+    "short_name": "Institut für Lebensmitteltechnologie und Lebensmittelchemie,",
+    "aliases": [],
+    "lat": 52.45901,
+    "lon": 13.30579,
+    "address": "Königin-Luise-Str. 22, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00069",
+    "isil": "DE-83-1131",
+    "name": "TU Berlin, Institut für Maschinenkonstruktion und Systemtechnik, Fachgebiet Medizintechnik, Bibliothek",
+    "short_name": "Institut für Maschinenkonstruktion und Systemtechnik, Fachge",
+    "aliases": [],
+    "lat": 52.52037,
+    "lon": 13.32161,
+    "address": "Dovestr. 6, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00083",
+    "isil": "DE-83-1163",
+    "name": "TU Berlin, Institut für Mechanik, Fachgebiet Kontinuumsmechanik und Materialtheorie, Bibliothek",
+    "short_name": "Institut für Mechanik, Fachgebiet Kontinuumsmechanik und Mat",
+    "aliases": [],
+    "lat": 52.51419,
+    "lon": 13.32824,
+    "address": "Einsteinufer 5, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00036",
+    "isil": "DE-83-1048",
+    "name": "TU Berlin, Institut für Mechanik, Fachgebiet Mechatronische Maschinendynamik, Bibliothek",
+    "short_name": "Institut für Mechanik, Fachgebiet Mechatronische Maschinendy",
+    "aliases": [],
+    "lat": 52.5134,
+    "lon": 13.33015,
+    "address": "Einsteinufer 5/7 (Zi. MS 011, Sekr. MS 1), 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00067",
+    "isil": "DE-83-1115",
+    "name": "TU Berlin, Institut für Prozess- und Verfahrenstechnik, Fachgebiet Mechanische Verfahrenstechnik und Aufbereitung, Bibliothek",
+    "short_name": "Institut für Prozess- und Verfahrenstechnik, Fachgebiet Mech",
+    "aliases": [],
+    "lat": 52.51143,
+    "lon": 13.32321,
+    "address": "Ernst-Reuter-Platz 1, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00092",
+    "isil": "DE-83-1178",
+    "name": "TU Berlin, Institut für Prozeß- und Anlagentechnik, Fachgebiet Meß- und Regelungstechnik, Bibliothek",
+    "short_name": "Institut für Prozeß- und Anlagentechnik, Fachgebiet Meß- und",
+    "aliases": [],
+    "lat": 52.5076,
+    "lon": 13.3274,
+    "address": "Hardenberstr. 36a, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00104",
+    "isil": "DE-83-1199",
+    "name": "TU Berlin, Institut für Sprache und Kommunikation, Fachgebiet Audiokommunikation, Bibliothek",
+    "short_name": "Institut für Sprache und Kommunikation, Fachgebiet Audiokomm",
+    "aliases": [],
+    "lat": 52.5076,
+    "lon": 13.3274,
+    "address": "Einsteinufer 17c (Raum EN 322, Sekr. EN 8), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00052",
+    "isil": "DE-83-1070",
+    "name": "TU Berlin, Institut für Strömungstechnik und technische Akustik, Fachgebiet Numerische Fluiddynamik, Bibliothek",
+    "short_name": "Institut für Strömungstechnik und technische Akustik, Fachge",
+    "aliases": [],
+    "lat": 52.51215,
+    "lon": 13.33399,
+    "address": "Müller-Breslau-Str. 15, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00064",
+    "isil": "DE-83-1107",
+    "name": "TU Berlin, Institut für Technische Akustik, Bibliothek",
+    "short_name": "Institut für Technische Akustik",
+    "aliases": [],
+    "lat": 52.51578,
+    "lon": 13.32634,
+    "address": "Einsteinufer 25 (Zi TA 161, Sekr. TA 7), 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00029",
+    "isil": "DE-83-1037",
+    "name": "TU Berlin, Institut für Technische Informatik und Mikroelektronik, Fachgebiet Theoretische Elektrotechnik, Bibliothek",
+    "short_name": "Institut für Technische Informatik und Mikroelektronik, Fach",
+    "aliases": [],
+    "lat": 52.51476,
+    "lon": 13.32646,
+    "address": "Einsteinufer 17, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00038",
+    "isil": "DE-83-1050",
+    "name": "TU Berlin, Institut für Telekommunikationssysteme, Fachgebiet Nachrichtenübertragung, Bibliothek",
+    "short_name": "Institut für Telekommunikationssysteme, Fachgebiet Nachricht",
+    "aliases": [],
+    "lat": 52.51476,
+    "lon": 13.32646,
+    "address": "Einsteinufer 17 (Sekr. EN 1), 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00115",
+    "isil": "DE-83-1236",
+    "name": "TU Berlin, Institut für Theoretische Physik, Bibliothek",
+    "short_name": "Institut für Theoretische Physik",
+    "aliases": [],
+    "lat": 52.51027,
+    "lon": 13.32487,
+    "address": "Hardenbergstr. 36 (EW 746, Sekr. EW 7-1), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00090",
+    "isil": "DE-83-1174",
+    "name": "TU Berlin, Institut für Werkstoffwissenschaften und Technologien, Fachgebiet Metallische Werkstoffe, Bibliothek",
+    "short_name": "Institut für Werkstoffwissenschaften und Technologien, Fachg",
+    "aliases": [],
+    "lat": 52.51194,
+    "lon": 13.32307,
+    "address": "Ernst-Reuter-Pl. 1, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00113",
+    "isil": "DE-83-1232",
+    "name": "TU Berlin, Institut für Werkstoffwissenschaften und Technologien, Fachgebiete Polymerphysik und Polymertechnik, Bibliothek",
+    "short_name": "Institut für Werkstoffwissenschaften und Technologien, Fachg",
+    "aliases": [],
+    "lat": 52.51099,
+    "lon": 13.33179,
+    "address": "Fasanenstr. 90 (Sekr. Wf- PTK), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00045",
+    "isil": "DE-83-1061",
+    "name": "TU Berlin, Institut für Werkzeugmaschinen und Fabrikbetrieb (IWF), FG Werkzeugmaschinen und Fertigungstechnik, Bibliothek",
+    "short_name": "Institut für Werkzeugmaschinen und Fabrikbetrieb (IWF), FG W",
+    "aliases": [],
+    "lat": 52.52376,
+    "lon": 13.32394,
+    "address": "Pascalstr. 8/9, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00051",
+    "isil": "DE-83-1069",
+    "name": "TU Berlin, Institut für Werkzeugmaschinen und Fabrikbetrieb, Fachgebiet Beschichtungstechnik, Bibliothek",
+    "short_name": "Institut für Werkzeugmaschinen und Fabrikbetrieb, Fachgebiet",
+    "aliases": [],
+    "lat": 52.52322,
+    "lon": 13.32411,
+    "address": "Pascalstr. 8-10, 10587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00002",
+    "isil": "DE-83-123",
+    "name": "TU Berlin, Institut für Ökologie, Fachgebiete Pflanzenökologie, Klimatologie und Planungsbezogene Tierökologie",
+    "short_name": "Institut für Ökologie, Fachgebiete Pflanzenökologie, Klimato",
+    "aliases": [],
+    "lat": 52.4575,
+    "lon": 13.31432,
+    "address": "Rothenburgstraße 12, 12165 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00057",
+    "isil": "DE-83-1081",
+    "name": "TU Berlin, Mathematische Fachbibliothek",
+    "short_name": "Mathematische Fachbibliothek",
+    "aliases": [],
+    "lat": 52.51396,
+    "lon": 13.32522,
+    "address": "Straße des 17. Juni 136, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00017",
+    "isil": "DE-83-1003",
+    "name": "TU Berlin, Universitätsbibliothek, Bereichsbibliothek Architektur und Kunstwissenschaft",
+    "short_name": "Bereichsbibliothek Architektur und Kunstwissenschaft",
+    "aliases": [],
+    "lat": 52.5138,
+    "lon": 13.32306,
+    "address": "Straße des 17. Juni 152, 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00023",
+    "isil": "DE-83-1022",
+    "name": "TU Berlin, Universitätsbibliothek, Bereichsbibliothek Physik",
+    "short_name": "Bereichsbibliothek Physik",
+    "aliases": [],
+    "lat": 52.51027,
+    "lon": 13.32487,
+    "address": "Hardenbergstr. 36 (EW 223, Sekr. EW 2-2), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00118",
+    "isil": "DE-83-1247",
+    "name": "TU Berlin, Zentraleinrichtung Moderne Sprachen (ZEMS), Bibliothek",
+    "short_name": "Zentraleinrichtung Moderne Sprachen (ZEMS)",
+    "aliases": [],
+    "lat": 52.50817,
+    "lon": 13.3283,
+    "address": "Hardenbergstr. 16-18 (Sekr. HBS 3), 10623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "TUB00127",
+    "isil": "DE-83-1260",
+    "name": "TU Berlin, Zentrum für Antisemitismusforschung, Bibliothek",
+    "short_name": "Zentrum für Antisemitismusforschung",
+    "aliases": [],
+    "lat": 52.51296,
+    "lon": 13.32016,
+    "address": "Ernst-Reuter-Pl. 7, 10587 Berlin",
+    "match": []
+   }
+  ]
  },
  {
   "isil": "DE-109",
@@ -73,7 +866,9 @@
   "url": "https://www.zlb.de/",
   "opac": "https://www.voebb.de/",
   "email": "info@zlb.de",
-  "phone": "0049 30 9 02 26 401"
+  "phone": "0049 30 9 02 26 401",
+  "kobvid": null,
+  "branches": []
  },
  {
   "isil": "DE-139",
@@ -91,7 +886,9 @@
   "url": "http://www.srbffo.de",
   "opac": "http://www.srbffo.de/",
   "email": "verwaltung@srbffo.de",
-  "phone": "0049 335 54 98 52"
+  "phone": "0049 335 54 98 52",
+  "kobvid": "SIG00025",
+  "branches": []
  },
  {
   "isil": "DE-141",
@@ -106,10 +903,12 @@
   "address": "Gasstraße 6 (Promenade am Dreieck), 03172 Guben",
   "lat": 51.95033,
   "lon": 14.71291,
-  "url": null,
+  "url": "http://www.guben.de/bibo/index.htm",
   "opac": null,
   "email": "bibo@guben.de",
-  "phone": "0049 3561 68 71-2301"
+  "phone": "0049 3561 68 71-2301",
+  "kobvid": "SIG00176",
+  "branches": []
  },
  {
   "isil": "DE-181",
@@ -127,7 +926,9 @@
   "url": "http://www.lernzentrum-cottbus.de",
   "opac": "https://web-opac.bibliothek-cottbus.de",
   "email": "info@bibliothek-cottbus.de",
-  "phone": "0049 355 3 80 60-0"
+  "phone": "0049 355 3 80 60-0",
+  "kobvid": "BIB000000007",
+  "branches": []
  },
  {
   "isil": "DE-186",
@@ -145,7 +946,32 @@
   "url": "http://bibliothek.potsdam.de",
   "opac": "https://katalog-slb-potsdam.bibliotheca-open.de/",
   "email": "slb@bibliothek.potsdam.de",
-  "phone": "0049 331 2 89-6401"
+  "phone": "0049 331 2 89-6401",
+  "kobvid": "SIG00027",
+  "branches": [
+   {
+    "kobvid": "BIB000000316",
+    "isil": null,
+    "name": "Stadt- und Landesbibliothek Potsdam, Zweigbibliothek Waldstadt",
+    "short_name": "Zweigbibliothek Waldstadt",
+    "aliases": [],
+    "lat": 52.36435,
+    "lon": 13.09194,
+    "address": "Saarmunder Str. 44, 14478 Potsdam",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000317",
+    "isil": null,
+    "name": "Stadt- und Landesbilbiblothek Potsdam, Zweigbibliothek Am Stern",
+    "short_name": "Zweigbibliothek Am Stern",
+    "aliases": [],
+    "lat": 52.37575,
+    "lon": 13.13025,
+    "address": "Johannes-Kepler-Platz 1, 14480 Potsdam",
+    "match": []
+   }
+  ]
  },
  {
   "isil": "DE-188",
@@ -164,7 +990,167 @@
   "url": "https://www.fu-berlin.de/sites/ub/",
   "opac": "https://primo.fu-berlin.de",
   "email": "auskunft@ub.fu-berlin.de",
-  "phone": "0049 30 8 38-51111 (Auskunft)"
+  "phone": "0049 30 8 38-51111 (Auskunft)",
+  "kobvid": "FUB00001",
+  "branches": [
+   {
+    "kobvid": "FUB00056",
+    "isil": "DE-188-24",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Bibliothek am Botanischen Garten und Botanischen Museum",
+    "short_name": "Bibliothek am Botanischen Garten und Botanischen Museum",
+    "aliases": [],
+    "lat": 52.45848,
+    "lon": 13.30545,
+    "address": "Königin-Luise-Str. 6/8, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000275",
+    "isil": "DE-188-930",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Campusbibliothek Natur-, Kultur- und Bildungswissenschaften, Mathematik, Informatik und Psychologie",
+    "short_name": "Campusbibliothek Natur-, Kultur- und Bildungswissenschaften,",
+    "aliases": [],
+    "lat": 52.45383,
+    "lon": 13.29112,
+    "address": "Fabeckstr. 23-25, 14195 Berlin",
+    "match": [
+     "Campusbibliothek"
+    ]
+   },
+   {
+    "kobvid": "FUB00063",
+    "isil": "DE-188-827",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Biologie am Botanischen Garten",
+    "short_name": "Fachbibliothek Biologie am Botanischen Garten",
+    "aliases": [],
+    "lat": 52.45334,
+    "lon": 13.30869,
+    "address": "Königin-Luise-Str. 6/8, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "FUB00027",
+    "isil": "DE-188-835",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Geowissenschaften",
+    "short_name": "Fachbibliothek Geowissenschaften",
+    "aliases": [],
+    "lat": 52.42608,
+    "lon": 13.35741,
+    "address": "Malteserstr. 74/100, 12249 Berlin",
+    "match": [
+     "Geowissenschaften"
+    ]
+   },
+   {
+    "kobvid": "FUB00025",
+    "isil": "DE-188-832",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Geowissenschaften, Zweigbibliothek Meteorologie",
+    "short_name": "Fachbibliothek Geowissenschaften, Zweigbibliothek Meteorolog",
+    "aliases": [],
+    "lat": 52.45756,
+    "lon": 13.31074,
+    "address": "Carl-Heinrich-Becker-Weg 6/10, 12165 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "FUB00010",
+    "isil": "DE-188-807",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Geschichts- und Kunstwissenschaften",
+    "short_name": "Fachbibliothek Geschichts- und Kunstwissenschaften",
+    "aliases": [],
+    "lat": 52.46136,
+    "lon": 13.29496,
+    "address": "Koserstr. 20, 14195 Berlin",
+    "match": [
+     "Geschichts- u. Kunstwissenschaften"
+    ]
+   },
+   {
+    "kobvid": "FUB00069",
+    "isil": "DE-188-144",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Nordamerikastudien",
+    "short_name": "Fachbibliothek Nordamerikastudien",
+    "aliases": [],
+    "lat": 52.45717,
+    "lon": 13.29195,
+    "address": "Lansstr. 7/9, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "FUB00011",
+    "isil": "DE-188-808",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Rechtswissenschaft",
+    "short_name": "Fachbibliothek Rechtswissenschaft",
+    "aliases": [],
+    "lat": 52.44699,
+    "lon": 13.28329,
+    "address": "Van't-Hoff-Str. 8, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000271",
+    "isil": "DE-188-211",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Sozialwissenschaften und Osteuropastudien",
+    "short_name": "Fachbibliothek Sozialwissenschaften und Osteuropastudien",
+    "aliases": [],
+    "lat": 52.44937,
+    "lon": 13.27586,
+    "address": "Garystr. 55, 14195 Berlin",
+    "match": [
+     "Sozialwissenschaften"
+    ]
+   },
+   {
+    "kobvid": "FUB00032",
+    "isil": "DE-188-846",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Veterinärmedizin",
+    "short_name": "Fachbibliothek Veterinärmedizin",
+    "aliases": [],
+    "lat": 52.42908,
+    "lon": 13.23768,
+    "address": "Oertzenweg 19 B, 14163 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "FUB00021",
+    "isil": "DE-188-820",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Fachbibliothek Wirtschaftswissenschaft",
+    "short_name": "Fachbibliothek Wirtschaftswissenschaft",
+    "aliases": [],
+    "lat": 52.44706,
+    "lon": 13.28135,
+    "address": "Garystr. 21, 14195 Berlin",
+    "match": [
+     "Wirtschaftswissenschaft"
+    ]
+   },
+   {
+    "kobvid": "FUB00019",
+    "isil": "DE-188-920",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Philologische Bibliothek",
+    "short_name": "Philologische Bibliothek",
+    "aliases": [
+     "PHILBIB"
+    ],
+    "lat": 52.45186,
+    "lon": 13.28847,
+    "address": "Habelschwerdter Allee 45, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "FUB00020",
+    "isil": "DE-188-819",
+    "name": "Freie Universität Berlin, Universitätsbibliothek, Philologische Bibliothek, Zweigbibliothek Theaterwissenschaft",
+    "short_name": "Philologische Bibliothek, Zweigbibliothek Theaterwissenschaf",
+    "aliases": [],
+    "lat": 52.45915,
+    "lon": 13.30764,
+    "address": "Grunewaldstr. 35, 12165 Berlin",
+    "match": [
+     "Theaterwissenschaft"
+    ]
+   }
+  ]
  },
  {
   "isil": "DE-204",
@@ -182,7 +1168,9 @@
   "url": "http://www.iai.spk-berlin.de/",
   "opac": "http://www.iaicat.de",
   "email": "info@iai.spk-berlin.de",
-  "phone": "0049 30 2 66-451500"
+  "phone": "0049 30 2 66-451500",
+  "kobvid": "KOB00127",
+  "branches": []
  },
  {
   "isil": "DE-287",
@@ -200,7 +1188,9 @@
   "url": null,
   "opac": null,
   "email": "ZInfoABwBibliothek@bundeswehr.org",
-  "phone": "0049 3341 58-2085 und -2084"
+  "phone": "0049 3341 58-2085 und -2084",
+  "kobvid": "SIG00173",
+  "branches": []
  },
  {
   "isil": "DE-501",
@@ -218,7 +1208,9 @@
   "url": "https://bibliothek.kyritz.de",
   "opac": "https://bibkataloge.de/kyritz",
   "email": "Bibliothek@Kyritz.de",
-  "phone": "0049 33971 85 278"
+  "phone": "0049 33971 85 278",
+  "kobvid": "SIG00121",
+  "branches": []
  },
  {
   "isil": "DE-502",
@@ -236,7 +1228,9 @@
   "url": "https://opac.winbiap.net/zossen/index.aspx",
   "opac": null,
   "email": "bibliothekzs@svzossen.brandenburg.de",
-  "phone": "0049 3377 3 04 04 77"
+  "phone": "0049 3377 3 04 04 77",
+  "kobvid": "SIG00122",
+  "branches": []
  },
  {
   "isil": "DE-504",
@@ -252,9 +1246,11 @@
   "lat": 52.41382,
   "lon": 12.55402,
   "url": "http://www.stadt-brandenburg.de/bibliothek",
-  "opac": null,
+  "opac": "https://bibliothek.stadt-brandenburg.de/webOPACClient/start.do?Login=opac",
   "email": "bibo@stadt-brandenburg.de",
-  "phone": "0049 3381 58 42 07"
+  "phone": "0049 3381 58 42 07",
+  "kobvid": "SIG00208",
+  "branches": []
  },
  {
   "isil": "DE-505",
@@ -270,9 +1266,11 @@
   "lat": 51.99189,
   "lon": 13.07778,
   "url": "https://www.jueterbog.eu/seite/180125/stadtbibliothek.html",
-  "opac": null,
+  "opac": "http://moenchenkloster.dyndns.org/iopac/iopacie.htm",
   "email": "stadtbibliothek@jueterbog.de",
-  "phone": "0049 3372 46 31 40"
+  "phone": "0049 3372 46 31 40",
+  "kobvid": "SIG00123",
+  "branches": []
  },
  {
   "isil": "DE-506a",
@@ -290,7 +1288,9 @@
   "url": "http://www.bibliothek.luckenwalde.de",
   "opac": "http://mybibliotheca.net/opac-lucken/app/pages/webopac/index.aspx",
   "email": "bibliothek@luckenwalde.de",
-  "phone": "0049 3371 40 33-40 und -42"
+  "phone": "0049 3371 40 33-40 und -42",
+  "kobvid": "SIG00124",
+  "branches": []
  },
  {
   "isil": "DE-508",
@@ -308,7 +1308,9 @@
   "url": "https://stadtbibliothekoranienburg.bibliotheca-open.de/",
   "opac": null,
   "email": "stadtbibliothek@oranienburg.de",
-  "phone": "0049 3301 60 08 66 0"
+  "phone": "0049 3301 60 08 66 0",
+  "kobvid": "SIG00120",
+  "branches": []
  },
  {
   "isil": "DE-510",
@@ -326,7 +1328,9 @@
   "url": "http://www.wittstock.de/verzeichnis/visitenkarte.php?mandat=48414",
   "opac": null,
   "email": "bibliothek@stadt-wittstock.de",
-  "phone": "0049 3394 42 94 00"
+  "phone": "0049 3394 42 94 00",
+  "kobvid": "SIG00263",
+  "branches": []
  },
  {
   "isil": "DE-511",
@@ -344,7 +1348,9 @@
   "url": "https://stadtbibliothek-kw.bibliotheca-open.de/",
   "opac": null,
   "email": "info@bibliothek-kw.de",
-  "phone": "0049 3375 25 60-0"
+  "phone": "0049 3375 25 60-0",
+  "kobvid": "SIG00264",
+  "branches": []
  },
  {
   "isil": "DE-512",
@@ -362,7 +1368,9 @@
   "url": "http://bibliothekenverbund-oberhavel-nord.de/index.html",
   "opac": null,
   "email": "bibliothek.gransee@gmx.de",
-  "phone": "0049 3306 22 28"
+  "phone": "0049 3306 22 28",
+  "kobvid": "SIG00265",
+  "branches": []
  },
  {
   "isil": "DE-513",
@@ -378,9 +1386,11 @@
   "lat": 52.92455,
   "lon": 12.80566,
   "url": "https://www.altes-gymnasium-neuruppin.de",
-  "opac": null,
+  "opac": "https://www.bibkataloge.de/neuruppin/webopac/",
   "email": "bibliothek@altes-gymnasium-neuruppin.de",
-  "phone": "0049 3391 3 55 52 04"
+  "phone": "0049 3391 3 55 52 04",
+  "kobvid": "SIG00266",
+  "branches": []
  },
  {
   "isil": "DE-514",
@@ -398,7 +1408,9 @@
   "url": "http://www.stadtbibliothek.rathenow.de",
   "opac": null,
   "email": "bibliothek@stadt-rathenow.de",
-  "phone": "0049 3385 51 26 83"
+  "phone": "0049 3385 51 26 83",
+  "kobvid": "SIG00267",
+  "branches": []
  },
  {
   "isil": "DE-517",
@@ -417,7 +1429,35 @@
   "url": "https://www.ub.uni-potsdam.de/ub.html",
   "opac": "https://opac.ub.uni-potsdam.de/",
   "email": "ubinfo-list@uni-potsdam.de",
-  "phone": "0049 331 9 77-2103"
+  "phone": "0049 331 9 77-2103",
+  "kobvid": "KOB00217",
+  "branches": [
+   {
+    "kobvid": "BIB000000307",
+    "isil": null,
+    "name": "Universität Potsdam, Universitätsbibliothek Bereichsbibliothek Neues Palais",
+    "short_name": "Universitätsbibliothek Bereichsbibliothek Neues Palais",
+    "aliases": [],
+    "lat": 52.40119,
+    "lon": 13.01274,
+    "address": "Am Neuen Palais 10, 14469 Potsdam",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000308",
+    "isil": null,
+    "name": "Universität Potsdam, Universitätsbibliothek, Bereichsbibliothek Babelsberg",
+    "short_name": "Bereichsbibliothek Babelsberg",
+    "aliases": [],
+    "lat": 52.39283,
+    "lon": 13.12663,
+    "address": "August-Bebel-Str. 89, 14482 Potsdam",
+    "match": [
+     "UB / BB Babelsberg/Griebnitzsee",
+     "UB / Magazin Babelsberg"
+    ]
+   }
+  ]
  },
  {
   "isil": "DE-521",
@@ -436,7 +1476,21 @@
   "url": "https://www.ub.europa-uni.de/de/index.html",
   "opac": "https://opac.europa-uni.de/InfoGuideClient.euvsis/start.do?Login=igeuv",
   "email": "ub_ausk@europa-uni.de",
-  "phone": "0049 335 55 34-3366"
+  "phone": "0049 335 55 34-3366",
+  "kobvid": "SIG00213",
+  "branches": [
+   {
+    "kobvid": "BIB000000359",
+    "isil": null,
+    "name": "Europa-Universität Viadrina, Universitätsbibliothek, Selbstlernzentrum",
+    "short_name": "Selbstlernzentrum",
+    "aliases": [],
+    "lat": 52.34721,
+    "lon": 14.51509,
+    "address": "August-Bebel-Str. 12, Raum AB 016, 15234 Frankfurt (Oder)",
+    "match": []
+   }
+  ]
  },
  {
   "isil": "DE-522",
@@ -454,7 +1508,9 @@
   "url": "https://bibliothek.th-brandenburg.de/",
   "opac": "https://opac.th-brandenburg.de",
   "email": "bibliothek@th-brandenburg.de",
-  "phone": "0049 3381 35 51 67"
+  "phone": "0049 3381 35 51 67",
+  "kobvid": "SIG00171",
+  "branches": []
  },
  {
   "isil": "DE-523",
@@ -472,7 +1528,9 @@
   "url": "http://bibliothek.htw-berlin.de/",
   "opac": "http://bibliothek.htw-berlin.de/literatur-suchen/",
   "email": "bibliothek@htw-berlin.de",
-  "phone": "0049 30 50 19-2221"
+  "phone": "0049 30 50 19-2221",
+  "kobvid": "SIG00100",
+  "branches": []
  },
  {
   "isil": "DE-525",
@@ -490,7 +1548,9 @@
   "url": "https://bibliothek.fh-potsdam.de",
   "opac": "https://opac.fh-potsdam.de/",
   "email": "fernleihe@fh-potsdam.de",
-  "phone": "0049 331 5 80-8940 und -8941"
+  "phone": "0049 331 5 80-8940 und -8941",
+  "kobvid": "SIG00081",
+  "branches": []
  },
  {
   "isil": "DE-526",
@@ -508,7 +1568,9 @@
   "url": "https://www.th-wildau.de/bibliothek",
   "opac": "https://wilbert.kobv.de",
   "email": "bibinfo@th-wildau.de",
-  "phone": "0049 3375 5 08-521 und -155"
+  "phone": "0049 3375 5 08-521 und -155",
+  "kobvid": "SIG00220",
+  "branches": []
  },
  {
   "isil": "DE-529",
@@ -526,7 +1588,9 @@
   "url": "http://www.calau.de/verzeichnis/visitenkarte.php?mandat=64718",
   "opac": null,
   "email": "stadtbibliothek@calau.de",
-  "phone": "0049 3541 89 15 11 (Büro) 89 15 12 (Ausleihe)"
+  "phone": "0049 3541 89 15 11 (Büro) 89 15 12 (Ausleihe)",
+  "kobvid": "SIG00307",
+  "branches": []
  },
  {
   "isil": "DE-530",
@@ -544,7 +1608,9 @@
   "url": "https://sb-falkensee.lmscloud.net/",
   "opac": null,
   "email": "bibliothek@falkensee.de",
-  "phone": "0049 3322 2 25 89"
+  "phone": "0049 3322 2 25 89",
+  "kobvid": "SIG00308",
+  "branches": []
  },
  {
   "isil": "DE-531",
@@ -562,7 +1628,9 @@
   "url": "https://www.finsterwalde.de/Leben-in-Finsterwalde/Freizeit-/Bibliothek/",
   "opac": "https://sb-finsterwalde.webopac.net/index.php",
   "email": "bibliothek@finsterwalde.de",
-  "phone": "0049 3531 20 70"
+  "phone": "0049 3531 20 70",
+  "kobvid": "SIG00309",
+  "branches": []
  },
  {
   "isil": "DE-532",
@@ -580,7 +1648,9 @@
   "url": "http://www.hennigsdorf.de/index.phtml?sNavID=1126.73&La=1",
   "opac": null,
   "email": "stadtbibliothek@hennigsdorf.de",
-  "phone": "0049 3302 87 74 00"
+  "phone": "0049 3302 87 74 00",
+  "kobvid": "SIG00310",
+  "branches": []
  },
  {
   "isil": "DE-533",
@@ -598,7 +1668,9 @@
   "url": "https://ludwigsfelde.bibliotheca-open.de/",
   "opac": "https://ludwigsfelde.bibliotheca-open.de/Mediensuche/Einfache-Suche",
   "email": "bibliothek@ludwigsfelde.de",
-  "phone": "0049 3378 8 27-222"
+  "phone": "0049 3378 8 27-222",
+  "kobvid": "SIG00311",
+  "branches": []
  },
  {
   "isil": "DE-534",
@@ -616,7 +1688,9 @@
   "url": "https://stadtbibliothek-strausberg.bibliotheca-open.de/",
   "opac": null,
   "email": "bibliothek@stadt-strausberg.de",
-  "phone": "0049 3341 38 12 62"
+  "phone": "0049 3341 38 12 62",
+  "kobvid": "SIG00312",
+  "branches": []
  },
  {
   "isil": "DE-535",
@@ -632,9 +1706,11 @@
   "lat": 53.07696,
   "lon": 11.86457,
   "url": "http://www.stadtbibliothek-perleberg.de",
-  "opac": null,
+  "opac": "http://www.bibliothek.stadt-perleberg.de/",
   "email": "fernleihe@stadt-perleberg.de",
-  "phone": "0049 3876 61 29 27"
+  "phone": "0049 3876 61 29 27",
+  "kobvid": "SIG00313",
+  "branches": []
  },
  {
   "isil": "DE-536",
@@ -650,9 +1726,11 @@
   "lat": 52.31767,
   "lon": 12.74512,
   "url": "http://www.potsdam-mittelmark.de",
-  "opac": null,
+  "opac": "http://www.potsdam-mittelmark.de/webopac",
   "email": "medienzentrum@potsdam-mittelmark.de",
-  "phone": "0049 3382 73 20 26 und 73 20 29"
+  "phone": "0049 3382 73 20 26 und 73 20 29",
+  "kobvid": "SIG00314",
+  "branches": []
  },
  {
   "isil": "DE-537",
@@ -670,7 +1748,9 @@
   "url": "http://www.bibliothek-zehdenick.de/",
   "opac": null,
   "email": "Stadtbibliothek@zehdenick.de",
-  "phone": "0049 3307 46 84-200"
+  "phone": "0049 3307 46 84-200",
+  "kobvid": "SIG00315",
+  "branches": []
  },
  {
   "isil": "DE-571",
@@ -688,7 +1768,9 @@
   "url": "https://hpolbb.de/hochschulbibliothek",
   "opac": null,
   "email": "bibliothek@hpolbb.de",
-  "phone": "0049 3301 8 50-2185"
+  "phone": "0049 3301 8 50-2185",
+  "kobvid": "SIG00316",
+  "branches": []
  },
  {
   "isil": "DE-578",
@@ -706,7 +1788,58 @@
   "url": "https://bibliothek.charite.de/",
   "opac": "https://primo.fu-berlin.de",
   "email": null,
-  "phone": null
+  "phone": null,
+  "kobvid": null,
+  "branches": [
+   {
+    "kobvid": "FUB00022",
+    "isil": "DE-578-821",
+    "name": "Charité - Universitätsmedizin Berlin, Campus Benjamin Franklin, Institut für Zahn-, Mund- und Kieferheilkunde, Bibliothek",
+    "short_name": "Campus Benjamin Franklin, Institut für Zahn-, Mund- und Kief",
+    "aliases": [],
+    "lat": 52.477,
+    "lon": 13.31303,
+    "address": "Assmannshauserstr. 4-6, 14197 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "FUB00040",
+    "isil": "DE-578-876",
+    "name": "Charité - Universitätsmedizin Berlin, Institut für Geschichte der Medizin und Ethik in der Medizin, Medical Humanities: Bibliothek für Geschichte der Medizin und Soziale Medizin",
+    "short_name": "Institut für Geschichte der Medizin und Ethik in der Medizin",
+    "aliases": [],
+    "lat": 52.44629,
+    "lon": 13.28354,
+    "address": "Thielallee 71, 14195 Berlin",
+    "match": [
+     "Charité Bibl. Med. Humanities"
+    ]
+   },
+   {
+    "kobvid": "HUB00044",
+    "isil": "DE-578-2",
+    "name": "Charité - Universitätsmedizin Berlin, Medizinische Bibliothek, Campus Charité Mitte (CCM)",
+    "short_name": "Campus Charité Mitte (CCM)",
+    "aliases": [],
+    "lat": 52.52689,
+    "lon": 13.38159,
+    "address": "Philippstraße 11/12, 10115 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000304",
+    "isil": "DE-578-M",
+    "name": "Medizinische Bibliothek der Charité - Universitätsmedizin Berlin, Magazin",
+    "short_name": "Medizinische Bibliothek der Charité - Universitätsmedizin Be",
+    "aliases": [],
+    "lat": 52.54183,
+    "lon": 13.34014,
+    "address": "Augustenburger Platz 1, 13344 Berlin",
+    "match": [
+     "Charité Med. Bibl. Magazin"
+    ]
+   }
+  ]
  },
  {
   "isil": "DE-578-3",
@@ -724,14 +1857,15 @@
   "url": "http://bibliothek.charite.de/",
   "opac": "https://charite-berlin.primo.exlibrisgroup.com/discovery/search?vid=49KOBV_FUB:CHA",
   "email": "medbibcvk@charite.de",
-  "phone": "0049 30 4 50-576333"
+  "phone": "0049 30 4 50-576333",
+  "kobvid": "BIB000000021",
+  "branches": []
  },
  {
   "isil": "DE-609",
   "aliases": [
    "VOEBB",
-   "ZLB",
-   "AGB"
+   "ZLB"
   ],
   "short_name": "Berlin VÖBB/ZLB",
   "portal_name": "Berlin VÖBB/ZLB",
@@ -744,7 +1878,1143 @@
   "url": "http://www.voebb.de",
   "opac": null,
   "email": "support-voebb@zlb.de",
-  "phone": "0049 30 9 02 26-611"
+  "phone": "0049 30 9 02 26-611",
+  "kobvid": null,
+  "branches": [
+   {
+    "kobvid": "KOB00206",
+    "isil": "DE-2323",
+    "name": "Archiv der Jugendkulturen e.V., Bibliothek und Archiv",
+    "short_name": "Archiv der Jugendkulturen e.V.",
+    "aliases": [],
+    "lat": 52.48647,
+    "lon": 13.38969,
+    "address": "Fidicinstr. 3, 10965 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00195",
+    "isil": "DE-B774",
+    "name": "Berlin, Bezirksamt Tempelhof-Schöneberg, Verwaltungsbücherei",
+    "short_name": "Berlin, Bezirksamt Tempelhof-Schöneberg, Verwaltungsbücherei",
+    "aliases": [],
+    "lat": 52.48492,
+    "lon": 13.34463,
+    "address": "John-F.-Kennedy-Pl. (Rathaus), 10825 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00193",
+    "isil": "DE-B775",
+    "name": "Bezirksamt Charlottenburg-Wilmersdorf von Berlin, Verwaltungsinformationszentrum (VIZ)",
+    "short_name": "Bezirksamt Charlottenburg-Wilmersdorf von Berlin, Verwaltung",
+    "aliases": [],
+    "lat": 52.5171,
+    "lon": 13.30886,
+    "address": "Otto-Suhr-Allee 100, 10585 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00082",
+    "isil": null,
+    "name": "Stadtbibliothek Charlottenburg-Wilmersdorf / Adolf-Reichwein-Bibliothek",
+    "short_name": "Adolf-Reichwein-Bibliothek",
+    "aliases": [],
+    "lat": 52.47756,
+    "lon": 13.28805,
+    "address": "Berkaer Str. 7, 14199 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00042",
+    "isil": null,
+    "name": "Stadtbibliothek Charlottenburg-Wilmersdorf / Dietrich-Bonhoeffer-Bibliothek",
+    "short_name": "Dietrich-Bonhoeffer-Bibliothek",
+    "aliases": [],
+    "lat": 52.48721,
+    "lon": 13.32004,
+    "address": "Brandenburgische Str. 2, 10713 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00083",
+    "isil": null,
+    "name": "Stadtbibliothek Charlottenburg-Wilmersdorf / Eberhard-Alexander-Burgh-Bibliothek",
+    "short_name": "Eberhard-Alexander-Burgh-Bibliothek",
+    "aliases": [],
+    "lat": 52.47136,
+    "lon": 13.31344,
+    "address": "Rüdesheimer Str. 14, 14197 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00043",
+    "isil": "DE-B710",
+    "name": "Stadtbibliothek Charlottenburg-Wilmersdorf / Heinrich-Schulz-Bibliothek mit Musikabteilung",
+    "short_name": "Heinrich-Schulz-Bibliothek mit Musikabteilung",
+    "aliases": [],
+    "lat": 52.51701,
+    "lon": 13.30882,
+    "address": "Otto-Suhr-Allee 98, 10585 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00087",
+    "isil": null,
+    "name": "Stadtbibliothek Charlottenburg-Wilmersdorf / Ingeborg-Bachmann-Bibliothek",
+    "short_name": "Ingeborg-Bachmann-Bibliothek",
+    "aliases": [],
+    "lat": 52.51454,
+    "lon": 13.29402,
+    "address": "Nehringstr. 10, 14059 Berlin",
+    "match": [
+     "Charlottenburg-Wilmersdorf / Ingeborg-Bachmann-Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "KOB00086",
+    "isil": null,
+    "name": "Stadtbibliothek Charlottenburg-Wilmersdorf / Johanna-Moosdorf-Bibliothek",
+    "short_name": "Johanna-Moosdorf-Bibliothek",
+    "aliases": [],
+    "lat": 52.51058,
+    "lon": 13.25844,
+    "address": "Westendallee 45, 14052 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00085",
+    "isil": null,
+    "name": "Stadtbibliothek Charlottenburg-Wilmersdorf / Stadtteilbibliothek Halemweg",
+    "short_name": "Stadtteilbibliothek Halemweg",
+    "aliases": [],
+    "lat": 52.53771,
+    "lon": 13.28698,
+    "address": "Halemweg 18, 13627 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00226",
+    "isil": "DE-B458",
+    "name": "Stadtbibliothek Friedrichshain-Kreuzberg / Bezirkszentralbibliothek Pablo Neruda",
+    "short_name": "Bezirkszentralbibliothek Pablo Neruda",
+    "aliases": [],
+    "lat": 52.51459,
+    "lon": 13.45709,
+    "address": "Frankfurter Allee 14 A, 10247 Berlin",
+    "match": [
+     "Friedrichshain-Kreuzberg / Bibliothek Frankfurter Allee 14a"
+    ]
+   },
+   {
+    "kobvid": "BIB000000116",
+    "isil": null,
+    "name": "Stadtbibliothek Friedrichshain-Kreuzberg / Familienbibliothek Else Ury",
+    "short_name": "Familienbibliothek Else Ury",
+    "aliases": [],
+    "lat": 52.49259,
+    "lon": 13.43636,
+    "address": "Glogauer Str. 13, 10999 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00040",
+    "isil": "DE-B703",
+    "name": "Stadtbibliothek Friedrichshain-Kreuzberg / Mittelpunktbibliothek Wilhelm Liebknecht / Namik Kemal",
+    "short_name": "Mittelpunktbibliothek Wilhelm Liebknecht / Namik Kemal",
+    "aliases": [],
+    "lat": 52.49978,
+    "lon": 13.41844,
+    "address": "Adalbertstr. 2, 10999 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000118",
+    "isil": "DE-4039",
+    "name": "Stadtbibliothek Friedrichshain-Kreuzberg / Schulbibliothek Blücherstr. (nicht öffentlich)",
+    "short_name": "Schulbibliothek Blücherstr. (nicht öffentlich)",
+    "aliases": [],
+    "lat": 52.49113,
+    "lon": 13.40574,
+    "address": "Blücherstraße 46-47, 10961 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00231",
+    "isil": "DE-B709",
+    "name": "Stadtbibliothek Friedrichshain-Kreuzberg / Stadtteilbibliothek Friedrich von Raumer",
+    "short_name": "Stadtteilbibliothek Friedrich von Raumer",
+    "aliases": [],
+    "lat": 52.48519,
+    "lon": 13.38276,
+    "address": "Dudenstr. 18 - 20, 10965 Berlin",
+    "match": [
+     "Friedrichshain-Kreuzberg / Bibliothek Dudenstr."
+    ]
+   },
+   {
+    "kobvid": "KOB00045",
+    "isil": "DE-B2139",
+    "name": "Stadtbibliothek Lichtenberg / Anna-Seghers-Bibliothek",
+    "short_name": "Anna-Seghers-Bibliothek",
+    "aliases": [],
+    "lat": 52.56477,
+    "lon": 13.50577,
+    "address": "Prerower Platz 2, 13051 Berlin",
+    "match": [
+     "Lichtenberg / Anna-Seghers-Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "KOB00046",
+    "isil": "DE-B460",
+    "name": "Stadtbibliothek Lichtenberg / Anton-Saefkow-Bibliothek",
+    "short_name": "Anton-Saefkow-Bibliothek",
+    "aliases": [],
+    "lat": 52.53052,
+    "lon": 13.47075,
+    "address": "Anton-Saefkow-Platz 14, 10369 Berlin",
+    "match": [
+     "Lichtenberg / Anton-Saefkow-Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "KOB00048",
+    "isil": null,
+    "name": "Stadtbibliothek Lichtenberg / Bodo-Uhse-Bibliothek",
+    "short_name": "Bodo-Uhse-Bibliothek",
+    "aliases": [],
+    "lat": 52.49762,
+    "lon": 13.52063,
+    "address": "Erich-Kurz-Str. 9, 10319 Berlin",
+    "match": [
+     "Lichtenberg / Bodo-Uhse-Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "KOB00053",
+    "isil": null,
+    "name": "Stadtbibliothek Lichtenberg / Egon-Erwin-Kisch-Bibliothek",
+    "short_name": "Egon-Erwin-Kisch-Bibliothek",
+    "aliases": [],
+    "lat": 52.51336,
+    "lon": 13.48103,
+    "address": "Frankfurter Allee 149, 10365 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00054",
+    "isil": "DE-B2228",
+    "name": "Stadtbibliothek Marzahn-Hellersdorf / Bezirkszentralbibliothek Mark Twain",
+    "short_name": "Bezirkszentralbibliothek Mark Twain",
+    "aliases": [],
+    "lat": 52.54722,
+    "lon": 13.5567,
+    "address": "Marzahner Promenade 54, 12679 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00055",
+    "isil": "DE-B2227",
+    "name": "Stadtbibliothek Marzahn-Hellersdorf / Mittelpunktbibliothek Ehm Welk",
+    "short_name": "Mittelpunktbibliothek Ehm Welk",
+    "aliases": [],
+    "lat": 52.54628,
+    "lon": 13.59135,
+    "address": "Alte Hellersdorfer Str. 125, 12629 Berlin",
+    "match": [
+     "Marzahn-Hellersdorf / Ehm Welk Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "BIB000000122",
+    "isil": null,
+    "name": "Stadtbibliothek Marzahn-Hellersdorf / Musikbibliothek (in der Mark-Twain-Bibliothek)",
+    "short_name": "Musikbibliothek (in der Mark-Twain-Bibliothek)",
+    "aliases": [],
+    "lat": 52.54719,
+    "lon": 13.55709,
+    "address": "Marzahner Promenade 54, 12679 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000121",
+    "isil": null,
+    "name": "Stadtbibliothek Marzahn-Hellersdorf / Stadtteilbibliothek Erich Weinert",
+    "short_name": "Stadtteilbibliothek Erich Weinert",
+    "aliases": [],
+    "lat": 52.52815,
+    "lon": 13.53869,
+    "address": "Helene-Weigel-Platz 4, 12681 Berlin",
+    "match": [
+     "Marzahn-Hellersdorf / Erich Weinert Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "BIB000000123",
+    "isil": null,
+    "name": "Stadtbibliothek Marzahn-Hellersdorf / Stadtteilbibliothek Heinrich von Kleist",
+    "short_name": "Stadtteilbibliothek Heinrich von Kleist",
+    "aliases": [],
+    "lat": 52.56823,
+    "lon": 13.57394,
+    "address": "Havemannstr. 17B, 12689 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000119",
+    "isil": null,
+    "name": "Stadtbibliothek Marzahn-Hellersdorf / Stadtteilbibliothek Kaulsdorf - Nord",
+    "short_name": "Stadtteilbibliothek Kaulsdorf - Nord",
+    "aliases": [],
+    "lat": 52.52929,
+    "lon": 13.59306,
+    "address": "Neue Grottkauer Str. 5, 12619 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000120",
+    "isil": null,
+    "name": "Stadtbibliothek Marzahn-Hellersdorf / Stadtteilbibliothek Mahlsdorf",
+    "short_name": "Stadtteilbibliothek Mahlsdorf",
+    "aliases": [],
+    "lat": 52.50556,
+    "lon": 13.61279,
+    "address": "Alt-Mahlsdorf 24-26, 12623 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00057",
+    "isil": "DE-B456",
+    "name": "Stadtbibliothek Mitte / Bezirkszentralbibliothek Philipp Schaeffer",
+    "short_name": "Bezirkszentralbibliothek Philipp Schaeffer",
+    "aliases": [],
+    "lat": 52.53172,
+    "lon": 13.39932,
+    "address": "Brunnenstr. 181, 10119 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00062",
+    "isil": "DE-B717",
+    "name": "Stadtbibliothek Mitte / Bibliothek Tiergarten Süd",
+    "short_name": "Bibliothek Tiergarten Süd",
+    "aliases": [],
+    "lat": 52.50375,
+    "lon": 13.36343,
+    "address": "Lützowstr. 27, 10785 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00065",
+    "isil": "DE-B788",
+    "name": "Stadtbibliothek Mitte / Bibliothek am Luisenbad",
+    "short_name": "Bibliothek am Luisenbad",
+    "aliases": [],
+    "lat": 52.55361,
+    "lon": 13.3795,
+    "address": "Badstr. 39, 13357 Berlin",
+    "match": [
+     "Mitte / Bibliothek am Luisenbad"
+    ]
+   },
+   {
+    "kobvid": "KOB00061",
+    "isil": "DE-B707",
+    "name": "Stadtbibliothek Mitte / Bruno-Loesche-Bibliothek",
+    "short_name": "Bruno-Loesche-Bibliothek",
+    "aliases": [],
+    "lat": 52.53128,
+    "lon": 13.34766,
+    "address": "Perleberger Str. 33, 10559 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000124",
+    "isil": null,
+    "name": "Stadtbibliothek Mitte / Fahrbibliothek Mitte Bus 1",
+    "short_name": "Fahrbibliothek Mitte Bus 1",
+    "aliases": [],
+    "lat": 52.55173,
+    "lon": 13.3956,
+    "address": "Badstr. 39, 13357 Berlin",
+    "match": [
+     "Mitte / Fahrbibliothek 1"
+    ]
+   },
+   {
+    "kobvid": "BIB000000367",
+    "isil": null,
+    "name": "Stadtbibliothek Mitte / Fahrbibliothek Mitte Bus 2",
+    "short_name": "Fahrbibliothek Mitte Bus 2",
+    "aliases": [],
+    "lat": 52.53684,
+    "lon": 13.3982,
+    "address": "Badstr. 39, 13357 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000368",
+    "isil": null,
+    "name": "Stadtbibliothek Mitte / Fahrbibliothek Mitte Bus 3",
+    "short_name": "Fahrbibliothek Mitte Bus 3",
+    "aliases": [],
+    "lat": 52.52354,
+    "lon": 13.33175,
+    "address": "Badstr. 39, 13357 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00066",
+    "isil": null,
+    "name": "Stadtbibliothek Mitte / Hansabibliothek",
+    "short_name": "Hansabibliothek",
+    "aliases": [],
+    "lat": 52.51718,
+    "lon": 13.34253,
+    "address": "Altonaer Str. 15, 10557 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00067",
+    "isil": null,
+    "name": "Stadtbibliothek Mitte / Kurt-Tucholsky-Bibliothek (Mitte)",
+    "short_name": "Kurt-Tucholsky-Bibliothek (Mitte)",
+    "aliases": [],
+    "lat": 52.53186,
+    "lon": 13.32585,
+    "address": "Rostocker Str. 32b, 10553 Berlin",
+    "match": [
+     "Mitte / Kurt-Tucholsky-Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "BIB000000366",
+    "isil": null,
+    "name": "Stadtbibliothek Mitte / MakerMobil Mitte",
+    "short_name": "MakerMobil Mitte",
+    "aliases": [],
+    "lat": 52.55361,
+    "lon": 13.3795,
+    "address": "Badstr. 39, 13357 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000113",
+    "isil": "DE-B718",
+    "name": "Stadtbibliothek Mitte / Schiller-Bibliothek",
+    "short_name": "Schiller-Bibliothek",
+    "aliases": [],
+    "lat": 52.54654,
+    "lon": 13.35738,
+    "address": "Müllerstr. 149, 13353 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000232",
+    "isil": null,
+    "name": "Stadtbibliothek Neukoelln / Gertrud-Haß-Bibliothek",
+    "short_name": "Gertrud-Haß-Bibliothek",
+    "aliases": [],
+    "lat": 52.41889,
+    "lon": 13.49406,
+    "address": "Alt-Rudow 45, 12357 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000234",
+    "isil": null,
+    "name": "Stadtbibliothek Neukoelln / Gertrud-Junge-Bibliothek",
+    "short_name": "Gertrud-Junge-Bibliothek",
+    "aliases": [],
+    "lat": 52.42552,
+    "lon": 13.46245,
+    "address": "Bat-Yam-Platz 1, 12353 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00038",
+    "isil": "DE-B700",
+    "name": "Stadtbibliothek Neukoelln / Helene-Nathan-Bibliothek",
+    "short_name": "Helene-Nathan-Bibliothek",
+    "aliases": [],
+    "lat": 52.48217,
+    "lon": 13.43299,
+    "address": "Karl-Marx-Straße 66, 12043 Berlin",
+    "match": [
+     "Neukölln / Helene-Nathan-Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "BIB000000233",
+    "isil": null,
+    "name": "Stadtbibliothek Neukoelln / Margarete-Kubicka-Bibliothek",
+    "short_name": "Margarete-Kubicka-Bibliothek",
+    "aliases": [],
+    "lat": 52.4367,
+    "lon": 13.44613,
+    "address": "Gutschmidtstr. 33, 12359 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000369",
+    "isil": null,
+    "name": "Stadtbibliothek Neukölln / Heimatmuseum Neukölln (kein Ausgabeort)",
+    "short_name": "Heimatmuseum Neukölln (kein Ausgabeort)",
+    "aliases": [],
+    "lat": 52.44899,
+    "lon": 13.43938,
+    "address": "Alt Britz 81, 12359 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000109",
+    "isil": null,
+    "name": "Stadtbibliothek Pankow / Bettina-von-Arnim-Bibliothek",
+    "short_name": "Bettina-von-Arnim-Bibliothek",
+    "aliases": [],
+    "lat": 52.54926,
+    "lon": 13.41409,
+    "address": "Schönhauser Allee 75, 10439 Berlin",
+    "match": [
+     "Pankow / Bettina von Arnim Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "BIB000000110",
+    "isil": null,
+    "name": "Stadtbibliothek Pankow / Bibliothek Buch",
+    "short_name": "Bibliothek Buch",
+    "aliases": [],
+    "lat": 52.63556,
+    "lon": 13.49371,
+    "address": "Wiltbergstr. 19-23, 13125 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000114",
+    "isil": null,
+    "name": "Stadtbibliothek Pankow / Bibliothek Karow",
+    "short_name": "Bibliothek Karow",
+    "aliases": [],
+    "lat": 52.61651,
+    "lon": 13.49182,
+    "address": "Achillesstraße 77, 13125 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000111",
+    "isil": null,
+    "name": "Stadtbibliothek Pankow / Bibliothek am Wasserturm",
+    "short_name": "Bibliothek am Wasserturm",
+    "aliases": [],
+    "lat": 52.53329,
+    "lon": 13.42026,
+    "address": "Prenzlauer Allee 227/228, 10405 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00225",
+    "isil": "DE-B457",
+    "name": "Stadtbibliothek Pankow / Heinrich-Böll-Bibliothek",
+    "short_name": "Heinrich-Böll-Bibliothek",
+    "aliases": [],
+    "lat": 52.54199,
+    "lon": 13.44099,
+    "address": "Greifswalder Strasse 87, 10409 Berlin",
+    "match": [
+     "Pankow / Heinrich Böll Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "SIG00230",
+    "isil": "DE-B462",
+    "name": "Stadtbibliothek Pankow / Janusz-Korczak-Bibliothek",
+    "short_name": "Janusz-Korczak-Bibliothek",
+    "aliases": [],
+    "lat": 52.56847,
+    "lon": 13.41223,
+    "address": "Berliner Str. 120/121, 13187 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000112",
+    "isil": null,
+    "name": "Stadtbibliothek Pankow / Kurt-Tucholsky-Bibliothek (Pankow)",
+    "short_name": "Kurt-Tucholsky-Bibliothek (Pankow)",
+    "aliases": [],
+    "lat": 52.53291,
+    "lon": 13.43232,
+    "address": "Esmarchstrasse 18, 10407 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000236",
+    "isil": null,
+    "name": "Stadtbibliothek Pankow / Museum Pankow - Termin nach Absprache",
+    "short_name": "Museum Pankow - Termin nach Absprache",
+    "aliases": [],
+    "lat": 52.53348,
+    "lon": 13.421,
+    "address": "Prenzlauer Allee 227/228, 10405 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00229",
+    "isil": "DE-B461",
+    "name": "Stadtbibliothek Pankow / Wolfdietrich-Schnurre-Bibliothek",
+    "short_name": "Wolfdietrich-Schnurre-Bibliothek",
+    "aliases": [],
+    "lat": 52.54774,
+    "lon": 13.45282,
+    "address": "Bizetstraße 41, 13088 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000370",
+    "isil": null,
+    "name": "Stadtbibliothek Reinickendorf / Bib Bee Reinickendorf",
+    "short_name": "Bib Bee Reinickendorf",
+    "aliases": [],
+    "lat": 52.59195,
+    "lon": 13.28067,
+    "address": "Karolinenstr. 19, 13507 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000240",
+    "isil": null,
+    "name": "Stadtbibliothek Reinickendorf / Bibliothek Frohnau",
+    "short_name": "Bibliothek Frohnau",
+    "aliases": [],
+    "lat": 52.63552,
+    "lon": 13.29533,
+    "address": "Fuchssteiner Weg 13-19, 13465 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000239",
+    "isil": null,
+    "name": "Stadtbibliothek Reinickendorf / Bibliothek Märkisches Viertel",
+    "short_name": "Bibliothek Märkisches Viertel",
+    "aliases": [],
+    "lat": 52.59761,
+    "lon": 13.35209,
+    "address": "Wilhelmsruher Damm 142C, 13439 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000237",
+    "isil": null,
+    "name": "Stadtbibliothek Reinickendorf / Bibliothek Reinickendorf - West",
+    "short_name": "Bibliothek Reinickendorf - West",
+    "aliases": [],
+    "lat": 52.57142,
+    "lon": 13.31553,
+    "address": "Auguste-Viktoria-Allee 29-31, 13403 Berlin",
+    "match": [
+     "Reinickendorf / Bibl. Reinickendorf-West"
+    ]
+   },
+   {
+    "kobvid": "BIB000000238",
+    "isil": null,
+    "name": "Stadtbibliothek Reinickendorf / Bibliothek am Schäfersee Stadtteilbibliothek Reinickendorf-Ost",
+    "short_name": "Bibliothek am Schäfersee Stadtteilbibliothek Reinickendorf-O",
+    "aliases": [],
+    "lat": 52.56114,
+    "lon": 13.365,
+    "address": "Markstrasse 36, 13409 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000243",
+    "isil": null,
+    "name": "Stadtbibliothek Reinickendorf / Grosser Bücherbus Reinickendorf",
+    "short_name": "Grosser Bücherbus Reinickendorf",
+    "aliases": [],
+    "lat": 52.59818,
+    "lon": 13.35085,
+    "address": "Königshorster Str. 6, 13439 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00047",
+    "isil": "DE-B714",
+    "name": "Stadtbibliothek Reinickendorf / Humboldt-Bibliothek",
+    "short_name": "Humboldt-Bibliothek",
+    "aliases": [],
+    "lat": 52.59195,
+    "lon": 13.28067,
+    "address": "Karolinenstraße 19, 13507 Berlin",
+    "match": [
+     "Reinickendorf / Humboldt-Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "BIB000000244",
+    "isil": null,
+    "name": "Stadtbibliothek Reinickendorf / Kleiner Bücherbus Reinickendorf",
+    "short_name": "Kleiner Bücherbus Reinickendorf",
+    "aliases": [],
+    "lat": 52.57139,
+    "lon": 13.31554,
+    "address": "Auguste-Viktoria-Allee 29-31, 13403 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00042",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau / Fahrbibliothek Spandau",
+    "short_name": "Fahrbibliothek Spandau",
+    "aliases": [],
+    "lat": 52.53611,
+    "lon": 13.20171,
+    "address": "An Ihrer Haltestelle!",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00044",
+    "isil": "DE-B711",
+    "name": "Stadtbibliothek Spandau / Hauptbibliothek Spandau",
+    "short_name": "Hauptbibliothek Spandau",
+    "aliases": [],
+    "lat": 52.53604,
+    "lon": 13.2016,
+    "address": "Carl-Schurz-Strasse 13, 13597 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00039",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau / Schulbibliothek Carlo Schmid (nicht oeffentlich)",
+    "short_name": "Schulbibliothek Carlo Schmid (nicht oeffentlich)",
+    "aliases": [],
+    "lat": 52.52585,
+    "lon": 13.17435,
+    "address": "Lutoner Straße 19, 13581 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00033",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau / Stadtteilbibliothek Falkenhagener Feld",
+    "short_name": "Stadtteilbibliothek Falkenhagener Feld",
+    "aliases": [],
+    "lat": 52.54992,
+    "lon": 13.1781,
+    "address": "Westerwaldstr. 9, 13589 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000375",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau / Stadtteilbibliothek Hakenfelde (Eröffnung 2026)",
+    "short_name": "Stadtteilbibliothek Hakenfelde (Eröffnung 2026)",
+    "aliases": [],
+    "lat": 52.56039,
+    "lon": 13.22131,
+    "address": "Iznikstr. 2, 13587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00035",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau / Stadtteilbibliothek Haselhorst",
+    "short_name": "Stadtteilbibliothek Haselhorst",
+    "aliases": [],
+    "lat": 52.5429,
+    "lon": 13.2391,
+    "address": "Gartenfelder Str. 104, 13599 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00036",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau / Stadtteilbibliothek Heerstrasse",
+    "short_name": "Stadtteilbibliothek Heerstrasse",
+    "aliases": [],
+    "lat": 52.52212,
+    "lon": 13.16625,
+    "address": "Obstallee 22F, 13593 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00034",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau / Stadtteilbibliothek Kladow",
+    "short_name": "Stadtteilbibliothek Kladow",
+    "aliases": [],
+    "lat": 52.45327,
+    "lon": 13.14305,
+    "address": "Sakrower Landstraße 2, 14089 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00038",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau, Bibliothek in der Bertolt-Brecht-Oberschule",
+    "short_name": "Bibliothek in der Bertolt-Brecht-Oberschule",
+    "aliases": [],
+    "lat": 52.52564,
+    "lon": 13.19383,
+    "address": "Wilhelmstraße 10, 13595 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00032",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau, Hauptjugendbibliothek",
+    "short_name": "Hauptjugendbibliothek",
+    "aliases": [],
+    "lat": 52.53613,
+    "lon": 13.20154,
+    "address": "Carl-Schurz-Str. 13, 13597 Berlin",
+    "match": [
+     "Spandau / Hauptbibliothek Spandau"
+    ]
+   },
+   {
+    "kobvid": "KOB00040",
+    "isil": null,
+    "name": "Stadtbibliothek Spandau, Schulbibliothek in der Heinrich-Böll-Oberschule",
+    "short_name": "Schulbibliothek in der Heinrich-Böll-Oberschule",
+    "aliases": [],
+    "lat": 52.56385,
+    "lon": 13.20073,
+    "address": "Am Forstacker 9-12, 13587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00268",
+    "isil": null,
+    "name": "Stadtbibliothek Steglitz-Zehlendorf / Fahrbibliothek Steglitz-Zehlendorf",
+    "short_name": "Fahrbibliothek Steglitz-Zehlendorf",
+    "aliases": [],
+    "lat": 52.43199,
+    "lon": 13.2556,
+    "address": "Nentershäuser Platz 1, 14163 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000371",
+    "isil": null,
+    "name": "Stadtbibliothek Steglitz-Zehlendorf / Fahrbibliothek Steglitz-Zehlendorf - Bus 2",
+    "short_name": "Fahrbibliothek Steglitz-Zehlendorf - Bus 2",
+    "aliases": [],
+    "lat": 52.43199,
+    "lon": 13.2556,
+    "address": "Nentershäuser Platz 1, 14163 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00045",
+    "isil": "DE-B712",
+    "name": "Stadtbibliothek Steglitz-Zehlendorf / Gottfried-Benn-Bibliothek",
+    "short_name": "Gottfried-Benn-Bibliothek",
+    "aliases": [],
+    "lat": 52.43199,
+    "lon": 13.2556,
+    "address": "Nentershäuser Platz 1, 14163 Berlin",
+    "match": [
+     "Steglitz-Zehlendorf / Gottfried Benn Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "SIG00039",
+    "isil": "DE-B702",
+    "name": "Stadtbibliothek Steglitz-Zehlendorf / Ingeborg-Drewitz-Bibliothek",
+    "short_name": "Ingeborg-Drewitz-Bibliothek",
+    "aliases": [],
+    "lat": 52.4573,
+    "lon": 13.32014,
+    "address": "Grunewaldstr. 3, 12165 Berlin",
+    "match": [
+     "Steglitz-Zehlendorf / Ingeborg Drewitz Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "KOB00093",
+    "isil": null,
+    "name": "Stadtbibliothek Steglitz-Zehlendorf / Stadtteilbibliothek Lankwitz",
+    "short_name": "Stadtteilbibliothek Lankwitz",
+    "aliases": [],
+    "lat": 52.43615,
+    "lon": 13.35052,
+    "address": "Bruchwitzstr. 37, 12247 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00113",
+    "isil": null,
+    "name": "Stadtbibliothek Tempelhof-Schoeneberg / Bibliothek Lichtenrade",
+    "short_name": "Bibliothek Lichtenrade",
+    "aliases": [],
+    "lat": 52.38794,
+    "lon": 13.39751,
+    "address": "Steinstraße 41, 12307 Berlin",
+    "match": [
+     "Tempelhof-Schöneberg / Stadtteilbibliothek Lichtenrade"
+    ]
+   },
+   {
+    "kobvid": "KOB00115",
+    "isil": null,
+    "name": "Stadtbibliothek Tempelhof-Schoeneberg / Bibliothek Marienfelde",
+    "short_name": "Bibliothek Marienfelde",
+    "aliases": [],
+    "lat": 52.41686,
+    "lon": 13.36662,
+    "address": "Marienfelder Allee 109, 12277 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00041",
+    "isil": "DE-B704",
+    "name": "Stadtbibliothek Tempelhof-Schoeneberg / Bibliothek Schöneberg",
+    "short_name": "Bibliothek Schöneberg",
+    "aliases": [],
+    "lat": 52.4839,
+    "lon": 13.35101,
+    "address": "Hauptstr. 40, 10827 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00046",
+    "isil": "DE-B713",
+    "name": "Stadtbibliothek Tempelhof-Schoeneberg / Bibliothek Tempelhof",
+    "short_name": "Bibliothek Tempelhof",
+    "aliases": [],
+    "lat": 52.46377,
+    "lon": 13.38788,
+    "address": "Götzstr. 8/10/12, 12099 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00120",
+    "isil": null,
+    "name": "Stadtbibliothek Tempelhof-Schoeneberg / Fahrbibliothek Tempelhof-Schöneberg",
+    "short_name": "Fahrbibliothek Tempelhof-Schöneberg",
+    "aliases": [],
+    "lat": 52.46459,
+    "lon": 13.38777,
+    "address": null,
+    "match": []
+   },
+   {
+    "kobvid": "KOB00119",
+    "isil": null,
+    "name": "Stadtbibliothek Tempelhof-Schoeneberg / Stadtteilbibliothek Schöneberg-Nord",
+    "short_name": "Stadtteilbibliothek Schöneberg-Nord",
+    "aliases": [],
+    "lat": 52.49435,
+    "lon": 13.35739,
+    "address": "Pallasstr. 27, 10781 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00124",
+    "isil": null,
+    "name": "Stadtbibliothek Tempelhof-Schoeneberg / Thomas-Dehler-Bibliothek",
+    "short_name": "Thomas-Dehler-Bibliothek",
+    "aliases": [],
+    "lat": 52.48824,
+    "lon": 13.34604,
+    "address": "Martin-Luther-Str. 77, 10825 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00117",
+    "isil": null,
+    "name": "Stadtbibliothek Tempelhof-Schöneberg, Stadtteilbibliothek Friedenau, Gerhart-Hauptmann-Bibliothek",
+    "short_name": "Stadtteilbibliothek Friedenau, Gerhart-Hauptmann-Bibliothek",
+    "aliases": [],
+    "lat": 52.4725,
+    "lon": 13.33582,
+    "address": "Niedstr. 1-2, 12159 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000251",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow- Köpenick, Stadtteilbibliothek Oberschöneweide",
+    "short_name": "Stadtteilbibliothek Oberschöneweide",
+    "aliases": [],
+    "lat": 52.46196,
+    "lon": 13.52317,
+    "address": "Plönzeile 7, 12459 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000252",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow-Koepenick / Fahrbibliothek Treptow-Köpenick Kleiner Bus",
+    "short_name": "Fahrbibliothek Treptow-Köpenick Kleiner Bus",
+    "aliases": [],
+    "lat": 52.44584,
+    "lon": 13.57879,
+    "address": "12555 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00224",
+    "isil": "DE-B243",
+    "name": "Stadtbibliothek Treptow-Koepenick / Mittelpunktbibliothek Köpenick Alter Markt",
+    "short_name": "Mittelpunktbibliothek Köpenick Alter Markt",
+    "aliases": [],
+    "lat": 52.44584,
+    "lon": 13.57879,
+    "address": "Alter Markt 2, 12555 Berlin",
+    "match": [
+     "Treptow-Köpenick / Mittelpunktbibliothek Köpenick"
+    ]
+   },
+   {
+    "kobvid": "SIG00227",
+    "isil": "DE-B459",
+    "name": "Stadtbibliothek Treptow-Koepenick / Mittelpunktbibliothek Treptow Alte Feuerwache",
+    "short_name": "Mittelpunktbibliothek Treptow Alte Feuerwache",
+    "aliases": [],
+    "lat": 52.45397,
+    "lon": 13.51388,
+    "address": "Michael-Brückner-Str. 9, 12439 Berlin",
+    "match": [
+     "Treptow-Köpenick / Friedrich-Wolf-Bibliothek"
+    ]
+   },
+   {
+    "kobvid": "BIB000000247",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow-Koepenick / Stadtteilbibliothek Adlershof Stefan Heym",
+    "short_name": "Stadtteilbibliothek Adlershof Stefan Heym",
+    "aliases": [],
+    "lat": 52.43886,
+    "lon": 13.54986,
+    "address": "Dörpfeldstr. 52/56, 12489 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000249",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow-Koepenick / Stadtteilbibliothek Alt-Treptow Manfred Bofinger",
+    "short_name": "Stadtteilbibliothek Alt-Treptow Manfred Bofinger",
+    "aliases": [],
+    "lat": 52.48883,
+    "lon": 13.45081,
+    "address": "Karl-Kunger-Str. 30, 12435 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000246",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow-Koepenick / Stadtteilbibliothek Altglienicke",
+    "short_name": "Stadtteilbibliothek Altglienicke",
+    "aliases": [],
+    "lat": 52.40325,
+    "lon": 13.52845,
+    "address": "Ortolfstr. 182-184, 12524 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000250",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow-Koepenick / Stadtteilbibliothek Friedrichshagen",
+    "short_name": "Stadtteilbibliothek Friedrichshagen",
+    "aliases": [],
+    "lat": 52.45484,
+    "lon": 13.6214,
+    "address": "Peter-Hille-Str.1, 12587 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000372",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow-Köpenick / Fahrbibliothek Treptow-Köpenick Kleiner Bus",
+    "short_name": "Fahrbibliothek Treptow-Köpenick Kleiner Bus",
+    "aliases": [],
+    "lat": 52.44584,
+    "lon": 13.57879,
+    "address": "Alter Markt 2, 12555 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000245",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow-Köpenick, Stadtteilbibliothek Baumschulenweg",
+    "short_name": "Stadtteilbibliothek Baumschulenweg",
+    "aliases": [],
+    "lat": 52.46865,
+    "lon": 13.48215,
+    "address": "Kiefholzstr. 274, 12437 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000248",
+    "isil": null,
+    "name": "Stadtbibliothek Treptow-Köpenick, Stadtteilbibliothek Bohnsdorf",
+    "short_name": "Stadtteilbibliothek Bohnsdorf",
+    "aliases": [],
+    "lat": 52.40148,
+    "lon": 13.57099,
+    "address": "Dahmestr. 33, 12526 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00036",
+    "isil": "DE-109",
+    "name": "Zentral- und Landesbibliothek Berlin / Amerika-Gedenkbibliothek (AGB)",
+    "short_name": "Amerika-Gedenkbibliothek (AGB)",
+    "aliases": [
+     "AGB"
+    ],
+    "lat": 52.49656,
+    "lon": 13.39248,
+    "address": "Blücherplatz 1, 10961 Berlin",
+    "match": [
+     "Amerika-Gedenkbibliothek (AGB)",
+     "ZLB / Außenmagazin"
+    ]
+   },
+   {
+    "kobvid": "BIB000000374",
+    "isil": null,
+    "name": "Zentral- und Landesbibliothek Berlin / Berlin-Sammlungen",
+    "short_name": "Berlin-Sammlungen",
+    "aliases": [],
+    "lat": 52.51546,
+    "lon": 13.40426,
+    "address": "Breite Str. 30/31, 10178 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000072",
+    "isil": "DE-109",
+    "name": "Zentral- und Landesbibliothek Berlin / Berliner Stadtbibliothek  (BStB)",
+    "short_name": "Berliner Stadtbibliothek (BStB)",
+    "aliases": [
+     "BSTB"
+    ],
+    "lat": 52.51578,
+    "lon": 13.40446,
+    "address": "Breite Str. 30-36, 10178 Berlin",
+    "match": [
+     "Berliner Stadtbibliothek (BStB)"
+    ]
+   },
+   {
+    "kobvid": "BIB000000373",
+    "isil": null,
+    "name": "Zentral- und Landesbibliothek Berlin / Kinder- und Jugendbibliothek mit Lernzentrum",
+    "short_name": "Kinder- und Jugendbibliothek mit Lernzentrum",
+    "aliases": [],
+    "lat": 52.49665,
+    "lon": 13.39298,
+    "address": "Blücherplatz 1, 10961 Berlin",
+    "match": [
+     "ZLB / Kinder- und Jugendbibliothek mit Lernzentrum"
+    ]
+   }
+  ]
  },
  {
   "isil": "DE-634",
@@ -762,7 +3032,32 @@
   "url": "https://www.b-tu.de/bibliothek/",
   "opac": "https://katalog.ub.b-tu.de",
   "email": "bibliothek+fernleihe@b-tu.de",
-  "phone": "0049 355 69-2373"
+  "phone": "0049 355 69-2373",
+  "kobvid": "SIG00174",
+  "branches": [
+   {
+    "kobvid": "BIB000000412",
+    "isil": null,
+    "name": "BTU Cottbus - Senftenberg, Universitätsbibliothek, Campus Cottbus Sachsendorf",
+    "short_name": "Universitätsbibliothek, Campus Cottbus Sachsendorf",
+    "aliases": [],
+    "lat": 51.72977,
+    "lon": 14.32422,
+    "address": "Lipezker Straße 47, 03048 Cottbus",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000413",
+    "isil": null,
+    "name": "BTU Cottbus - Senftenberg, Universitätsbibliothek, Campus Senftenberg",
+    "short_name": "Universitätsbibliothek, Campus Senftenberg",
+    "aliases": [],
+    "lat": 51.52135,
+    "lon": 13.98676,
+    "address": "Universitätsplatz 1, 01968 Senftenberg",
+    "match": []
+   }
+  ]
  },
  {
   "isil": "DE-1136",
@@ -780,7 +3075,9 @@
   "url": "http://www.gbho.de",
   "opac": null,
   "email": "bibliothek.hoenow@gemeinde-hoppegarten.de",
-  "phone": "0049 3342 4 21 19 10"
+  "phone": "0049 3342 4 21 19 10",
+  "kobvid": "KOB00107",
+  "branches": []
  },
  {
   "isil": "DE-1263",
@@ -798,7 +3095,9 @@
   "url": "http://www.bibliothek.beeskow.de/",
   "opac": null,
   "email": "bibliothek.beeskow@gmx.de",
-  "phone": "0049 3366 15 21 74"
+  "phone": "0049 3366 15 21 74",
+  "kobvid": "BIB000000034",
+  "branches": []
  },
  {
   "isil": "DE-1264",
@@ -816,7 +3115,9 @@
   "url": "http://www.bibliothek-glienicke.eu/Willkommen.aspx",
   "opac": "http://www.bibliothek-glienicke.eu/Mediensuche.aspx",
   "email": "Bibliothek@Glienicke-Nordbahn.de",
-  "phone": "0049 33056 6 92 30"
+  "phone": "0049 33056 6 92 30",
+  "kobvid": "BIB000000038",
+  "branches": []
  },
  {
   "isil": "DE-1265",
@@ -834,7 +3135,9 @@
   "url": "https://stadt.vetschau.de/bildung-soziales-freizeit/bibliothek-luebbenau-vetschau/",
   "opac": "https://stadt.vetschau.de/bildung-soziales-freizeit/bibliothek-luebbenau-vetschau/online-katalog/luebbenau.html",
   "email": "stadtbibliothek.luebbenau@t-online.de",
-  "phone": "0049 3542 8 72 14 50"
+  "phone": "0049 3542 8 72 14 50",
+  "kobvid": "BIB000000036",
+  "branches": []
  },
  {
   "isil": "DE-1266",
@@ -852,7 +3155,9 @@
   "url": "http://www.bibliothek.seecampus-niederlausitz.de/",
   "opac": null,
   "email": "bibliothek@seecampus-niederlausitz.de",
-  "phone": "0049 35752 94 94 30"
+  "phone": "0049 35752 94 94 30",
+  "kobvid": "BIB000000035",
+  "branches": []
  },
  {
   "isil": "DE-1267",
@@ -870,7 +3175,9 @@
   "url": "https://www.grossraeschen.de/verzeichnis/visitenkarte.php?mandat=45080",
   "opac": "https://sb-grossraeschen.webopac.net/",
   "email": "stadtbibliothek@grossraeschen.de",
-  "phone": "0049 35753 2 71 77"
+  "phone": "0049 35753 2 71 77",
+  "kobvid": "BIB000000037",
+  "branches": []
  },
  {
   "isil": "DE-1268",
@@ -888,7 +3195,9 @@
   "url": "https://bibliothek.gb-m.de//",
   "opac": "https://bibliothek.gb-m.de/",
   "email": "fernleihe@blankenfelde-mahlow.de",
-  "phone": "0049 3379 33 39 42"
+  "phone": "0049 3379 33 39 42",
+  "kobvid": "BIB000000031",
+  "branches": []
  },
  {
   "isil": "DE-1269",
@@ -906,7 +3215,9 @@
   "url": "https://www.pritzwalk.de/seite/429064/stadtbibliothek.html",
   "opac": "https://bibkataloge.de/pritzwalk/webopac/start.aspx",
   "email": "bibliothek@pritzwalk.de",
-  "phone": "0049 3395 30 25 73"
+  "phone": "0049 3395 30 25 73",
+  "kobvid": "BIB000000030",
+  "branches": []
  },
  {
   "isil": "DE-1270",
@@ -924,7 +3235,9 @@
   "url": "http://www.bibliothek-seelow.de",
   "opac": null,
   "email": "info@bibliothek-seelow.de",
-  "phone": "0049 3346 2 79"
+  "phone": "0049 3346 2 79",
+  "kobvid": "BIB000000027",
+  "branches": []
  },
  {
   "isil": "DE-1271",
@@ -942,7 +3255,9 @@
   "url": "http://bibliothek-neuenhagen.de/",
   "opac": null,
   "email": "gemeindebibliothek-neuenhagen@t-online.de",
-  "phone": "0049 3342 8 04 35"
+  "phone": "0049 3342 8 04 35",
+  "kobvid": "BIB000000033",
+  "branches": []
  },
  {
   "isil": "DE-1282",
@@ -960,7 +3275,9 @@
   "url": "http://www.dom-brandenburg.de",
   "opac": null,
   "email": "archiv@dom-brandenburg.de",
-  "phone": "0049 3381 2 11 22 14"
+  "phone": "0049 3381 2 11 22 14",
+  "kobvid": "SIG00234",
+  "branches": []
  },
  {
   "isil": "DE-1342",
@@ -978,7 +3295,9 @@
   "url": "http://www.werder-havel.de/content/rathausonline/rathausonline_fb1_bibliothek.php",
   "opac": null,
   "email": "stadtbibliothek-werder@t-online.de",
-  "phone": "0049 3327 4 23 83"
+  "phone": "0049 3327 4 23 83",
+  "kobvid": "BIB000000041",
+  "branches": []
  },
  {
   "isil": "DE-1349",
@@ -996,7 +3315,9 @@
   "url": "https://kleinmachnow.bibliotheca-open.de/",
   "opac": "https://kleinmachnow.bibliotheca-open.de/Mediensuche/Erweiterte-Suche",
   "email": "fernleihe@kleinmachnow.de",
-  "phone": "0049 33203 8 77-4115 und -4110"
+  "phone": "0049 33203 8 77-4115 und -4110",
+  "kobvid": "BIB000000042",
+  "branches": []
  },
  {
   "isil": "DE-1847",
@@ -1014,7 +3335,9 @@
   "url": "http://www.oberkraemer.de",
   "opac": "https://oberkraemer.bibliotheca-open.de/",
   "email": "bibliothek@oberkraemer.de",
-  "phone": "0049 3304 50 52 23"
+  "phone": "0049 3304 50 52 23",
+  "kobvid": "BIB000000050",
+  "branches": []
  },
  {
   "isil": "DE-1848",
@@ -1032,7 +3355,9 @@
   "url": "https://www.storkow-mark.de/verzeichnis/visitenkarte.php?mandat=159556",
   "opac": "http://storkow-findus.opac.datronic.de/cgi-bin/findus-ohne-cookies.pl?customer=storkow",
   "email": "bibliothek@storkow.de",
-  "phone": "0049 33678 7 36 42"
+  "phone": "0049 33678 7 36 42",
+  "kobvid": "BIB000000043",
+  "branches": []
  },
  {
   "isil": "DE-2070l",
@@ -1050,7 +3375,9 @@
   "url": "https://www.hwr-berlin.de/hwr-berlin/serviceeinrichtungen/bibliotheken/bibliothek-am-campus-lichtenberg",
   "opac": "https://hower.hwr-berlin.de",
   "email": "hsb.cl@hwr-berlin.de",
-  "phone": "0049 30 3 08 77-2582"
+  "phone": "0049 30 3 08 77-2582",
+  "kobvid": "KOB00022",
+  "branches": []
  },
  {
   "isil": "DE-2070s",
@@ -1069,7 +3396,9 @@
   "url": "https://www.hwr-berlin.de/hwr-berlin/serviceeinrichtungen/bibliotheken/bibliothek-am-campus-schoeneberg/",
   "opac": "https://hower.hwr-berlin.de",
   "email": "hsb.cs@hwr-berlin.de",
-  "phone": "0049 30 3 08 77-1284"
+  "phone": "0049 30 3 08 77-1284",
+  "kobvid": "SIG00029",
+  "branches": []
  },
  {
   "isil": "DE-2273",
@@ -1087,7 +3416,9 @@
   "url": "http://www.mmz-potsdam.de/bibliothek.html",
   "opac": "https://mmz.vufindnet.de/mmz/",
   "email": "biblio@mmz.uni-potsdam.de",
-  "phone": "0049 031 2 80 94-15"
+  "phone": "0049 031 2 80 94-15",
+  "kobvid": "KOB00235",
+  "branches": []
  },
  {
   "isil": "DE-2291",
@@ -1105,7 +3436,9 @@
   "url": "https://www.berlin-international.de/hochschule/hochschulstruktur/bibliothek/",
   "opac": "https://koha.berlin-international.de/",
   "email": "library@berlin-international.de",
-  "phone": "0049 30 8 10 58 08 15"
+  "phone": "0049 30 8 10 58 08 15",
+  "kobvid": "BIB000000315",
+  "branches": []
  },
  {
   "isil": "DE-2377",
@@ -1118,12 +3451,14 @@
   "type": "Wissenschaftliche Spezialbibliothek",
   "city": "Potsdam",
   "address": "14469 Potsdam",
-  "lat": null,
-  "lon": null,
+  "lat": 52.40109,
+  "lon": 13.01101,
   "url": "http://www.abraham-geiger-kolleg.de/academic-excellence/library/",
   "opac": "https://opac.ub.uni-potsdam.de/DB=1.1/",
   "email": "office@geiger-edu.de",
-  "phone": "0049 331 977 159 800"
+  "phone": "0049 331 977 159 800",
+  "kobvid": "BIB000000023",
+  "branches": []
  },
  {
   "isil": "DE-2565",
@@ -1141,7 +3476,9 @@
   "url": "https://jg-berlin.org/kultur/bibliothek/",
   "opac": "https://jg-berlin.bibliotheca-open.de",
   "email": "bibliothek@jg-berlin.org",
-  "phone": "0049 30 8 80 28-241"
+  "phone": "0049 30 8 80 28-241",
+  "kobvid": "BIB000000039",
+  "branches": []
  },
  {
   "isil": "DE-2627",
@@ -1159,7 +3496,9 @@
   "url": "https://www.maecenata.eu/ueber-uns/tocqueville-forum/maecenata-bibliothek/",
   "opac": "https://mst.mae-koha.dynns.com/",
   "email": "info@maecenata.eu",
-  "phone": "0049 30 28 38 79 10 06"
+  "phone": "0049 30 28 38 79 10 06",
+  "kobvid": "BIB000000341",
+  "branches": []
  },
  {
   "isil": "DE-2847",
@@ -1177,7 +3516,9 @@
   "url": "https://www.cp.edu.pl/pl/biblioteka/index.html",
   "opac": "https://opac.cp.europa-uni.de/",
   "email": "biblio.cp@europa-uni.de",
-  "phone": "0048 61 8 29 67 51"
+  "phone": "0048 61 8 29 67 51",
+  "kobvid": "KOB00026",
+  "branches": []
  },
  {
   "isil": "DE-4466",
@@ -1195,7 +3536,9 @@
   "url": "http://www.lkee.de/Kreismedienzentrum",
   "opac": null,
   "email": "kreismedienzentrum@lkee.de",
-  "phone": "0049 3535 46 54 01"
+  "phone": "0049 3535 46 54 01",
+  "kobvid": "BIB000000134",
+  "branches": []
  },
  {
   "isil": "DE-4577",
@@ -1213,7 +3556,9 @@
   "url": "https://stiftung-brandenburg.de/",
   "opac": "https://opac.stiftung-brandenburg.de/",
   "email": "info@stiftung-brandenburg.de",
-  "phone": "0049 3361 31 09 52"
+  "phone": "0049 3361 31 09 52",
+  "kobvid": "BIB000000410",
+  "branches": []
  },
  {
   "isil": "DE-B4",
@@ -1231,7 +3576,9 @@
   "url": "http://bibliothek.bbaw.de",
   "opac": "https://vzopc4.gbv.de/DB=38/",
   "email": "bib.benutzung@bbaw.de",
-  "phone": "0049 30 2 03 70-358 (Leihst.) und -438 (Sekr.)"
+  "phone": "0049 30 2 03 70-358 (Leihst.) und -438 (Sekr.)",
+  "kobvid": "SIG00086",
+  "branches": []
  },
  {
   "isil": "DE-B11",
@@ -1250,7 +3597,212 @@
   "url": "https://www.smb.museum/museen-einrichtungen/kunstbibliothek/home/",
   "opac": "http://opac.smb.spk-berlin.de/",
   "email": "auskunft.kb@smb.spk-berlin.de",
-  "phone": "0049 30 2 66-424141"
+  "phone": "0049 30 2 66-424141",
+  "kobvid": "SIG00035",
+  "branches": [
+   {
+    "kobvid": "BIB000000012",
+    "isil": "DE-B11q",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Alte Nationalgalerie, Bibliothek",
+    "short_name": "Alte Nationalgalerie",
+    "aliases": [],
+    "lat": 52.521,
+    "lon": 13.39811,
+    "address": "Bodestraße 1-3, 10178 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00052",
+    "isil": "DE-B11b",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Ethnologisches Museum, Bibliothek",
+    "short_name": "Ethnologisches Museum",
+    "aliases": [],
+    "lat": 52.45504,
+    "lon": 13.29231,
+    "address": "Arnimallee 27, 14195 Berlin",
+    "match": [
+     "Ethnologisches Museum"
+    ]
+   },
+   {
+    "kobvid": "BIB000000010",
+    "isil": "DE-B11h",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Gemäldegalerie, Bibliothek",
+    "short_name": "Gemäldegalerie",
+    "aliases": [],
+    "lat": 52.50917,
+    "lon": 13.36424,
+    "address": "Stauffenbergstr. 40, 10785 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000013",
+    "isil": "DE-B11s",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Hamburger Bahnhof - Museum für Gegenwart, Bibliothek",
+    "short_name": "Hamburger Bahnhof - Museum für Gegenwart",
+    "aliases": [],
+    "lat": 52.5281,
+    "lon": 13.37299,
+    "address": "Invalidenstraße 50-51, 10557 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "KOB00163",
+    "isil": "DE-B11e",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Institut für Museumsforschung, Bibliothek",
+    "short_name": "Institut für Museumsforschung",
+    "aliases": [],
+    "lat": 52.46317,
+    "lon": 13.28708,
+    "address": "In der Halde 1, 14195 Berlin",
+    "match": [
+     "Institut für Museumsforschung"
+    ]
+   },
+   {
+    "kobvid": "SIG00069",
+    "isil": "DE-B11d",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Kunstbibliothek, Archäologische Bibliothek",
+    "short_name": "Archäologische Bibliothek",
+    "aliases": [],
+    "lat": 52.52102,
+    "lon": 13.39249,
+    "address": "Geschwister-Scholl-Str. 6, 10117 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00178",
+    "isil": "DE-B11i",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Kunstgewerbemuseum, Bibliothek",
+    "short_name": "Kunstgewerbemuseum",
+    "aliases": [],
+    "lat": 52.50981,
+    "lon": 13.36678,
+    "address": "Tiergartenstr. 6, 10785 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00207",
+    "isil": "DE-B11k",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Kupferstichkabinett - Sammlung der Zeichnungen und Druckgraphik, Bibliothek",
+    "short_name": "Kupferstichkabinett - Sammlung der Zeichnungen und Druckgrap",
+    "aliases": [],
+    "lat": 52.50817,
+    "lon": 13.36664,
+    "address": "Matthäikirchplatz 8, 10785 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00202",
+    "isil": "DE-B11c",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Museum Europäischer Kulturen, Bibliothek",
+    "short_name": "Museum Europäischer Kulturen",
+    "aliases": [],
+    "lat": 52.46094,
+    "lon": 13.29312,
+    "address": "Im Winkel 8, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00180",
+    "isil": "DE-B11m",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Museum für Asiatische Kunst, Kunstsammlung Süd-, Südost- und Zentralasien, Bibliothek",
+    "short_name": "Museum für Asiatische Kunst, Kunstsammlung Süd-, Südost- und",
+    "aliases": [],
+    "lat": 52.4563,
+    "lon": 13.29337,
+    "address": "Takustr. 40, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00033",
+    "isil": "DE-B11o",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Museum für Asiatische Kunst, Ostasiatische Kunstsammlung, Bibliothek",
+    "short_name": "Museum für Asiatische Kunst, Ostasiatische Kunstsammlung",
+    "aliases": [],
+    "lat": 52.4563,
+    "lon": 13.29337,
+    "address": "Takustr. 40, 14195 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00032",
+    "isil": "DE-B11n",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Museum für Islamische Kunst, Bibliothek",
+    "short_name": "Museum für Islamische Kunst",
+    "aliases": [],
+    "lat": 52.52035,
+    "lon": 13.39507,
+    "address": "Geschwister-Scholl-Straße 2-8, 10178 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000011",
+    "isil": "DE-B11p",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Münzkabinett, Bibliothek",
+    "short_name": "Münzkabinett",
+    "aliases": [],
+    "lat": 52.51987,
+    "lon": 13.39871,
+    "address": "Bodestraße 1-3 (Bodemuseum), 10178 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00034",
+    "isil": "DE-B11r",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Neue Nationalgalerie, Bibliothek",
+    "short_name": "Neue Nationalgalerie",
+    "aliases": [],
+    "lat": 52.50698,
+    "lon": 13.36758,
+    "address": "Potsdamer Str. 50, 10785 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00179",
+    "isil": "DE-B11w",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Rathgen-Forschungslabor, Bibliothek",
+    "short_name": "Rathgen-Forschungslabor",
+    "aliases": [],
+    "lat": 52.51375,
+    "lon": 13.2971,
+    "address": "Schloßstr. 1 a, 14059 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000015",
+    "isil": "DE-B11u",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Skulpturensammlung und Museum für Byzantinische Kunst, Bibliothek Museum für Byzantinische Kunst",
+    "short_name": "Skulpturensammlung und Museum für Byzantinische Kunst, Bibli",
+    "aliases": [],
+    "lat": 52.51987,
+    "lon": 13.39871,
+    "address": "Bodestraße 1-3, 10178 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "BIB000000014",
+    "isil": "DE-B11t",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Skulpturensammlung und Museum für Byzantinische Kunst, Bibliothek Skulpturensammlung",
+    "short_name": "Skulpturensammlung und Museum für Byzantinische Kunst, Bibli",
+    "aliases": [],
+    "lat": 52.51987,
+    "lon": 13.39871,
+    "address": "Bodestraße 1-3, 10178 Berlin",
+    "match": []
+   },
+   {
+    "kobvid": "SIG00031",
+    "isil": "DE-B11f",
+    "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Ägyptisches Museum und Papyrussammlung, Bibliothek",
+    "short_name": "Ägyptisches Museum und Papyrussammlung",
+    "aliases": [],
+    "lat": 52.51987,
+    "lon": 13.39871,
+    "address": "Bodestr. 1-3, 10178 Berlin",
+    "match": []
+   }
+  ]
  },
  {
   "isil": "DE-B16",
@@ -1268,7 +3820,9 @@
   "url": "https://www.museumfuernaturkunde.berlin/bibliothek",
   "opac": "https://bibliothekskatalog.museumfuernaturkunde.berlin/",
   "email": "bibliothek@mfn.berlin",
-  "phone": "0049 30 88 91 40-85 81"
+  "phone": "0049 30 88 91 40-85 81",
+  "kobvid": "HUB00030",
+  "branches": []
  },
  {
   "isil": "DE-B41",
@@ -1286,7 +3840,9 @@
   "url": "http://www.gsta.spk-berlin.de/",
   "opac": "https://lhiai.gbv.de/DB=4/",
   "email": "gsta.pk@gsta.spk-berlin.de",
-  "phone": "0049 30 2 66 44-1310"
+  "phone": "0049 30 2 66 44-1310",
+  "kobvid": "SIG00050",
+  "branches": []
  },
  {
   "isil": "DE-B103",
@@ -1305,7 +3861,9 @@
   "url": "https://bib.telegrafenberg.de/",
   "opac": "https://waesearch.kobv.de/?plv=2",
   "email": "bib@gfz.de",
-  "phone": "0049 331 62 64-16 73"
+  "phone": "0049 331 62 64-16 73",
+  "kobvid": "SIG00222",
+  "branches": []
  },
  {
   "isil": "DE-B170",
@@ -1324,7 +3882,9 @@
   "url": "http://www.ub.udk-berlin.de",
   "opac": "http://portal.ub.udk-berlin.de",
   "email": "bibliothek@udk-berlin.de",
-  "phone": "0049 30 3 14-76473"
+  "phone": "0049 30 3 14-76473",
+  "kobvid": "SIG00028",
+  "branches": []
  },
  {
   "isil": "DE-B171",
@@ -1342,7 +3902,21 @@
   "url": "https://www.stadtmuseum.de/bibliothek",
   "opac": "http://stadtmuseum.webopac.net",
   "email": "bibliothek@stadtmuseum.de",
-  "phone": "0049 30 3 53 05 98 12"
+  "phone": "0049 30 3 53 05 98 12",
+  "kobvid": "BIB000000017",
+  "branches": [
+   {
+    "kobvid": "BIB000000405",
+    "isil": "DE-B171-2",
+    "name": "Stiftung Stadtmuseum Berlin, Sammlung Varieté Zirkus Kabarett, Bibliothek",
+    "short_name": "Sammlung Varieté Zirkus Kabarett",
+    "aliases": [],
+    "lat": 52.55921,
+    "lon": 13.21975,
+    "address": "Hans-Poelzig-Str. 20, 13587 Berlin",
+    "match": []
+   }
+  ]
  },
  {
   "isil": "DE-B177",
@@ -1360,7 +3934,9 @@
   "url": "https://www.berlin.de/gerichte/kammergericht/das-gericht/bibliothek/",
   "opac": "https://lbsvz4.gbv.de/LNG=DU/DB=4/",
   "email": "bibliothek@kg.berlin.de",
-  "phone": "0049 30 90 15-2402 und -2403"
+  "phone": "0049 30 90 15-2402 und -2403",
+  "kobvid": "SIG00057",
+  "branches": []
  },
  {
   "isil": "DE-B185",
@@ -1378,7 +3954,9 @@
   "url": "http://www.geschichte-brandenburg.de",
   "opac": "http://geschichte-brandenburg.allegronet.de/",
   "email": "bibliothek@geschichte-brandenburg.de",
-  "phone": "0049 30 9 02 26-301"
+  "phone": "0049 30 9 02 26-301",
+  "kobvid": "SIG00058",
+  "branches": []
  },
  {
   "isil": "DE-B259",
@@ -1396,7 +3974,9 @@
   "url": "https://www.igb-berlin.de/bibliothek",
   "opac": "http://www.igb-lib.igb-berlin.de/alipac",
   "email": "library@igb-berlin.de",
-  "phone": "0049 30 64 18 16 55"
+  "phone": "0049 30 64 18 16 55",
+  "kobvid": "SIG00093",
+  "branches": []
  },
  {
   "isil": "DE-B464",
@@ -1415,7 +3995,9 @@
   "url": "http://www.hfm-berlin.de/",
   "opac": "https://vzlbs3.gbv.de/LNG=DU/DB=26/",
   "email": "bibliothek@hfm-berlin.de",
-  "phone": "0049 30 68 83 05-895"
+  "phone": "0049 30 68 83 05-895",
+  "kobvid": "SIG00096",
+  "branches": []
  },
  {
   "isil": "DE-B478",
@@ -1433,7 +4015,9 @@
   "url": "http://bbf.dipf.de",
   "opac": "https://bibliothekskatalog.bbf.dipf.de/",
   "email": "fernleihe-bbf@dipf.de",
-  "phone": "0049 30 29 33 60-921 (Auskunft) und -52 (Fernleihe)"
+  "phone": "0049 30 29 33 60-921 (Auskunft) und -52 (Fernleihe)",
+  "kobvid": "SIG00097",
+  "branches": []
  },
  {
   "isil": "DE-B479",
@@ -1452,7 +4036,9 @@
   "url": "https://www.bundesarchiv.de/DE/Navigation/Benutzen/Hinweise-zur-Benutzung/Buecher/bibliothek.html",
   "opac": "https://bibliothek.bundesarchiv.de/F",
   "email": "bibliothek@bundesarchiv.de",
-  "phone": "0049 3018 77 70-0"
+  "phone": "0049 3018 77 70-0",
+  "kobvid": "SIG00098",
+  "branches": []
  },
  {
   "isil": "DE-B486",
@@ -1470,7 +4056,9 @@
   "url": "https://www.adk.de/de/archiv/bibliothek/",
   "opac": "https://opac.adk.de",
   "email": "bibliothek@adk.de",
-  "phone": "0049 30 2 00 57-1560"
+  "phone": "0049 30 2 00 57-1560",
+  "kobvid": "SIG00021",
+  "branches": []
  },
  {
   "isil": "DE-B496",
@@ -1488,7 +4076,9 @@
   "url": "https://www.dhm.de/sammlung/bibliothek/",
   "opac": "https://dhmov60.bib-bvb.de/InfoGuideClient.dhmsis/start.do?Login=igdhm",
   "email": "bibliothek@dhm.de",
-  "phone": "0049 30 2 03 04-321"
+  "phone": "0049 30 2 03 04-321",
+  "kobvid": "SIG00101",
+  "branches": []
  },
  {
   "isil": "DE-B685",
@@ -1506,7 +4096,9 @@
   "url": "http://www.bldam-brandenburg.de",
   "opac": null,
   "email": "Poststelle@BLDAM.Brandenburg.de",
-  "phone": "0049 33702 7 12 00"
+  "phone": "0049 33702 7 12 00",
+  "kobvid": "SIG00159",
+  "branches": []
  },
  {
   "isil": "DE-B724",
@@ -1524,7 +4116,9 @@
   "url": "http://www.landesarchiv-berlin.de",
   "opac": null,
   "email": "info@landesarchiv.berlin.de",
-  "phone": "0049 30 9 02 64-0"
+  "phone": "0049 30 9 02 64-0",
+  "kobvid": "SIG00185",
+  "branches": []
  },
  {
   "isil": "DE-B763",
@@ -1543,7 +4137,9 @@
   "url": "https://www.simpk.de/bibliothek.html",
   "opac": "https://opac.sim.spk-berlin.de",
   "email": "bibliothek@sim.spk-berlin.de",
-  "phone": "0049 30 2 54 81-155"
+  "phone": "0049 30 2 54 81-155",
+  "kobvid": "SIG00070",
+  "branches": []
  },
  {
   "isil": "DE-B768",
@@ -1559,9 +4155,11 @@
   "lat": 52.54504,
   "lon": 13.35482,
   "url": "https://www.bht-berlin.de/bibliothek",
-  "opac": null,
-  "email": null,
-  "phone": "0049 30 45 04-2507"
+  "opac": "https://webopac.bht-berlin.de/webOPACClient.bhssis/start.do?Login",
+  "email": "michaela.behling@bht-berlin.de",
+  "phone": "0049 30 45 04-2507",
+  "kobvid": "SIG00183",
+  "branches": []
  },
  {
   "isil": "DE-B1525",
@@ -1580,7 +4178,9 @@
   "url": "https://www.ghwk.de/de/bibliothek",
   "opac": "https://ghwk-bibliothekskatalog.de/cgi-bin/koha/opac-main.pl",
   "email": "library@ghwk.de",
-  "phone": "0049 30 2179986-31"
+  "phone": "0049 30 2179986-31",
+  "kobvid": "SIG00279",
+  "branches": []
  },
  {
   "isil": "DE-B1528",
@@ -1599,7 +4199,9 @@
   "url": "https://www.deutsche-kinemathek.de/bibliothek",
   "opac": "https://deutsche-kinemathek.bsz-bw.de",
   "email": "bibliothek@deutsche-kinemathek.de",
-  "phone": "0049 30 30 09 03-879"
+  "phone": "0049 30 30 09 03-879",
+  "kobvid": "SIG00282",
+  "branches": []
  },
  {
   "isil": "DE-B1532",
@@ -1617,7 +4219,9 @@
   "url": "https://www.mpib-berlin.mpg.de/2001436/research-data-and-information",
   "opac": "https://mpib.disco.mpg.de/",
   "email": "rdi-service@mpib-berlin.mpg.de",
-  "phone": "0049 30 8 24 06-579"
+  "phone": "0049 30 8 24 06-579",
+  "kobvid": "BIB000000006",
+  "branches": []
  },
  {
   "isil": "DE-B1533",
@@ -1635,7 +4239,9 @@
   "url": "https://www.ash-berlin.eu/bibliothek",
   "opac": "https://opac.ash-berlin.eu/webOPACClient.ashsis/start.do?Login=woash",
   "email": "bibliothek@ash-berlin.eu",
-  "phone": "0049 30 9 92 45-385 und -386 (Ausleihe)"
+  "phone": "0049 30 9 92 45-385 und -386 (Ausleihe)",
+  "kobvid": "SIG00317",
+  "branches": []
  },
  {
   "isil": "DE-B1539",
@@ -1653,7 +4259,9 @@
   "url": "https://www.jmberlin.de/bibliothek",
   "opac": "https://opac.jmberlin.de/aDISWeb/app?service=direct/0/Home%24DirectLink&sp=Sopac",
   "email": "bibliothek@jmberlin.de",
-  "phone": "0049 30 2 59 93-560 (Lesesaal), -564 (Leitung), -562 und -563"
+  "phone": "0049 30 2 59 93-560 (Lesesaal), -564 (Leitung), -562 und -563",
+  "kobvid": "KOB00213",
+  "branches": []
  },
  {
   "isil": "DE-B1549",
@@ -1671,7 +4279,9 @@
   "url": "http://www.topographie.de/bibliothek/",
   "opac": "http://www.topographie.de/opac/",
   "email": "bibliothek@topographie.de",
-  "phone": "0049 30 25 45 09-23"
+  "phone": "0049 30 25 45 09-23",
+  "kobvid": "KOB00234",
+  "branches": []
  },
  {
   "isil": "DE-B1550",
@@ -1689,7 +4299,9 @@
   "url": "https://technikmuseum.berlin/sammlung/bibliothek/",
   "opac": "https://btmoz2.bib-bvb.de/webOPACClient.btmsis/start.do?Login=wobtm",
   "email": "archiv-bibliothek@technikmuseum.berlin",
-  "phone": "0049 30 439734-133 und 135 (Lesesaal)"
+  "phone": "0049 30 439734-133 und 135 (Lesesaal)",
+  "kobvid": "KOB00232",
+  "branches": []
  },
  {
   "isil": "DE-B1562",
@@ -1707,7 +4319,9 @@
   "url": "https://www.dza.de/ueber-uns/bibliothek",
   "opac": "https://lbsvz2.gbv.de/DB=41/",
   "email": "bibliothek@dza.de",
-  "phone": "0049 30 26 07 40-80"
+  "phone": "0049 30 26 07 40-80",
+  "kobvid": "BIB000000003",
+  "branches": []
  },
  {
   "isil": "DE-B1570",
@@ -1725,7 +4339,9 @@
   "url": "http://www.hertie-school.org/library/",
   "opac": "https://lbsvz1.gbv.de/DB=36/LNG=EN/",
   "email": "library@hertie-school.org",
-  "phone": "0049 30 25 92 19-409"
+  "phone": "0049 30 25 92 19-409",
+  "kobvid": "BIB000000263",
+  "branches": []
  },
  {
   "isil": "DE-B1579",
@@ -1744,7 +4360,9 @@
   "url": "https://hfs-berlin.bibliotheca-open.de/Info-Kontakt",
   "opac": "https://hfs-berlin.bibliotheca-open.de/",
   "email": "bibliothek@hfs-berlin.de",
-  "phone": "0049 30 75 54 17-124 und -125"
+  "phone": "0049 30 75 54 17-124 und -125",
+  "kobvid": "BIB000000051",
+  "branches": []
  },
  {
   "isil": "DE-B1586",
@@ -1760,9 +4378,11 @@
   "lat": 52.50392,
   "lon": 13.39851,
   "url": "https://www.berlinischegalerie.de/home/",
-  "opac": null,
+  "opac": "http://bga.allegronet.de/",
   "email": null,
-  "phone": "0049 30 7 89 02-894"
+  "phone": "0049 30 7 89 02-894",
+  "kobvid": "BIB000000054",
+  "branches": []
  },
  {
   "isil": "DE-B1595",
@@ -1780,7 +4400,9 @@
   "url": "https://www.flucht-vertreibung-versoehnung.de/",
   "opac": "https://dhmov60.bib-bvb.de/InfoGuideClient.dhmsis/start.do?Login=igdhmsfv",
   "email": "bibliothek@f-v-v.de",
-  "phone": "0049 30 2 06 29 98-21"
+  "phone": "0049 30 2 06 29 98-21",
+  "kobvid": "BIB000000319",
+  "branches": []
  },
  {
   "isil": "DE-B2223",
@@ -1798,7 +4420,9 @@
   "url": "http://www.bibliotheken-ekbo.de",
   "opac": null,
   "email": "bibliotheken@ekbo.de",
-  "phone": "0049 30 2 43 44-134"
+  "phone": "0049 30 2 43 44-134",
+  "kobvid": "BIB000000324",
+  "branches": []
  },
  {
   "isil": "DE-B2224",
@@ -1816,7 +4440,9 @@
   "url": "https://www.khsb-berlin.de/de/Bibliothek",
   "opac": "https://khsb-bibliothek.on.worldcat.org/discovery",
   "email": "bibliothek@khsb-berlin.de",
-  "phone": "0049 30 50 10 10-17"
+  "phone": "0049 30 50 10 10-17",
+  "kobvid": "BIB000000065",
+  "branches": []
  },
  {
   "isil": "DE-Ber7",
@@ -1834,7 +4460,9 @@
   "url": "http://www.info-bernau.de/jobernau07/index.php?option=com_content&task=blogsection&id=84&Itemid=140",
   "opac": "http://www.datronic.de/cgi-bin/findus.pl?customer=bernau",
   "email": "stadtbibliothek@bernau-bei-berlin.de",
-  "phone": "0049 3338 76 35 20"
+  "phone": "0049 3338 76 35 20",
+  "kobvid": "SIG00271",
+  "branches": []
  },
  {
   "isil": "DE-Bo133",
@@ -1852,7 +4480,9 @@
   "url": "http://www.fes.de/bibliothek/",
   "opac": "http://library.fes.de/TouchPoint",
   "email": "archiv.bibliothek@fes.de",
-  "phone": "0049 228 8 83-9046"
+  "phone": "0049 228 8 83-9046",
+  "kobvid": "KOB00025",
+  "branches": []
  },
  {
   "isil": "DE-Co22",
@@ -1870,7 +4500,9 @@
   "url": "http://herzberg.media",
   "opac": "http://sb-herzberg.webopac.net/",
   "email": "mediathek@stadt-herzberg.de",
-  "phone": "0049 3535 48 23 40"
+  "phone": "0049 3535 48 23 40",
+  "kobvid": "SIG00244",
+  "branches": []
  },
  {
   "isil": "DE-Eb1",
@@ -1888,7 +4520,9 @@
   "url": "http://www.hnee.de/Hochschulbibliothek/Hochschulbibliothek-Eberswalde-K133.htm",
   "opac": "http://opac.hnee.de/webOPACClient/start.do",
   "email": "Bibliothek@hnee.de",
-  "phone": "0049 3334 65 72-01 (Auskunft) und -06 (Fernleihe)"
+  "phone": "0049 3334 65 72-01 (Auskunft) und -06 (Fernleihe)",
+  "kobvid": "SIG00135",
+  "branches": []
  },
  {
   "isil": "DE-Eb21",
@@ -1906,7 +4540,9 @@
   "url": "http://www.eberswalde.de/Bibliothek.1721.0.html",
   "opac": "http://80.78.162.156/allegrooeb/webopac/start.aspx",
   "email": "bibliothek@eberswalde.de",
-  "phone": "0049 3334 64-420"
+  "phone": "0049 3334 64-420",
+  "kobvid": "BIB000000032",
+  "branches": []
  },
  {
   "isil": "DE-Eh4",
@@ -1924,7 +4560,9 @@
   "url": "http://www.eisenhuettenstadt.de/index.php?mnr=6&su1=1&su2=8",
   "opac": null,
   "email": "stadtbibliothek@eisenhuettenstadt.de",
-  "phone": "0049 3364 56 65 20"
+  "phone": "0049 3364 56 65 20",
+  "kobvid": "SIG00243",
+  "branches": []
  },
  {
   "isil": "DE-F131",
@@ -1942,7 +4580,9 @@
   "url": "https://dgap.org/de/informationszentrum",
   "opac": "https://opac.dgap.org/esearcha/index.tt.html",
   "email": "iz@dgap.org",
-  "phone": "0049 30 25 42 31-0"
+  "phone": "0049 30 25 42 31-0",
+  "kobvid": "SIG00080",
+  "branches": []
  },
  {
   "isil": "DE-For3",
@@ -1960,7 +4600,9 @@
   "url": "http://www.forst-lausitz.de/sixcms/list.php?page=seite_bildung_bibliothek",
   "opac": null,
   "email": "bibliothek@forst-lausitz.de",
-  "phone": "0049 3562 98 93 80"
+  "phone": "0049 3562 98 93 80",
+  "kobvid": "SIG00247",
+  "branches": []
  },
  {
   "isil": "DE-Fur5",
@@ -1978,7 +4620,9 @@
   "url": "http://www.bibo-fw.de",
   "opac": "https://opac.stadtbibliothek-fuerstenwalde.de/",
   "email": "stadtbibliothek@fuerstenwalde-spree.de",
-  "phone": "0049 3361 55 72 32"
+  "phone": "0049 3361 55 72 32",
+  "kobvid": "SIG00245",
+  "branches": []
  },
  {
   "isil": "DE-Fw2",
@@ -1996,7 +4640,9 @@
   "url": "https://www.bibliothek-bad-freienwalde.de/",
   "opac": "https://bad-freienwalde.bibliotheca-open.de/",
   "email": "bibliothek@bad-freienwalde.de",
-  "phone": "0049 3344 33 38 70 und 33 38 71 (Fernleihe) und 33 19 37 (Hauptanschluss)"
+  "phone": "0049 3344 33 38 70 und 33 38 71 (Fernleihe) und 33 19 37 (Hauptanschluss)",
+  "kobvid": "SIG00246",
+  "branches": []
  },
  {
   "isil": "DE-Lbn3",
@@ -2014,7 +4660,9 @@
   "url": "https://www.luebben.de/stadt-luebben/de/stadtleben/kultur/stadtbibliothek-luebben/",
   "opac": "https://bibo.luebben.de/index.asp?DB=webopac",
   "email": "bibliothek@luebben.de",
-  "phone": "0049 3546 71 60"
+  "phone": "0049 3546 71 60",
+  "kobvid": "SIG00240",
+  "branches": []
  },
  {
   "isil": "DE-Mun1",
@@ -2032,7 +4680,9 @@
   "url": "https://www.zalf.de/de/struktur/bib/Seiten/default.aspx",
   "opac": "http://biblio.zalf.de/",
   "email": "bib@zalf.de",
-  "phone": "0049 33432 82-216"
+  "phone": "0049 33432 82-216",
+  "kobvid": "KOB05351",
+  "branches": []
  },
  {
   "isil": "DE-Po24",
@@ -2050,7 +4700,9 @@
   "url": "http://www.blha.de",
   "opac": null,
   "email": "bibliothek@blha.brandenburg.de",
-  "phone": "0049 331 56 74-257"
+  "phone": "0049 331 56 74-257",
+  "kobvid": "SIG00152",
+  "branches": []
  },
  {
   "isil": "DE-Po75",
@@ -2068,7 +4720,9 @@
   "url": "https://www.filmuniversitaet.de/filmuni/universitaetsbibliothek/",
   "opac": "http://opac.bibl.filmuniversitaet.de",
   "email": "ausleihe@filmuniversitaet.de",
-  "phone": "0049 331 62 02-401"
+  "phone": "0049 331 62 02-401",
+  "kobvid": "SIG00166",
+  "branches": []
  },
  {
   "isil": "DE-Po79",
@@ -2086,7 +4740,9 @@
   "url": "https://zms.bundeswehr.de/de/zmsbw-bibliothek",
   "opac": "http://portal.kobv.de/init.do?sortCrit=score&sortOrder=desc&lang=de&hitsPerPage=10&searchHistorySize=20&format=ris&encoding=utf8&version=1.0&facetListPosition=lhs&maxNumberOfFacetsPerValue=20&autoCompletionEnabled=true&usedLibs=DE-Po79&index=internal&feedFormat=rss_2.0&numItemsPerFeed=100&plv=2",
   "email": "zmsbwbibliothek@bundeswehr.org",
-  "phone": "0049 331 97 14-490"
+  "phone": "0049 331 97 14-490",
+  "kobvid": "SIG00082",
+  "branches": []
  },
  {
   "isil": "DE-Po82",
@@ -2104,7 +4760,9 @@
   "url": "https://zzf-potsdam.de/de/bibliothek",
   "opac": "https://lbsvz3.gbv.de/LNG=DU/DB=10/",
   "email": "bibliothek@zzf-potsdam.de",
-  "phone": "0049 331 7 45 10-132"
+  "phone": "0049 331 7 45 10-132",
+  "kobvid": "KOB00088",
+  "branches": []
  },
  {
   "isil": "DE-Pr3",
@@ -2122,7 +4780,9 @@
   "url": "http://www.prenzlau.eu/cms/detail.php/land_bb_boa_01.c.164613.de",
   "opac": null,
   "email": "stadtbibliothek@dominikanerkloster-prenzlau.de",
-  "phone": "0049 3984 75-4241 (Ausleihe) und -4041 (Leitung)"
+  "phone": "0049 3984 75-4241 (Ausleihe) und -4041 (Leitung)",
+  "kobvid": "SIG00252",
+  "branches": []
  },
  {
   "isil": "DE-Sen5",
@@ -2140,7 +4800,9 @@
   "url": "http://www.senftenberg.de/index.phtml?mNavID=1704.7&sNavID=1704.19&La=1",
   "opac": null,
   "email": "sb.senftenberg@t-online.de",
-  "phone": "0049 3573 37 80-12"
+  "phone": "0049 3573 37 80-12",
+  "kobvid": "SIG00255",
+  "branches": []
  },
  {
   "isil": "DE-Sht10",
@@ -2158,7 +4820,9 @@
   "url": "http://www.schwedt.de/stadtbibliothek",
   "opac": null,
   "email": "bibliothek.stadt@schwedt.de",
-  "phone": "0049 3332 2 23 79"
+  "phone": "0049 3332 2 23 79",
+  "kobvid": "SIG00168",
+  "branches": []
  },
  {
   "isil": "DE-Spr10",
@@ -2176,7 +4840,9 @@
   "url": "http://www.kreisbibliothek-spn.de/start.htm",
   "opac": "http://my-bibliotheca.net/opac-108531/App/Pages/webopac/index.aspx",
   "email": "bibliothek@kulturschloss-lkspn.de",
-  "phone": "0049 3563 59 33 40 22"
+  "phone": "0049 3563 59 33 40 22",
+  "kobvid": "SIG00254",
+  "branches": []
  },
  {
   "isil": "DE-Te3",
@@ -2194,7 +4860,9 @@
   "url": "http://www.templin.de/verzeichnis/visitenkarte.php?mandat=50003",
   "opac": null,
   "email": "bibliothek@templin.de",
-  "phone": "0049 3987 27 98"
+  "phone": "0049 3987 27 98",
+  "kobvid": "SIG00250",
+  "branches": []
  },
  {
   "isil": "DE-To5",
@@ -2212,7 +4880,9 @@
   "url": "http://www.teltow.de/bildung-soziales/bibliothek.html",
   "opac": null,
   "email": "bibliothek@teltow.de",
-  "phone": "0049 3328 47 81-650"
+  "phone": "0049 3328 47 81-650",
+  "kobvid": "SIG00251",
+  "branches": []
  },
  {
   "isil": "DE-Wbe4",
@@ -2230,6 +4900,8 @@
   "url": "http://www.wittenberge.de/verzeichnis/visitenkarte.php?mandat=61180",
   "opac": null,
   "email": "stadtbibliothek@kfh-wbge.de",
-  "phone": "0049 3877 40 38 81"
+  "phone": "0049 3877 40 38 81",
+  "kobvid": "SIG00257",
+  "branches": []
  }
 ]
