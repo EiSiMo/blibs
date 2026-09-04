@@ -1,0 +1,2235 @@
+[
+ {
+  "isil": "DE-1",
+  "aliases": [
+   "STABI",
+   "SBB"
+  ],
+  "short_name": "Stabi Berlin",
+  "portal_name": "Stabi Berlin",
+  "name": "Staatsbibliothek zu Berlin - Preußischer Kulturbesitz, Haus Unter den Linden",
+  "type": "Nationalbibliothek",
+  "city": "Berlin",
+  "address": "Unter den Linden 8, 10117 Berlin",
+  "lat": 52.51755,
+  "lon": 13.39162,
+  "url": "http://staatsbibliothek-berlin.de",
+  "opac": "http://stabikat.de",
+  "email": "info@sbb.spk-berlin.de",
+  "phone": "0049 30 2 66-433888"
+ },
+ {
+  "isil": "DE-11",
+  "aliases": [
+   "HU",
+   "UBHU",
+   "GRIMM"
+  ],
+  "short_name": "HU Berlin",
+  "portal_name": "HU Berlin",
+  "name": "Humboldt-Universität zu Berlin, Universitätsbibliothek, Jacob-und-Wilhelm-Grimm-Zentrum",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Berlin",
+  "address": "Geschwister-Scholl-Str. 1/3, 10117 Berlin",
+  "lat": 52.52041,
+  "lon": 13.39096,
+  "url": "http://www.ub.hu-berlin.de",
+  "opac": "http://primus.ub.hu-berlin.de",
+  "email": "info@ub.hu-berlin.de",
+  "phone": "0049 30 20 93-99370"
+ },
+ {
+  "isil": "DE-83",
+  "aliases": [
+   "TU",
+   "UBTU"
+  ],
+  "short_name": "TU Berlin",
+  "portal_name": "TU Berlin",
+  "name": "TU Berlin, Universitätsbibliothek",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Berlin",
+  "address": "Fasanenstr. 88, 10623 Berlin",
+  "lat": 52.51046,
+  "lon": 13.33064,
+  "url": "https://www.tu.berlin/ub/",
+  "opac": "https://tu-berlin.hosted.exlibrisgroup.com/primo-explore/search?vid=TUB&lang=de_DE",
+  "email": "info@ub.tu-berlin.de",
+  "phone": "0049 30 314-76101"
+ },
+ {
+  "isil": "DE-109",
+  "aliases": [
+   "ZLBORG"
+  ],
+  "short_name": "ZLB (Haus)",
+  "portal_name": null,
+  "name": "Zentral- und Landesbibliothek Berlin, Haus Amerika-Gedenkbibliothek und Haus Berliner Stadtbibliothek",
+  "type": "Regionalbibliothek",
+  "city": "Berlin",
+  "address": "Blücherpl. 1, 10961 Berlin",
+  "lat": 52.49659,
+  "lon": 13.39179,
+  "url": "https://www.zlb.de/",
+  "opac": "https://www.voebb.de/",
+  "email": "info@zlb.de",
+  "phone": "0049 30 9 02 26 401"
+ },
+ {
+  "isil": "DE-139",
+  "aliases": [
+   "FFO"
+  ],
+  "short_name": "SRB Frankfurt/O",
+  "portal_name": null,
+  "name": "Stadt- und Regionalbibliothek Frankfurt (Oder)",
+  "type": "Öffentliche Bibliothek",
+  "city": "Frankfurt/Oder",
+  "address": "Bischofstr. 17, 15230 Frankfurt/Oder",
+  "lat": 52.34357,
+  "lon": 14.55426,
+  "url": "http://www.srbffo.de",
+  "opac": "http://www.srbffo.de/",
+  "email": "verwaltung@srbffo.de",
+  "phone": "0049 335 54 98 52"
+ },
+ {
+  "isil": "DE-141",
+  "aliases": [
+   "GUBEN"
+  ],
+  "short_name": "SB Guben",
+  "portal_name": null,
+  "name": "Stadtbibliothek Guben",
+  "type": "Öffentliche Bibliothek",
+  "city": "Guben",
+  "address": "Gasstraße 6 (Promenade am Dreieck), 03172 Guben",
+  "lat": 51.95033,
+  "lon": 14.71291,
+  "url": null,
+  "opac": null,
+  "email": "bibo@guben.de",
+  "phone": "0049 3561 68 71-2301"
+ },
+ {
+  "isil": "DE-181",
+  "aliases": [
+   "SRB"
+  ],
+  "short_name": "SRB Cottbus",
+  "portal_name": "SRB Cottbus",
+  "name": "Lernzentrum Cottbus / Stadt- und Regionalbibliothek Cottbus",
+  "type": "Öffentliche Bibliothek",
+  "city": "Cottbus",
+  "address": "Berliner Str. 13/14, 03046 Cottbus",
+  "lat": 51.76093,
+  "lon": 14.32698,
+  "url": "http://www.lernzentrum-cottbus.de",
+  "opac": "https://web-opac.bibliothek-cottbus.de",
+  "email": "info@bibliothek-cottbus.de",
+  "phone": "0049 355 3 80 60-0"
+ },
+ {
+  "isil": "DE-186",
+  "aliases": [
+   "SLB"
+  ],
+  "short_name": "SLB Potsdam",
+  "portal_name": "SLB Potsdam",
+  "name": "Stadt- und Landesbibliothek im Bildungsforum Potsdam",
+  "type": "Öffentliche Bibliothek",
+  "city": "Potsdam",
+  "address": "Am Kanal 47, 14467 Potsdam",
+  "lat": 52.3972,
+  "lon": 13.05929,
+  "url": "http://bibliothek.potsdam.de",
+  "opac": "https://katalog-slb-potsdam.bibliotheca-open.de/",
+  "email": "slb@bibliothek.potsdam.de",
+  "phone": "0049 331 2 89-6401"
+ },
+ {
+  "isil": "DE-188",
+  "aliases": [
+   "FU",
+   "UBFU"
+  ],
+  "short_name": "FU Berlin",
+  "portal_name": "FU Berlin",
+  "name": "Freie Universität Berlin, Universitätsbibliothek, Zentralbibliothek",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Berlin",
+  "address": "Garystr. 39, 14195 Berlin",
+  "lat": 52.44829,
+  "lon": 13.27714,
+  "url": "https://www.fu-berlin.de/sites/ub/",
+  "opac": "https://primo.fu-berlin.de",
+  "email": "auskunft@ub.fu-berlin.de",
+  "phone": "0049 30 8 38-51111 (Auskunft)"
+ },
+ {
+  "isil": "DE-204",
+  "aliases": [
+   "IAI"
+  ],
+  "short_name": "IAI Berlin",
+  "portal_name": "Ibero-Amerik. Institut",
+  "name": "Ibero-Amerikanisches Institut Preußischer Kulturbesitz, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Potsdamer Str. 37, 10785 Berlin",
+  "lat": 52.50691,
+  "lon": 13.36973,
+  "url": "http://www.iai.spk-berlin.de/",
+  "opac": "http://www.iaicat.de",
+  "email": "info@iai.spk-berlin.de",
+  "phone": "0049 30 2 66-451500"
+ },
+ {
+  "isil": "DE-287",
+  "aliases": [
+   "ZINFOABW"
+  ],
+  "short_name": "ZInfoABw",
+  "portal_name": null,
+  "name": "Zentrum Informationsarbeit Bundeswehr, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Strausberg",
+  "address": "Prötzeler Chaussee 20, 15344 Strausberg",
+  "lat": 52.59498,
+  "lon": 13.91452,
+  "url": null,
+  "opac": null,
+  "email": "ZInfoABwBibliothek@bundeswehr.org",
+  "phone": "0049 3341 58-2085 und -2084"
+ },
+ {
+  "isil": "DE-501",
+  "aliases": [
+   "KYRITZ"
+  ],
+  "short_name": "SB Kyritz",
+  "portal_name": null,
+  "name": "Stadtbibliothek Kyritz",
+  "type": "Öffentliche Bibliothek",
+  "city": "Kyritz",
+  "address": "Johann-Sebastian-Bach-Straße 2, 16866 Kyritz",
+  "lat": 52.94231,
+  "lon": 12.39684,
+  "url": "https://bibliothek.kyritz.de",
+  "opac": "https://bibkataloge.de/kyritz",
+  "email": "Bibliothek@Kyritz.de",
+  "phone": "0049 33971 85 278"
+ },
+ {
+  "isil": "DE-502",
+  "aliases": [
+   "ZOSSEN"
+  ],
+  "short_name": "SB Zossen",
+  "portal_name": null,
+  "name": "Stadtbibliothek Zossen",
+  "type": "Öffentliche Bibliothek",
+  "city": "Zossen",
+  "address": "Kirchplatz 2, 15806 Zossen",
+  "lat": 52.21651,
+  "lon": 13.44848,
+  "url": "https://opac.winbiap.net/zossen/index.aspx",
+  "opac": null,
+  "email": "bibliothekzs@svzossen.brandenburg.de",
+  "phone": "0049 3377 3 04 04 77"
+ },
+ {
+  "isil": "DE-504",
+  "aliases": [
+   "FOUQUE"
+  ],
+  "short_name": "Fouqué-Bibl.",
+  "portal_name": "Fouque-Bibliothek Brandenburg",
+  "name": "Fouqué-Bibliothek Brandenburg",
+  "type": "Öffentliche Bibliothek",
+  "city": "Brandenburg",
+  "address": "Altstädtischer Markt 8, 14770 Brandenburg",
+  "lat": 52.41382,
+  "lon": 12.55402,
+  "url": "http://www.stadt-brandenburg.de/bibliothek",
+  "opac": null,
+  "email": "bibo@stadt-brandenburg.de",
+  "phone": "0049 3381 58 42 07"
+ },
+ {
+  "isil": "DE-505",
+  "aliases": [
+   "JUTERBOG"
+  ],
+  "short_name": "SB Jüterbog",
+  "portal_name": null,
+  "name": "Stadtbibliothek Jüterbog",
+  "type": "Öffentliche Bibliothek",
+  "city": "Jüterbog",
+  "address": "Mönchenkirchpl. 4, 14913 Jüterbog",
+  "lat": 51.99189,
+  "lon": 13.07778,
+  "url": "https://www.jueterbog.eu/seite/180125/stadtbibliothek.html",
+  "opac": null,
+  "email": "stadtbibliothek@jueterbog.de",
+  "phone": "0049 3372 46 31 40"
+ },
+ {
+  "isil": "DE-506a",
+  "aliases": [
+   "LUCKENWALD"
+  ],
+  "short_name": "SB Luckenwalde",
+  "portal_name": null,
+  "name": "Stadtbibliothek Luckenwalde",
+  "type": "Öffentliche Bibliothek",
+  "city": "Luckenwalde",
+  "address": "Bahnhofspl. 5, 14943 Luckenwalde",
+  "lat": 52.09013,
+  "lon": 13.16111,
+  "url": "http://www.bibliothek.luckenwalde.de",
+  "opac": "http://mybibliotheca.net/opac-lucken/app/pages/webopac/index.aspx",
+  "email": "bibliothek@luckenwalde.de",
+  "phone": "0049 3371 40 33-40 und -42"
+ },
+ {
+  "isil": "DE-508",
+  "aliases": [
+   "ORANIENBUR"
+  ],
+  "short_name": "SB Oranienburg",
+  "portal_name": null,
+  "name": "Stadtbibliothek Oranienburg",
+  "type": "Öffentliche Bibliothek",
+  "city": "Oranienburg",
+  "address": "Schloßplatz 2, 16515 Oranienburg",
+  "lat": 52.75365,
+  "lon": 13.23765,
+  "url": "https://stadtbibliothekoranienburg.bibliotheca-open.de/",
+  "opac": null,
+  "email": "stadtbibliothek@oranienburg.de",
+  "phone": "0049 3301 60 08 66 0"
+ },
+ {
+  "isil": "DE-510",
+  "aliases": [
+   "WITTSTOCK"
+  ],
+  "short_name": "B Wittstock",
+  "portal_name": null,
+  "name": "Bibliothek im Kontor",
+  "type": "Öffentliche Bibliothek",
+  "city": "Wittstock/Dosse",
+  "address": "Kettenstr. 24/26, 16909 Wittstock/Dosse",
+  "lat": 53.16381,
+  "lon": 12.48381,
+  "url": "http://www.wittstock.de/verzeichnis/visitenkarte.php?mandat=48414",
+  "opac": null,
+  "email": "bibliothek@stadt-wittstock.de",
+  "phone": "0049 3394 42 94 00"
+ },
+ {
+  "isil": "DE-511",
+  "aliases": [
+   "KW"
+  ],
+  "short_name": "SB Königs Wh.",
+  "portal_name": "SB Königs Wusterhausen",
+  "name": "Stadtbibliothek Königs Wusterhausen",
+  "type": "Öffentliche Bibliothek",
+  "city": "Königs Wusterhausen",
+  "address": "Scheederstr. 1 c, 15711 Königs Wusterhausen",
+  "lat": 52.29772,
+  "lon": 13.62392,
+  "url": "https://stadtbibliothek-kw.bibliotheca-open.de/",
+  "opac": null,
+  "email": "info@bibliothek-kw.de",
+  "phone": "0049 3375 25 60-0"
+ },
+ {
+  "isil": "DE-512",
+  "aliases": [
+   "GRANSEE"
+  ],
+  "short_name": "SB Gransee",
+  "portal_name": null,
+  "name": "Stadtbibliothek Gransee",
+  "type": "Öffentliche Bibliothek",
+  "city": "Gransee",
+  "address": "Straße des Friedens 4, 16775 Gransee",
+  "lat": 53.00279,
+  "lon": 13.16365,
+  "url": "http://bibliothekenverbund-oberhavel-nord.de/index.html",
+  "opac": null,
+  "email": "bibliothek.gransee@gmx.de",
+  "phone": "0049 3306 22 28"
+ },
+ {
+  "isil": "DE-513",
+  "aliases": [
+   "NEURUPPIN"
+  ],
+  "short_name": "SB Neuruppin",
+  "portal_name": null,
+  "name": "Stadtbibliothek Neuruppin",
+  "type": "Öffentliche Bibliothek",
+  "city": "Neuruppin",
+  "address": "Am Alten Gymnasium 1-3, 16816 Neuruppin",
+  "lat": 52.92455,
+  "lon": 12.80566,
+  "url": "https://www.altes-gymnasium-neuruppin.de",
+  "opac": null,
+  "email": "bibliothek@altes-gymnasium-neuruppin.de",
+  "phone": "0049 3391 3 55 52 04"
+ },
+ {
+  "isil": "DE-514",
+  "aliases": [
+   "RATHENOW"
+  ],
+  "short_name": "SB Rathenow",
+  "portal_name": null,
+  "name": "Stadtbibliothek Rathenow",
+  "type": "Öffentliche Bibliothek",
+  "city": "Rathenow",
+  "address": "Schleusenpl. 4, 14712 Rathenow",
+  "lat": 52.60633,
+  "lon": 12.33535,
+  "url": "http://www.stadtbibliothek.rathenow.de",
+  "opac": null,
+  "email": "bibliothek@stadt-rathenow.de",
+  "phone": "0049 3385 51 26 83"
+ },
+ {
+  "isil": "DE-517",
+  "aliases": [
+   "UP",
+   "UBP"
+  ],
+  "short_name": "UB Potsdam",
+  "portal_name": "UB Potsdam",
+  "name": "Universität Potsdam, Universitätsbibliothek",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Potsdam",
+  "address": "Karl-Liebknecht-Str. 24-25, 14476 Potsdam",
+  "lat": 52.40823,
+  "lon": 12.9732,
+  "url": "https://www.ub.uni-potsdam.de/ub.html",
+  "opac": "https://opac.ub.uni-potsdam.de/",
+  "email": "ubinfo-list@uni-potsdam.de",
+  "phone": "0049 331 9 77-2103"
+ },
+ {
+  "isil": "DE-521",
+  "aliases": [
+   "VIADRINA",
+   "EUV"
+  ],
+  "short_name": "EUV Frankfurt",
+  "portal_name": "EUV Frankfurt",
+  "name": "Europa-Universität Viadrina, Universitätsbibliothek",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Frankfurt/Oder",
+  "address": "Große Scharrnstr. 59, 15230 Frankfurt/Oder",
+  "lat": 52.34232,
+  "lon": 14.55426,
+  "url": "https://www.ub.europa-uni.de/de/index.html",
+  "opac": "https://opac.europa-uni.de/InfoGuideClient.euvsis/start.do?Login=igeuv",
+  "email": "ub_ausk@europa-uni.de",
+  "phone": "0049 335 55 34-3366"
+ },
+ {
+  "isil": "DE-522",
+  "aliases": [
+   "THB"
+  ],
+  "short_name": "TH Brandenburg",
+  "portal_name": "TH Brandenburg",
+  "name": "Technische Hochschule Brandenburg, Hochschulbibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Brandenburg",
+  "address": "Magdeburger Str. 50, 14770 Brandenburg",
+  "lat": 52.41143,
+  "lon": 12.53805,
+  "url": "https://bibliothek.th-brandenburg.de/",
+  "opac": "https://opac.th-brandenburg.de",
+  "email": "bibliothek@th-brandenburg.de",
+  "phone": "0049 3381 35 51 67"
+ },
+ {
+  "isil": "DE-523",
+  "aliases": [
+   "HTW"
+  ],
+  "short_name": "HTW Berlin",
+  "portal_name": "HTW Berlin",
+  "name": "Hochschule für Technik und Wirtschaft Berlin, Hochschulbibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Treskowallee 8, 10318 Berlin",
+  "lat": 52.49277,
+  "lon": 13.52621,
+  "url": "http://bibliothek.htw-berlin.de/",
+  "opac": "http://bibliothek.htw-berlin.de/literatur-suchen/",
+  "email": "bibliothek@htw-berlin.de",
+  "phone": "0049 30 50 19-2221"
+ },
+ {
+  "isil": "DE-525",
+  "aliases": [
+   "FHP"
+  ],
+  "short_name": "FH Potsdam",
+  "portal_name": "FH Potsdam",
+  "name": "Fachhochschule Potsdam, Hochschulbibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Potsdam",
+  "address": "Kiepenheuerallee 5, 14469 Potsdam",
+  "lat": 52.41372,
+  "lon": 13.05141,
+  "url": "https://bibliothek.fh-potsdam.de",
+  "opac": "https://opac.fh-potsdam.de/",
+  "email": "fernleihe@fh-potsdam.de",
+  "phone": "0049 331 5 80-8940 und -8941"
+ },
+ {
+  "isil": "DE-526",
+  "aliases": [
+   "THWILDAU"
+  ],
+  "short_name": "TH Wildau",
+  "portal_name": null,
+  "name": "Technische Hochschule Wildau, Hochschulbibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Wildau",
+  "address": "Hochschulring 1, 15745 Wildau",
+  "lat": 52.31959,
+  "lon": 13.63266,
+  "url": "https://www.th-wildau.de/bibliothek",
+  "opac": "https://wilbert.kobv.de",
+  "email": "bibinfo@th-wildau.de",
+  "phone": "0049 3375 5 08-521 und -155"
+ },
+ {
+  "isil": "DE-529",
+  "aliases": [
+   "CALAU"
+  ],
+  "short_name": "SB Calau",
+  "portal_name": null,
+  "name": "Stadtbibliothek Calau",
+  "type": "Öffentliche Bibliothek",
+  "city": "Calau",
+  "address": "Straße der Jugend 24, 03205 Calau",
+  "lat": 51.74405,
+  "lon": 13.95363,
+  "url": "http://www.calau.de/verzeichnis/visitenkarte.php?mandat=64718",
+  "opac": null,
+  "email": "stadtbibliothek@calau.de",
+  "phone": "0049 3541 89 15 11 (Büro) 89 15 12 (Ausleihe)"
+ },
+ {
+  "isil": "DE-530",
+  "aliases": [
+   "FALKENSEE"
+  ],
+  "short_name": "SB Falkensee",
+  "portal_name": null,
+  "name": "Stadtbibliothek Falkensee",
+  "type": "Öffentliche Bibliothek",
+  "city": "Falkensee",
+  "address": "Am Gutspark 6, 14612 Falkensee",
+  "lat": 52.56286,
+  "lon": 13.09196,
+  "url": "https://sb-falkensee.lmscloud.net/",
+  "opac": null,
+  "email": "bibliothek@falkensee.de",
+  "phone": "0049 3322 2 25 89"
+ },
+ {
+  "isil": "DE-531",
+  "aliases": [
+   "FINSTERWAL"
+  ],
+  "short_name": "SB Finsterwalde",
+  "portal_name": null,
+  "name": "Stadtbibliothek Finsterwalde",
+  "type": "Öffentliche Bibliothek",
+  "city": "Finsterwalde",
+  "address": "Geschwister-Scholl-Straße 2, 03238 Finsterwalde",
+  "lat": 51.62788,
+  "lon": 13.71227,
+  "url": "https://www.finsterwalde.de/Leben-in-Finsterwalde/Freizeit-/Bibliothek/",
+  "opac": "https://sb-finsterwalde.webopac.net/index.php",
+  "email": "bibliothek@finsterwalde.de",
+  "phone": "0049 3531 20 70"
+ },
+ {
+  "isil": "DE-532",
+  "aliases": [
+   "HENNIGSDOR"
+  ],
+  "short_name": "SB Hennigsdorf",
+  "portal_name": null,
+  "name": "Stadtbibliothek \"Im Alten Bahnhof\" Hennigsdorf",
+  "type": "Öffentliche Bibliothek",
+  "city": "Hennigsdorf",
+  "address": "Am Bahndamm 19, 16761 Hennigsdorf",
+  "lat": 52.63996,
+  "lon": 13.20555,
+  "url": "http://www.hennigsdorf.de/index.phtml?sNavID=1126.73&La=1",
+  "opac": null,
+  "email": "stadtbibliothek@hennigsdorf.de",
+  "phone": "0049 3302 87 74 00"
+ },
+ {
+  "isil": "DE-533",
+  "aliases": [
+   "LUDWIGSFEL"
+  ],
+  "short_name": "SB Ludwigsfelde",
+  "portal_name": null,
+  "name": "Stadtbibliothek Ludwigsfelde",
+  "type": "Öffentliche Bibliothek",
+  "city": "Ludwigsfelde",
+  "address": "Rathausstr. 3, 14974 Ludwigsfelde",
+  "lat": 52.30107,
+  "lon": 13.26146,
+  "url": "https://ludwigsfelde.bibliotheca-open.de/",
+  "opac": "https://ludwigsfelde.bibliotheca-open.de/Mediensuche/Einfache-Suche",
+  "email": "bibliothek@ludwigsfelde.de",
+  "phone": "0049 3378 8 27-222"
+ },
+ {
+  "isil": "DE-534",
+  "aliases": [
+   "STRAUSBERG"
+  ],
+  "short_name": "SB Strausberg",
+  "portal_name": null,
+  "name": "Heinrich-Mann-Bibliothek / Stadtbibliothek",
+  "type": "Öffentliche Bibliothek",
+  "city": "Strausberg",
+  "address": "Hegermühlenstraße 58, 15344 Strausberg",
+  "lat": 52.57522,
+  "lon": 13.8823,
+  "url": "https://stadtbibliothek-strausberg.bibliotheca-open.de/",
+  "opac": null,
+  "email": "bibliothek@stadt-strausberg.de",
+  "phone": "0049 3341 38 12 62"
+ },
+ {
+  "isil": "DE-535",
+  "aliases": [
+   "PERLEBERG"
+  ],
+  "short_name": "SB Perleberg",
+  "portal_name": null,
+  "name": "BONA Stadtbibliothek Perleberg",
+  "type": "Öffentliche Bibliothek",
+  "city": "Perleberg",
+  "address": "Puschkinstr. 14, 19348 Perleberg",
+  "lat": 53.07696,
+  "lon": 11.86457,
+  "url": "http://www.stadtbibliothek-perleberg.de",
+  "opac": null,
+  "email": "fernleihe@stadt-perleberg.de",
+  "phone": "0049 3876 61 29 27"
+ },
+ {
+  "isil": "DE-536",
+  "aliases": [
+   "LEHNIN"
+  ],
+  "short_name": "MZ Lehnin",
+  "portal_name": null,
+  "name": "Medienzentrum Potsdam-Mittelmark Kloster Lehnin",
+  "type": "Öffentliche Bibliothek",
+  "city": "Kloster Lehnin",
+  "address": "Goethestr. 13, 14797 Kloster Lehnin",
+  "lat": 52.31767,
+  "lon": 12.74512,
+  "url": "http://www.potsdam-mittelmark.de",
+  "opac": null,
+  "email": "medienzentrum@potsdam-mittelmark.de",
+  "phone": "0049 3382 73 20 26 und 73 20 29"
+ },
+ {
+  "isil": "DE-537",
+  "aliases": [
+   "ZEHDENICK"
+  ],
+  "short_name": "SB Zehdenick",
+  "portal_name": null,
+  "name": "Stadtbibliothek Zehdenick",
+  "type": "Öffentliche Bibliothek",
+  "city": "Zehdenick",
+  "address": "Falkenthaler Chaussee 1, 16792 Zehdenick",
+  "lat": 52.97447,
+  "lon": 13.32962,
+  "url": "http://www.bibliothek-zehdenick.de/",
+  "opac": null,
+  "email": "Stadtbibliothek@zehdenick.de",
+  "phone": "0049 3307 46 84-200"
+ },
+ {
+  "isil": "DE-571",
+  "aliases": [
+   "HPOL"
+  ],
+  "short_name": "HPol Brandenburg",
+  "portal_name": "HPol Brandenburg",
+  "name": "Hochschule der Polizei des Landes Brandenburg, Hochschulbibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Oranienburg",
+  "address": "Bernauer Str. 146, 16515 Oranienburg",
+  "lat": 52.76327,
+  "lon": 13.2627,
+  "url": "https://hpolbb.de/hochschulbibliothek",
+  "opac": null,
+  "email": "bibliothek@hpolbb.de",
+  "phone": "0049 3301 8 50-2185"
+ },
+ {
+  "isil": "DE-578",
+  "aliases": [
+   "CHARITE"
+  ],
+  "short_name": "Charité",
+  "portal_name": "Charité",
+  "name": "Charité - Universitätsmedizin Berlin, Medizinische Bibliothek",
+  "type": null,
+  "city": "Berlin",
+  "address": "Philippstraße 11/12, 10117 Berlin",
+  "lat": 52.52689,
+  "lon": 13.38159,
+  "url": "https://bibliothek.charite.de/",
+  "opac": "https://primo.fu-berlin.de",
+  "email": null,
+  "phone": null
+ },
+ {
+  "isil": "DE-578-3",
+  "aliases": [
+   "CVK"
+  ],
+  "short_name": "Charité CVK",
+  "portal_name": null,
+  "name": "Charité - Universitätsmedizin Berlin, Medizinische Bibliothek, Campus Virchow-Klinikum",
+  "type": "Abteilungsbibliothek, Fachbereichsbibliothek, Institutsbibliothek (Universität)",
+  "city": "Berlin",
+  "address": "Augustenburger Pl. 1, 13353 Berlin",
+  "lat": 52.54183,
+  "lon": 13.34014,
+  "url": "http://bibliothek.charite.de/",
+  "opac": "https://charite-berlin.primo.exlibrisgroup.com/discovery/search?vid=49KOBV_FUB:CHA",
+  "email": "medbibcvk@charite.de",
+  "phone": "0049 30 4 50-576333"
+ },
+ {
+  "isil": "DE-609",
+  "aliases": [
+   "VOEBB",
+   "ZLB",
+   "AGB"
+  ],
+  "short_name": "Berlin VÖBB/ZLB",
+  "portal_name": "Berlin VÖBB/ZLB",
+  "name": "Verbund der Öffentlichen Bibliotheken Berlins - VÖBB",
+  "type": "Verbundsystem/ -kataloge",
+  "city": "Berlin",
+  "address": "Breite Str. 30/31, 10178 Berlin",
+  "lat": 52.51412,
+  "lon": 13.40567,
+  "url": "http://www.voebb.de",
+  "opac": null,
+  "email": "support-voebb@zlb.de",
+  "phone": "0049 30 9 02 26-611"
+ },
+ {
+  "isil": "DE-634",
+  "aliases": [
+   "BTU"
+  ],
+  "short_name": "BTU Cottbus",
+  "portal_name": "BTU Cottbus",
+  "name": "Brandenburgische Technische Universität Cottbus - Senftenberg, Universitätsbibliothek",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Cottbus",
+  "address": "Platz der Deutschen Einheit 2, 03044 Cottbus",
+  "lat": 51.76734,
+  "lon": 14.32956,
+  "url": "https://www.b-tu.de/bibliothek/",
+  "opac": "https://katalog.ub.b-tu.de",
+  "email": "bibliothek+fernleihe@b-tu.de",
+  "phone": "0049 355 69-2373"
+ },
+ {
+  "isil": "DE-1136",
+  "aliases": [
+   "HOPPEGART"
+  ],
+  "short_name": "GB Hoppegarten",
+  "portal_name": null,
+  "name": "Gemeindebibliothek Hoppegarten",
+  "type": "Öffentliche Bibliothek",
+  "city": "Hoppegarten",
+  "address": "Brandenburgische Str. 132 b, 15366 Hoppegarten",
+  "lat": 52.53687,
+  "lon": 13.65684,
+  "url": "http://www.gbho.de",
+  "opac": null,
+  "email": "bibliothek.hoenow@gemeinde-hoppegarten.de",
+  "phone": "0049 3342 4 21 19 10"
+ },
+ {
+  "isil": "DE-1263",
+  "aliases": [
+   "BEESKOW"
+  ],
+  "short_name": "SB Beeskow",
+  "portal_name": null,
+  "name": "Kupferschmiede Beeskow e.V., Stadtbibliothek",
+  "type": "Öffentliche Bibliothek",
+  "city": "Beeskow",
+  "address": "Mauerstr. 28, 15848 Beeskow",
+  "lat": 52.17315,
+  "lon": 14.24819,
+  "url": "http://www.bibliothek.beeskow.de/",
+  "opac": null,
+  "email": "bibliothek.beeskow@gmx.de",
+  "phone": "0049 3366 15 21 74"
+ },
+ {
+  "isil": "DE-1264",
+  "aliases": [
+   "GLIENICKE"
+  ],
+  "short_name": "GB Glienicke",
+  "portal_name": null,
+  "name": "Gemeindebibliothek Glienicke/Nordbahn",
+  "type": "Öffentliche Bibliothek",
+  "city": "Glienicke",
+  "address": "Hauptstr. 19, 16548 Glienicke",
+  "lat": 52.6305,
+  "lon": 13.31924,
+  "url": "http://www.bibliothek-glienicke.eu/Willkommen.aspx",
+  "opac": "http://www.bibliothek-glienicke.eu/Mediensuche.aspx",
+  "email": "Bibliothek@Glienicke-Nordbahn.de",
+  "phone": "0049 33056 6 92 30"
+ },
+ {
+  "isil": "DE-1265",
+  "aliases": [
+   "LUBBENAU"
+  ],
+  "short_name": "B Lübbenau",
+  "portal_name": null,
+  "name": "Bibliothek Lübbenau - Vetschau, Ausleihstelle Lübbenau",
+  "type": "Öffentliche Bibliothek",
+  "city": "Lübbenau/Spreewald",
+  "address": "Otto-Grotewohl-Str. 4b, 03222 Lübbenau/Spreewald",
+  "lat": 51.86009,
+  "lon": 13.94253,
+  "url": "https://stadt.vetschau.de/bildung-soziales-freizeit/bibliothek-luebbenau-vetschau/",
+  "opac": "https://stadt.vetschau.de/bildung-soziales-freizeit/bibliothek-luebbenau-vetschau/online-katalog/luebbenau.html",
+  "email": "stadtbibliothek.luebbenau@t-online.de",
+  "phone": "0049 3542 8 72 14 50"
+ },
+ {
+  "isil": "DE-1266",
+  "aliases": [
+   "SEECAMPUS"
+  ],
+  "short_name": "See-Campus",
+  "portal_name": null,
+  "name": "See-Campus-Bibliothek",
+  "type": "Öffentliche Bibliothek",
+  "city": "Schwarzheide",
+  "address": "Lauchhammerstraße 33, 01987 Schwarzheide",
+  "lat": 51.49203,
+  "lon": 13.81725,
+  "url": "http://www.bibliothek.seecampus-niederlausitz.de/",
+  "opac": null,
+  "email": "bibliothek@seecampus-niederlausitz.de",
+  "phone": "0049 35752 94 94 30"
+ },
+ {
+  "isil": "DE-1267",
+  "aliases": [
+   "GROSSRASCH"
+  ],
+  "short_name": "SB Großräschen",
+  "portal_name": null,
+  "name": "Stadtbibliothek Großräschen",
+  "type": "Öffentliche Bibliothek",
+  "city": "Großräschen",
+  "address": "Seestr. 1, 01983 Großräschen",
+  "lat": 51.58774,
+  "lon": 14.01035,
+  "url": "https://www.grossraeschen.de/verzeichnis/visitenkarte.php?mandat=45080",
+  "opac": "https://sb-grossraeschen.webopac.net/",
+  "email": "stadtbibliothek@grossraeschen.de",
+  "phone": "0049 35753 2 71 77"
+ },
+ {
+  "isil": "DE-1268",
+  "aliases": [
+   "BLANKENFEL"
+  ],
+  "short_name": "GB Blankenfelde",
+  "portal_name": null,
+  "name": "Gemeindebibliothek Blankenfelde-Mahlow",
+  "type": "Öffentliche Bibliothek",
+  "city": "Blankenfelde-Mahlow",
+  "address": "Luisenstr. 4, 15831 Blankenfelde-Mahlow",
+  "lat": 52.3619,
+  "lon": 13.41003,
+  "url": "https://bibliothek.gb-m.de//",
+  "opac": "https://bibliothek.gb-m.de/",
+  "email": "fernleihe@blankenfelde-mahlow.de",
+  "phone": "0049 3379 33 39 42"
+ },
+ {
+  "isil": "DE-1269",
+  "aliases": [
+   "PRITZWALK"
+  ],
+  "short_name": "SB Pritzwalk",
+  "portal_name": null,
+  "name": "Stadtbibliothek Pritzwalk",
+  "type": "Öffentliche Bibliothek",
+  "city": "Pritzwalk",
+  "address": "Kietz 64, 16928 Pritzwalk",
+  "lat": 53.15215,
+  "lon": 12.17252,
+  "url": "https://www.pritzwalk.de/seite/429064/stadtbibliothek.html",
+  "opac": "https://bibkataloge.de/pritzwalk/webopac/start.aspx",
+  "email": "bibliothek@pritzwalk.de",
+  "phone": "0049 3395 30 25 73"
+ },
+ {
+  "isil": "DE-1270",
+  "aliases": [
+   "SEELOW"
+  ],
+  "short_name": "SB Seelow",
+  "portal_name": null,
+  "name": "Stadtbibliothek \"Ulrich Plenzdorf\" Seelow",
+  "type": "Öffentliche Bibliothek",
+  "city": "Seelow",
+  "address": "Kleine Kirchstr. 1, 15306 Seelow",
+  "lat": 52.53274,
+  "lon": 14.38005,
+  "url": "http://www.bibliothek-seelow.de",
+  "opac": null,
+  "email": "info@bibliothek-seelow.de",
+  "phone": "0049 3346 2 79"
+ },
+ {
+  "isil": "DE-1271",
+  "aliases": [
+   "NEUENHAGEN"
+  ],
+  "short_name": "B Neuenhagen",
+  "portal_name": null,
+  "name": "Bibliothek Neuenhagen",
+  "type": "Öffentliche Bibliothek",
+  "city": "Neuenhagen",
+  "address": "Hauptstr. 2, 15366 Neuenhagen",
+  "lat": 52.52127,
+  "lon": 13.70477,
+  "url": "http://bibliothek-neuenhagen.de/",
+  "opac": null,
+  "email": "gemeindebibliothek-neuenhagen@t-online.de",
+  "phone": "0049 3342 8 04 35"
+ },
+ {
+  "isil": "DE-1282",
+  "aliases": [
+   "DOMSTIFT"
+  ],
+  "short_name": "Domstiftsarchiv",
+  "portal_name": "Domstiftsarchiv",
+  "name": "Domstiftsarchiv",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Brandenburg",
+  "address": "Burghof 10, 14776 Brandenburg",
+  "lat": 52.41496,
+  "lon": 12.56713,
+  "url": "http://www.dom-brandenburg.de",
+  "opac": null,
+  "email": "archiv@dom-brandenburg.de",
+  "phone": "0049 3381 2 11 22 14"
+ },
+ {
+  "isil": "DE-1342",
+  "aliases": [
+   "WERDER"
+  ],
+  "short_name": "SB Werder",
+  "portal_name": null,
+  "name": "Stadtbibliothek Werder (Havel)",
+  "type": "Öffentliche Bibliothek",
+  "city": "Werder/Havel",
+  "address": "Brandenburger Str. 1a, 14542 Werder/Havel",
+  "lat": 52.37633,
+  "lon": 12.93314,
+  "url": "http://www.werder-havel.de/content/rathausonline/rathausonline_fb1_bibliothek.php",
+  "opac": null,
+  "email": "stadtbibliothek-werder@t-online.de",
+  "phone": "0049 3327 4 23 83"
+ },
+ {
+  "isil": "DE-1349",
+  "aliases": [
+   "KLEINMACHN"
+  ],
+  "short_name": "ÖB Kleinmachnow",
+  "portal_name": null,
+  "name": "Öffentliche Bibliothek Kleinmachnow",
+  "type": "Öffentliche Bibliothek",
+  "city": "Kleinmachnow",
+  "address": "Adolf-Grimme-Ring 10, 14532 Kleinmachnow",
+  "lat": 52.40321,
+  "lon": 13.21991,
+  "url": "https://kleinmachnow.bibliotheca-open.de/",
+  "opac": "https://kleinmachnow.bibliotheca-open.de/Mediensuche/Erweiterte-Suche",
+  "email": "fernleihe@kleinmachnow.de",
+  "phone": "0049 33203 8 77-4115 und -4110"
+ },
+ {
+  "isil": "DE-1847",
+  "aliases": [
+   "OBERKRAMER"
+  ],
+  "short_name": "ÖSB Oberkrämer",
+  "portal_name": "ÖSB Oberkrämer",
+  "name": "Öffentliche Schulbibliothek Oberkrämer",
+  "type": "Öffentliche Bibliothek",
+  "city": "Oberkrämer",
+  "address": "Bärenklauer Str. 22, 16727 Oberkrämer",
+  "lat": 52.72072,
+  "lon": 13.10333,
+  "url": "http://www.oberkraemer.de",
+  "opac": "https://oberkraemer.bibliotheca-open.de/",
+  "email": "bibliothek@oberkraemer.de",
+  "phone": "0049 3304 50 52 23"
+ },
+ {
+  "isil": "DE-1848",
+  "aliases": [
+   "STORKOW"
+  ],
+  "short_name": "SB Storkow",
+  "portal_name": "SB Storkow",
+  "name": "Stadtbibliothek Storkow",
+  "type": "Öffentliche Bibliothek",
+  "city": "Storkow",
+  "address": "Schloßstr. 6, 15859 Storkow",
+  "lat": 52.25323,
+  "lon": 13.9328,
+  "url": "https://www.storkow-mark.de/verzeichnis/visitenkarte.php?mandat=159556",
+  "opac": "http://storkow-findus.opac.datronic.de/cgi-bin/findus-ohne-cookies.pl?customer=storkow",
+  "email": "bibliothek@storkow.de",
+  "phone": "0049 33678 7 36 42"
+ },
+ {
+  "isil": "DE-2070l",
+  "aliases": [
+   "HWRL"
+  ],
+  "short_name": "HWR Lichtenberg",
+  "portal_name": null,
+  "name": "Hochschule für Wirtschaft und Recht, Hochschulbibliothek, Campus Lichtenberg",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Alt-Friedrichsfelde 60, 10315 Berlin",
+  "lat": 52.50803,
+  "lon": 13.52637,
+  "url": "https://www.hwr-berlin.de/hwr-berlin/serviceeinrichtungen/bibliotheken/bibliothek-am-campus-lichtenberg",
+  "opac": "https://hower.hwr-berlin.de",
+  "email": "hsb.cl@hwr-berlin.de",
+  "phone": "0049 30 3 08 77-2582"
+ },
+ {
+  "isil": "DE-2070s",
+  "aliases": [
+   "HWR",
+   "HWRS"
+  ],
+  "short_name": "HWR Berlin",
+  "portal_name": "HWR Berlin",
+  "name": "Hochschule für Wirtschaft und Recht, Hochschulbibliothek, Campus Schöneberg",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Badensche Str. 52, 10825 Berlin",
+  "lat": 52.48561,
+  "lon": 13.33882,
+  "url": "https://www.hwr-berlin.de/hwr-berlin/serviceeinrichtungen/bibliotheken/bibliothek-am-campus-schoeneberg/",
+  "opac": "https://hower.hwr-berlin.de",
+  "email": "hsb.cs@hwr-berlin.de",
+  "phone": "0049 30 3 08 77-1284"
+ },
+ {
+  "isil": "DE-2273",
+  "aliases": [
+   "MMZ"
+  ],
+  "short_name": "MMZ Potsdam",
+  "portal_name": "Moses Mendelssohn Zentrum",
+  "name": "Moses Mendelssohn Zentrum für europäisch-jüdische Studien, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Potsdam",
+  "address": "Am Neuen Markt 8, 14467 Potsdam",
+  "lat": 52.39663,
+  "lon": 13.05724,
+  "url": "http://www.mmz-potsdam.de/bibliothek.html",
+  "opac": "https://mmz.vufindnet.de/mmz/",
+  "email": "biblio@mmz.uni-potsdam.de",
+  "phone": "0049 031 2 80 94-15"
+ },
+ {
+  "isil": "DE-2291",
+  "aliases": [
+   "BIU"
+  ],
+  "short_name": "Berlin Int. U.",
+  "portal_name": "Berlin International",
+  "name": "Berlin International University of Applied Sciences, Hans-Dieter Klingemann Library",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Salzufer 6, 10587 Berlin",
+  "lat": 52.516,
+  "lon": 13.32786,
+  "url": "https://www.berlin-international.de/hochschule/hochschulstruktur/bibliothek/",
+  "opac": "https://koha.berlin-international.de/",
+  "email": "library@berlin-international.de",
+  "phone": "0049 30 8 10 58 08 15"
+ },
+ {
+  "isil": "DE-2377",
+  "aliases": [
+   "AGK"
+  ],
+  "short_name": "Geiger Kolleg",
+  "portal_name": "Abraham Geiger Kolleg",
+  "name": "Abraham Geiger Kolleg, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Potsdam",
+  "address": "14469 Potsdam",
+  "lat": null,
+  "lon": null,
+  "url": "http://www.abraham-geiger-kolleg.de/academic-excellence/library/",
+  "opac": "https://opac.ub.uni-potsdam.de/DB=1.1/",
+  "email": "office@geiger-edu.de",
+  "phone": "0049 331 977 159 800"
+ },
+ {
+  "isil": "DE-2565",
+  "aliases": [
+   "JGB"
+  ],
+  "short_name": "Jüd. Gemeinde",
+  "portal_name": "Jüdische Gemeinde",
+  "name": "Jüdische Gemeinde zu Berlin, Bibliothek",
+  "type": "Öffentliche Bibliothek",
+  "city": "Berlin",
+  "address": "Fasanenstraße 78/79, 10623 Berlin",
+  "lat": 52.50456,
+  "lon": 13.32769,
+  "url": "https://jg-berlin.org/kultur/bibliothek/",
+  "opac": "https://jg-berlin.bibliotheca-open.de",
+  "email": "bibliothek@jg-berlin.org",
+  "phone": "0049 30 8 80 28-241"
+ },
+ {
+  "isil": "DE-2627",
+  "aliases": [
+   "MAECENATA"
+  ],
+  "short_name": "Maecenata",
+  "portal_name": "Maecenata",
+  "name": "Maecenata Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Wallstr. 15a, 10179 Berlin",
+  "lat": 52.51115,
+  "lon": 13.40625,
+  "url": "https://www.maecenata.eu/ueber-uns/tocqueville-forum/maecenata-bibliothek/",
+  "opac": "https://mst.mae-koha.dynns.com/",
+  "email": "info@maecenata.eu",
+  "phone": "0049 30 28 38 79 10 06"
+ },
+ {
+  "isil": "DE-2847",
+  "aliases": [
+   "COLPOL"
+  ],
+  "short_name": "Coll. Polonicum",
+  "portal_name": "Collegium Polonicum",
+  "name": "Bibliothek des Collegium Polonicum in Słubice",
+  "type": "Abteilungsbibliothek, Fachbereichsbibliothek, Institutsbibliothek (Universität)",
+  "city": "Słubice",
+  "address": "Kościuszki 1, 69100 Słubice",
+  "lat": 52.34902,
+  "lon": 14.55917,
+  "url": "https://www.cp.edu.pl/pl/biblioteka/index.html",
+  "opac": "https://opac.cp.europa-uni.de/",
+  "email": "biblio.cp@europa-uni.de",
+  "phone": "0048 61 8 29 67 51"
+ },
+ {
+  "isil": "DE-4466",
+  "aliases": [
+   "ELBEELSTER"
+  ],
+  "short_name": "KMZ Elbe-Elster",
+  "portal_name": "Medienzentrum Elbe-Elster",
+  "name": "Kreismedienzentrum Elbe-Elster",
+  "type": "Öffentliche Bibliothek",
+  "city": "Herzberg",
+  "address": "Anhalter Straße 7, 04916 Herzberg",
+  "lat": 51.68498,
+  "lon": 13.22031,
+  "url": "http://www.lkee.de/Kreismedienzentrum",
+  "opac": null,
+  "email": "kreismedienzentrum@lkee.de",
+  "phone": "0049 3535 46 54 01"
+ },
+ {
+  "isil": "DE-4577",
+  "aliases": [
+   "STIFTBRAND"
+  ],
+  "short_name": "Stiftung Brbg.",
+  "portal_name": null,
+  "name": "Stiftung Brandenburg / Bibliothek",
+  "type": "Sonstige Einrichtung",
+  "city": "Fürstenwalde (Spree)",
+  "address": "Parkallee 14, 15517 Fürstenwalde (Spree)",
+  "lat": 52.36594,
+  "lon": 14.05733,
+  "url": "https://stiftung-brandenburg.de/",
+  "opac": "https://opac.stiftung-brandenburg.de/",
+  "email": "info@stiftung-brandenburg.de",
+  "phone": "0049 3361 31 09 52"
+ },
+ {
+  "isil": "DE-B4",
+  "aliases": [
+   "BBAW"
+  ],
+  "short_name": "BBAW Berlin",
+  "portal_name": "Akademie d. Wiss.",
+  "name": "Berlin-Brandenburgische Akademie der Wissenschaften, Akademiebibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Unter den Linden 8, 10117 Berlin",
+  "lat": 52.51779,
+  "lon": 13.39221,
+  "url": "http://bibliothek.bbaw.de",
+  "opac": "https://vzopc4.gbv.de/DB=38/",
+  "email": "bib.benutzung@bbaw.de",
+  "phone": "0049 30 2 03 70-358 (Leihst.) und -438 (Sekr.)"
+ },
+ {
+  "isil": "DE-B11",
+  "aliases": [
+   "KUNSTBIB",
+   "SMB"
+  ],
+  "short_name": "Kunstbibliothek",
+  "portal_name": "Staatliche Museen",
+  "name": "Staatliche Museen zu Berlin, Preußischer Kulturbesitz, Kunstbibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Matthäikirchpl. 6, 10785 Berlin",
+  "lat": 52.50861,
+  "lon": 13.36666,
+  "url": "https://www.smb.museum/museen-einrichtungen/kunstbibliothek/home/",
+  "opac": "http://opac.smb.spk-berlin.de/",
+  "email": "auskunft.kb@smb.spk-berlin.de",
+  "phone": "0049 30 2 66-424141"
+ },
+ {
+  "isil": "DE-B16",
+  "aliases": [
+   "MFN"
+  ],
+  "short_name": "MfN Berlin",
+  "portal_name": "MfN Berlin",
+  "name": "Museum für Naturkunde, Leibniz-Institut für Evolutions- und Biodiversitätsforschung, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Invalidenstr. 43, 10115 Berlin",
+  "lat": 52.53015,
+  "lon": 13.37929,
+  "url": "https://www.museumfuernaturkunde.berlin/bibliothek",
+  "opac": "https://bibliothekskatalog.museumfuernaturkunde.berlin/",
+  "email": "bibliothek@mfn.berlin",
+  "phone": "0049 30 88 91 40-85 81"
+ },
+ {
+  "isil": "DE-B41",
+  "aliases": [
+   "GSTA"
+  ],
+  "short_name": "GStA PK",
+  "portal_name": "Geheimes Staatsarchiv",
+  "name": "Geheimes Staatsarchiv Preußischer Kulturbesitz, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Archivstr. 12/14, 14195 Berlin",
+  "lat": 52.46135,
+  "lon": 13.29323,
+  "url": "http://www.gsta.spk-berlin.de/",
+  "opac": "https://lhiai.gbv.de/DB=4/",
+  "email": "gsta.pk@gsta.spk-berlin.de",
+  "phone": "0049 30 2 66 44-1310"
+ },
+ {
+  "isil": "DE-B103",
+  "aliases": [
+   "WISSPARK",
+   "GFZ"
+  ],
+  "short_name": "Wiss.park AE",
+  "portal_name": "Wissenschaftspark Albert Einstein",
+  "name": "Bibliothek des Wissenschaftsparks Albert Einstein",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Potsdam",
+  "address": "Telegrafenberg A 17, 14473 Potsdam",
+  "lat": 52.37933,
+  "lon": 13.06585,
+  "url": "https://bib.telegrafenberg.de/",
+  "opac": "https://waesearch.kobv.de/?plv=2",
+  "email": "bib@gfz.de",
+  "phone": "0049 331 62 64-16 73"
+ },
+ {
+  "isil": "DE-B170",
+  "aliases": [
+   "UDK",
+   "HDK"
+  ],
+  "short_name": "UdK Berlin",
+  "portal_name": "UdK Berlin",
+  "name": "Universität der Künste Berlin, Universitätsbibliothek",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Berlin",
+  "address": "Fasanenstr. 88, 10623 Berlin",
+  "lat": 52.51049,
+  "lon": 13.33045,
+  "url": "http://www.ub.udk-berlin.de",
+  "opac": "http://portal.ub.udk-berlin.de",
+  "email": "bibliothek@udk-berlin.de",
+  "phone": "0049 30 3 14-76473"
+ },
+ {
+  "isil": "DE-B171",
+  "aliases": [
+   "STADTMUS"
+  ],
+  "short_name": "Stadtmuseum",
+  "portal_name": "Stadtmuseum Berlin",
+  "name": "Stiftung Stadtmuseum Berlin, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Hans-Poelzig-Str. 20, 13587 Berlin",
+  "lat": 52.55921,
+  "lon": 13.21975,
+  "url": "https://www.stadtmuseum.de/bibliothek",
+  "opac": "http://stadtmuseum.webopac.net",
+  "email": "bibliothek@stadtmuseum.de",
+  "phone": "0049 30 3 53 05 98 12"
+ },
+ {
+  "isil": "DE-B177",
+  "aliases": [
+   "KAMMERG"
+  ],
+  "short_name": "Kammergericht",
+  "portal_name": "Kammergericht",
+  "name": "Kammergericht, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Elßholzstr. 30/33, 10781 Berlin",
+  "lat": 52.4925,
+  "lon": 13.35689,
+  "url": "https://www.berlin.de/gerichte/kammergericht/das-gericht/bibliothek/",
+  "opac": "https://lbsvz4.gbv.de/LNG=DU/DB=4/",
+  "email": "bibliothek@kg.berlin.de",
+  "phone": "0049 30 90 15-2402 und -2403"
+ },
+ {
+  "isil": "DE-B185",
+  "aliases": [
+   "LGV"
+  ],
+  "short_name": "LGV Mark Brbg.",
+  "portal_name": "Landesgeschichtliche Vereinigung",
+  "name": "Landesgeschichtliche Vereinigung für die Mark Brandenburg e.V., Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "c/o Zentral- und Landesbibliothek Berlin, Breite Str. 30-36, 10178 Berlin",
+  "lat": 52.51602,
+  "lon": 13.40406,
+  "url": "http://www.geschichte-brandenburg.de",
+  "opac": "http://geschichte-brandenburg.allegronet.de/",
+  "email": "bibliothek@geschichte-brandenburg.de",
+  "phone": "0049 30 9 02 26-301"
+ },
+ {
+  "isil": "DE-B259",
+  "aliases": [
+   "IGB"
+  ],
+  "short_name": "IGB Berlin",
+  "portal_name": null,
+  "name": "Leibniz-Institut für Gewässerökologie und Binnenfischerei im Forschungsverbund Berlin e.V., Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Müggelseedamm 310, 12587 Berlin",
+  "lat": 52.44878,
+  "lon": 13.64753,
+  "url": "https://www.igb-berlin.de/bibliothek",
+  "opac": "http://www.igb-lib.igb-berlin.de/alipac",
+  "email": "library@igb-berlin.de",
+  "phone": "0049 30 64 18 16 55"
+ },
+ {
+  "isil": "DE-B464",
+  "aliases": [
+   "HFM",
+   "EISLER"
+  ],
+  "short_name": "HfM Eisler",
+  "portal_name": "HS Musik Hanns Eisler",
+  "name": "Hochschule für Musik 'Hanns Eisler', Bibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Charlottenstr. 55, 10117 Berlin",
+  "lat": 52.5135,
+  "lon": 13.39086,
+  "url": "http://www.hfm-berlin.de/",
+  "opac": "https://vzlbs3.gbv.de/LNG=DU/DB=26/",
+  "email": "bibliothek@hfm-berlin.de",
+  "phone": "0049 30 68 83 05-895"
+ },
+ {
+  "isil": "DE-B478",
+  "aliases": [
+   "BBF"
+  ],
+  "short_name": "BBF Berlin",
+  "portal_name": "Bildungsgesch. Forschung",
+  "name": "BBF | Bibliothek für Bildungsgeschichtliche Forschung in Berlin",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Warschauer Str. 34-38, 10243 Berlin",
+  "lat": 52.5053,
+  "lon": 13.4484,
+  "url": "http://bbf.dipf.de",
+  "opac": "https://bibliothekskatalog.bbf.dipf.de/",
+  "email": "fernleihe-bbf@dipf.de",
+  "phone": "0049 30 29 33 60-921 (Auskunft) und -52 (Fernleihe)"
+ },
+ {
+  "isil": "DE-B479",
+  "aliases": [
+   "BARCH",
+   "SAPMO"
+  ],
+  "short_name": "Bundesarchiv",
+  "portal_name": "Bundesarchiv",
+  "name": "Bibliothek des Bundesarchivs, Dienststelle Berlin-Lichterfelde",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Finckensteinallee 63, 12205 Berlin",
+  "lat": 52.43086,
+  "lon": 13.29988,
+  "url": "https://www.bundesarchiv.de/DE/Navigation/Benutzen/Hinweise-zur-Benutzung/Buecher/bibliothek.html",
+  "opac": "https://bibliothek.bundesarchiv.de/F",
+  "email": "bibliothek@bundesarchiv.de",
+  "phone": "0049 3018 77 70-0"
+ },
+ {
+  "isil": "DE-B486",
+  "aliases": [
+   "ADK"
+  ],
+  "short_name": "Akad. der Künste",
+  "portal_name": "Akad. der Künste",
+  "name": "Archiv der Akademie der Künste, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Pariser Pl. 4, 10117 Berlin",
+  "lat": 52.51561,
+  "lon": 13.37958,
+  "url": "https://www.adk.de/de/archiv/bibliothek/",
+  "opac": "https://opac.adk.de",
+  "email": "bibliothek@adk.de",
+  "phone": "0049 30 2 00 57-1560"
+ },
+ {
+  "isil": "DE-B496",
+  "aliases": [
+   "DHM"
+  ],
+  "short_name": "DHM Berlin",
+  "portal_name": "Hist. Museum Berlin",
+  "name": "Stiftung Deutsches Historisches Museum, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Hinter dem Gießhaus 3, 10117 Berlin",
+  "lat": 52.51904,
+  "lon": 13.39687,
+  "url": "https://www.dhm.de/sammlung/bibliothek/",
+  "opac": "https://dhmov60.bib-bvb.de/InfoGuideClient.dhmsis/start.do?Login=igdhm",
+  "email": "bibliothek@dhm.de",
+  "phone": "0049 30 2 03 04-321"
+ },
+ {
+  "isil": "DE-B685",
+  "aliases": [
+   "BLDAM"
+  ],
+  "short_name": "BLDAM Zossen",
+  "portal_name": "BLDAM-Archäologie",
+  "name": "Brandenburgisches Landesamt für Denkmalpflege und Archäologisches Landesmuseum, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Zossen",
+  "address": "Wünsdorfer Pl. 4, 15806 Zossen",
+  "lat": 52.17203,
+  "lon": 13.4716,
+  "url": "http://www.bldam-brandenburg.de",
+  "opac": null,
+  "email": "Poststelle@BLDAM.Brandenburg.de",
+  "phone": "0049 33702 7 12 00"
+ },
+ {
+  "isil": "DE-B724",
+  "aliases": [
+   "LAB"
+  ],
+  "short_name": "Landesarchiv",
+  "portal_name": "Landesarchiv Berlin",
+  "name": "Landesarchiv Berlin, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Eichborndamm 115-121, 13403 Berlin",
+  "lat": 52.58025,
+  "lon": 13.31638,
+  "url": "http://www.landesarchiv-berlin.de",
+  "opac": null,
+  "email": "info@landesarchiv.berlin.de",
+  "phone": "0049 30 9 02 64-0"
+ },
+ {
+  "isil": "DE-B763",
+  "aliases": [
+   "SIM",
+   "SIMPK"
+  ],
+  "short_name": "SIM PK",
+  "portal_name": "Inst. f. Musikforschung",
+  "name": "Staatliches Institut für Musikforschung - Preußischer Kulturbesitz, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Tiergartenstr. 1, 10785 Berlin",
+  "lat": 52.50994,
+  "lon": 13.37072,
+  "url": "https://www.simpk.de/bibliothek.html",
+  "opac": "https://opac.sim.spk-berlin.de",
+  "email": "bibliothek@sim.spk-berlin.de",
+  "phone": "0049 30 2 54 81-155"
+ },
+ {
+  "isil": "DE-B768",
+  "aliases": [
+   "BHT"
+  ],
+  "short_name": "BHT",
+  "portal_name": "BHT",
+  "name": "Berliner Hochschule für Technik, Hochschulbibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Luxemburger Str. 10, 13353 Berlin",
+  "lat": 52.54504,
+  "lon": 13.35482,
+  "url": "https://www.bht-berlin.de/bibliothek",
+  "opac": null,
+  "email": null,
+  "phone": "0049 30 45 04-2507"
+ },
+ {
+  "isil": "DE-B1525",
+  "aliases": [
+   "WANNSEE",
+   "JWB"
+  ],
+  "short_name": "Haus Wannsee",
+  "portal_name": "Haus Wannsee-Konferenz",
+  "name": "Joseph Wulf Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Am Großen Wannsee 56-58, 14109 Berlin",
+  "lat": 52.43317,
+  "lon": 13.1651,
+  "url": "https://www.ghwk.de/de/bibliothek",
+  "opac": "https://ghwk-bibliothekskatalog.de/cgi-bin/koha/opac-main.pl",
+  "email": "library@ghwk.de",
+  "phone": "0049 30 2179986-31"
+ },
+ {
+  "isil": "DE-B1528",
+  "aliases": [
+   "KINEMATHEK",
+   "SDK"
+  ],
+  "short_name": "Kinemathek",
+  "portal_name": "Kinemathek",
+  "name": "Deutsche Kinemathek - Museum für Film und Fernsehen, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Mauerstraße 79, 10117 Berlin",
+  "lat": 52.50857,
+  "lon": 13.38711,
+  "url": "https://www.deutsche-kinemathek.de/bibliothek",
+  "opac": "https://deutsche-kinemathek.bsz-bw.de",
+  "email": "bibliothek@deutsche-kinemathek.de",
+  "phone": "0049 30 30 09 03-879"
+ },
+ {
+  "isil": "DE-B1532",
+  "aliases": [
+   "MPIB"
+  ],
+  "short_name": "MPI Bildung",
+  "portal_name": "MPI Bildungsforschung",
+  "name": "Max-Planck-Institut für Bildungsforschung, Forschungsdaten & -information",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Lentzeallee 94, 14195 Berlin",
+  "lat": 52.46859,
+  "lon": 13.30382,
+  "url": "https://www.mpib-berlin.mpg.de/2001436/research-data-and-information",
+  "opac": "https://mpib.disco.mpg.de/",
+  "email": "rdi-service@mpib-berlin.mpg.de",
+  "phone": "0049 30 8 24 06-579"
+ },
+ {
+  "isil": "DE-B1533",
+  "aliases": [
+   "ASH"
+  ],
+  "short_name": "Alice Salomon HS",
+  "portal_name": "Alice Salomon HS",
+  "name": "Alice Salomon Hochschule Berlin, Bibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Alice-Salomon-Pl. 5, 12627 Berlin",
+  "lat": 52.53699,
+  "lon": 13.60586,
+  "url": "https://www.ash-berlin.eu/bibliothek",
+  "opac": "https://opac.ash-berlin.eu/webOPACClient.ashsis/start.do?Login=woash",
+  "email": "bibliothek@ash-berlin.eu",
+  "phone": "0049 30 9 92 45-385 und -386 (Ausleihe)"
+ },
+ {
+  "isil": "DE-B1539",
+  "aliases": [
+   "JMB"
+  ],
+  "short_name": "Jüdisches Museum",
+  "portal_name": "Jüdisches Museum",
+  "name": "Jüdisches Museum Berlin, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Lindenstr. 9-14, 10969 Berlin",
+  "lat": 52.50176,
+  "lon": 13.39571,
+  "url": "https://www.jmberlin.de/bibliothek",
+  "opac": "https://opac.jmberlin.de/aDISWeb/app?service=direct/0/Home%24DirectLink&sp=Sopac",
+  "email": "bibliothek@jmberlin.de",
+  "phone": "0049 30 2 59 93-560 (Lesesaal), -564 (Leitung), -562 und -563"
+ },
+ {
+  "isil": "DE-B1549",
+  "aliases": [
+   "TOPO"
+  ],
+  "short_name": "Topogr. Terror",
+  "portal_name": "Topographie des Terrors und DZ",
+  "name": "Stiftung Topographie des Terrors, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Niederkirchnerstr. 8, 10963 Berlin",
+  "lat": 52.50686,
+  "lon": 13.38397,
+  "url": "http://www.topographie.de/bibliothek/",
+  "opac": "http://www.topographie.de/opac/",
+  "email": "bibliothek@topographie.de",
+  "phone": "0049 30 25 45 09-23"
+ },
+ {
+  "isil": "DE-B1550",
+  "aliases": [
+   "SDTB"
+  ],
+  "short_name": "Technikmuseum",
+  "portal_name": "Technikmuseum Berlin",
+  "name": "Stiftung Deutsches Technikmuseum Berlin, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Trebbiner Str. 9, 10963 Berlin",
+  "lat": 52.49851,
+  "lon": 13.37655,
+  "url": "https://technikmuseum.berlin/sammlung/bibliothek/",
+  "opac": "https://btmoz2.bib-bvb.de/webOPACClient.btmsis/start.do?Login=wobtm",
+  "email": "archiv-bibliothek@technikmuseum.berlin",
+  "phone": "0049 30 439734-133 und 135 (Lesesaal)"
+ },
+ {
+  "isil": "DE-B1562",
+  "aliases": [
+   "DZA"
+  ],
+  "short_name": "DZA Berlin",
+  "portal_name": "DZA Berlin",
+  "name": "Deutsches Zentrum für Altersfragen e.V. (DZA), Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Manfred-von-Richthofen-Str. 2, 12101 Berlin",
+  "lat": 52.48466,
+  "lon": 13.38452,
+  "url": "https://www.dza.de/ueber-uns/bibliothek",
+  "opac": "https://lbsvz2.gbv.de/DB=41/",
+  "email": "bibliothek@dza.de",
+  "phone": "0049 30 26 07 40-80"
+ },
+ {
+  "isil": "DE-B1570",
+  "aliases": [
+   "HERTIE"
+  ],
+  "short_name": "Hertie School",
+  "portal_name": "Hertie School",
+  "name": "Hertie School, Library and Information Services",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Berlin",
+  "address": "Friedrichstr. 180, 10117 Berlin",
+  "lat": 52.51287,
+  "lon": 13.38927,
+  "url": "http://www.hertie-school.org/library/",
+  "opac": "https://lbsvz1.gbv.de/DB=36/LNG=EN/",
+  "email": "library@hertie-school.org",
+  "phone": "0049 30 25 92 19-409"
+ },
+ {
+  "isil": "DE-B1579",
+  "aliases": [
+   "HFS",
+   "ERNSTBUSCH"
+  ],
+  "short_name": "HFS Ernst Busch",
+  "portal_name": "HFS Ernst Busch",
+  "name": "Hochschule für Schauspielkunst Ernst Busch, Bibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Zinnowitzer Str. 11, 10115 Berlin",
+  "lat": 52.53241,
+  "lon": 13.38313,
+  "url": "https://hfs-berlin.bibliotheca-open.de/Info-Kontakt",
+  "opac": "https://hfs-berlin.bibliotheca-open.de/",
+  "email": "bibliothek@hfs-berlin.de",
+  "phone": "0049 30 75 54 17-124 und -125"
+ },
+ {
+  "isil": "DE-B1586",
+  "aliases": [
+   "BERLGAL"
+  ],
+  "short_name": "Berlin. Galerie",
+  "portal_name": "Berlinische Galerie",
+  "name": "Berlinische Galerie - Landesmuseum für Moderne Kunst, Fotografie und Architektur, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Alte Jakobstr. 124-128, 10969 Berlin",
+  "lat": 52.50392,
+  "lon": 13.39851,
+  "url": "https://www.berlinischegalerie.de/home/",
+  "opac": null,
+  "email": null,
+  "phone": "0049 30 7 89 02-894"
+ },
+ {
+  "isil": "DE-B1595",
+  "aliases": [
+   "SFVV"
+  ],
+  "short_name": "Stiftung FVV",
+  "portal_name": "Stiftung FVV",
+  "name": "Dokumentationszentrum Flucht, Vertreibung, Versöhnung - Bibliothek & Zeitzeugenarchiv",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Stresemannstr. 90, 10963 Berlin",
+  "lat": 52.50511,
+  "lon": 13.38192,
+  "url": "https://www.flucht-vertreibung-versoehnung.de/",
+  "opac": "https://dhmov60.bib-bvb.de/InfoGuideClient.dhmsis/start.do?Login=igdhmsfv",
+  "email": "bibliothek@f-v-v.de",
+  "phone": "0049 30 2 06 29 98-21"
+ },
+ {
+  "isil": "DE-B2223",
+  "aliases": [
+   "EKBO"
+  ],
+  "short_name": "EKBO Berlin",
+  "portal_name": "Ev. Landeskirche EKBO / Berl. Missionswerk",
+  "name": "Landeskirchliche Bibliothek der EKBO",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Georgenkirchstr. 69/70, 10249 Berlin",
+  "lat": 52.52734,
+  "lon": 13.42559,
+  "url": "http://www.bibliotheken-ekbo.de",
+  "opac": null,
+  "email": "bibliotheken@ekbo.de",
+  "phone": "0049 30 2 43 44-134"
+ },
+ {
+  "isil": "DE-B2224",
+  "aliases": [
+   "KHSB"
+  ],
+  "short_name": "KHSB Berlin",
+  "portal_name": "Kath. HS Sozialwesen",
+  "name": "Katholische Hochschule für Sozialwesen Berlin, Bibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Berlin",
+  "address": "Köpenicker Allee 39/57, 10318 Berlin",
+  "lat": 52.48816,
+  "lon": 13.53438,
+  "url": "https://www.khsb-berlin.de/de/Bibliothek",
+  "opac": "https://khsb-bibliothek.on.worldcat.org/discovery",
+  "email": "bibliothek@khsb-berlin.de",
+  "phone": "0049 30 50 10 10-17"
+ },
+ {
+  "isil": "DE-Ber7",
+  "aliases": [
+   "BERNAU"
+  ],
+  "short_name": "SB Bernau",
+  "portal_name": null,
+  "name": "Stadtbibliothek Bernau bei Berlin",
+  "type": "Öffentliche Bibliothek",
+  "city": "Bernau bei Berlin",
+  "address": "Breitscheidstr. 43 b, 16321 Bernau bei Berlin",
+  "lat": 52.67527,
+  "lon": 13.58858,
+  "url": "http://www.info-bernau.de/jobernau07/index.php?option=com_content&task=blogsection&id=84&Itemid=140",
+  "opac": "http://www.datronic.de/cgi-bin/findus.pl?customer=bernau",
+  "email": "stadtbibliothek@bernau-bei-berlin.de",
+  "phone": "0049 3338 76 35 20"
+ },
+ {
+  "isil": "DE-Bo133",
+  "aliases": [
+   "FES"
+  ],
+  "short_name": "FES Bonn",
+  "portal_name": "F.-Ebert-Stiftung",
+  "name": "Bibliothek der Friedrich-Ebert-Stiftung",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Bonn",
+  "address": "Godesberger Allee 149, 53175 Bonn",
+  "lat": 50.70227,
+  "lon": 7.13471,
+  "url": "http://www.fes.de/bibliothek/",
+  "opac": "http://library.fes.de/TouchPoint",
+  "email": "archiv.bibliothek@fes.de",
+  "phone": "0049 228 8 83-9046"
+ },
+ {
+  "isil": "DE-Co22",
+  "aliases": [
+   "HERZBERG"
+  ],
+  "short_name": "Mediathek Hzbg",
+  "portal_name": null,
+  "name": "Mediathek Herzberg",
+  "type": "Öffentliche Bibliothek",
+  "city": "Herzberg/Elster",
+  "address": "Uferstr. 6, 04916 Herzberg/Elster",
+  "lat": 51.6904,
+  "lon": 13.23208,
+  "url": "http://herzberg.media",
+  "opac": "http://sb-herzberg.webopac.net/",
+  "email": "mediathek@stadt-herzberg.de",
+  "phone": "0049 3535 48 23 40"
+ },
+ {
+  "isil": "DE-Eb1",
+  "aliases": [
+   "HNEE"
+  ],
+  "short_name": "HNE Eberswalde",
+  "portal_name": "HNE Eberswalde",
+  "name": "Hochschule für nachhaltige Entwicklung Eberswalde, Hochschulbibliothek",
+  "type": "Zentrale Hochschulbibliothek, nicht Universität",
+  "city": "Eberswalde",
+  "address": "Friedrich-Ebert-Str. 29, 16225 Eberswalde",
+  "lat": 52.83337,
+  "lon": 13.81704,
+  "url": "http://www.hnee.de/Hochschulbibliothek/Hochschulbibliothek-Eberswalde-K133.htm",
+  "opac": "http://opac.hnee.de/webOPACClient/start.do",
+  "email": "Bibliothek@hnee.de",
+  "phone": "0049 3334 65 72-01 (Auskunft) und -06 (Fernleihe)"
+ },
+ {
+  "isil": "DE-Eb21",
+  "aliases": [
+   "EBERSWALDE"
+  ],
+  "short_name": "SB Eberswalde",
+  "portal_name": null,
+  "name": "Stadtbibliothek Eberswalde",
+  "type": "Öffentliche Bibliothek",
+  "city": "Eberswalde",
+  "address": "Puschkinstr. 13, 16225 Eberswalde",
+  "lat": 52.83305,
+  "lon": 13.81371,
+  "url": "http://www.eberswalde.de/Bibliothek.1721.0.html",
+  "opac": "http://80.78.162.156/allegrooeb/webopac/start.aspx",
+  "email": "bibliothek@eberswalde.de",
+  "phone": "0049 3334 64-420"
+ },
+ {
+  "isil": "DE-Eh4",
+  "aliases": [
+   "EHST"
+  ],
+  "short_name": "SB Eisenhütt.",
+  "portal_name": "SB Eisenhüttenstadt",
+  "name": "Stadtbibliothek Eisenhüttenstadt",
+  "type": "Öffentliche Bibliothek",
+  "city": "Eisenhüttenstadt",
+  "address": "Lindenallee 2 (LindenZentrum), 15890 Eisenhüttenstadt",
+  "lat": 52.14635,
+  "lon": 14.63008,
+  "url": "http://www.eisenhuettenstadt.de/index.php?mnr=6&su1=1&su2=8",
+  "opac": null,
+  "email": "stadtbibliothek@eisenhuettenstadt.de",
+  "phone": "0049 3364 56 65 20"
+ },
+ {
+  "isil": "DE-F131",
+  "aliases": [
+   "DGAP"
+  ],
+  "short_name": "DGAP Berlin",
+  "portal_name": "Informationszentrum DGAP",
+  "name": "Informationszentrum der Deutschen Gesellschaft für Auswärtige Politik e.V.",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Berlin",
+  "address": "Rauchstr. 17/18, 10787 Berlin",
+  "lat": 52.50885,
+  "lon": 13.34675,
+  "url": "https://dgap.org/de/informationszentrum",
+  "opac": "https://opac.dgap.org/esearcha/index.tt.html",
+  "email": "iz@dgap.org",
+  "phone": "0049 30 25 42 31-0"
+ },
+ {
+  "isil": "DE-For3",
+  "aliases": [
+   "FORST"
+  ],
+  "short_name": "SB Forst",
+  "portal_name": null,
+  "name": "Stadtbibliothek Forst (Lausitz)",
+  "type": "Öffentliche Bibliothek",
+  "city": "Forst/Lausitz",
+  "address": "Lindenstr. 10-12, 03149 Forst/Lausitz",
+  "lat": 51.74535,
+  "lon": 14.64784,
+  "url": "http://www.forst-lausitz.de/sixcms/list.php?page=seite_bildung_bibliothek",
+  "opac": null,
+  "email": "bibliothek@forst-lausitz.de",
+  "phone": "0049 3562 98 93 80"
+ },
+ {
+  "isil": "DE-Fur5",
+  "aliases": [
+   "FURSTENWAL"
+  ],
+  "short_name": "SB Fürstenwalde",
+  "portal_name": "SB Fürstenwalde",
+  "name": "Stadtbibliothek Fürstenwalde",
+  "type": "Öffentliche Bibliothek",
+  "city": "Fürstenwalde",
+  "address": "Dompl. 7, 15517 Fürstenwalde",
+  "lat": 52.35753,
+  "lon": 14.06612,
+  "url": "http://www.bibo-fw.de",
+  "opac": "https://opac.stadtbibliothek-fuerstenwalde.de/",
+  "email": "stadtbibliothek@fuerstenwalde-spree.de",
+  "phone": "0049 3361 55 72 32"
+ },
+ {
+  "isil": "DE-Fw2",
+  "aliases": [
+   "FREIENWALD"
+  ],
+  "short_name": "SuKB Freienw.",
+  "portal_name": null,
+  "name": "Stadt- und Kreisbibliothek \"Hans Keilson\"",
+  "type": "Öffentliche Bibliothek",
+  "city": "Bad Freienwalde",
+  "address": "Gartenstr. 4, 16259 Bad Freienwalde",
+  "lat": 52.7684,
+  "lon": 13.8913,
+  "url": "https://www.bibliothek-bad-freienwalde.de/",
+  "opac": "https://bad-freienwalde.bibliotheca-open.de/",
+  "email": "bibliothek@bad-freienwalde.de",
+  "phone": "0049 3344 33 38 70 und 33 38 71 (Fernleihe) und 33 19 37 (Hauptanschluss)"
+ },
+ {
+  "isil": "DE-Lbn3",
+  "aliases": [
+   "LUBBEN"
+  ],
+  "short_name": "SB Lübben",
+  "portal_name": null,
+  "name": "Stadtbibliothek Lübben",
+  "type": "Öffentliche Bibliothek",
+  "city": "Lübben",
+  "address": "Ernst-von-Houwald-Damm 14, 15907 Lübben",
+  "lat": 51.93985,
+  "lon": 13.89989,
+  "url": "https://www.luebben.de/stadt-luebben/de/stadtleben/kultur/stadtbibliothek-luebben/",
+  "opac": "https://bibo.luebben.de/index.asp?DB=webopac",
+  "email": "bibliothek@luebben.de",
+  "phone": "0049 3546 71 60"
+ },
+ {
+  "isil": "DE-Mun1",
+  "aliases": [
+   "ZALF"
+  ],
+  "short_name": "ZALF Müncheberg",
+  "portal_name": null,
+  "name": "Leibniz-Zentrum für Agrarlandschaftsforschung (ZALF) e. V., Zentralbibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Müncheberg",
+  "address": "Eberswalder Str. 84, 15374 Müncheberg",
+  "lat": 52.51588,
+  "lon": 14.11297,
+  "url": "https://www.zalf.de/de/struktur/bib/Seiten/default.aspx",
+  "opac": "http://biblio.zalf.de/",
+  "email": "bib@zalf.de",
+  "phone": "0049 33432 82-216"
+ },
+ {
+  "isil": "DE-Po24",
+  "aliases": [
+   "BLHA"
+  ],
+  "short_name": "BLHA Potsdam",
+  "portal_name": "Landeshauptarchiv Brandenburg",
+  "name": "Brandenburgisches Landeshauptarchiv, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Potsdam",
+  "address": "Am Mühlenberg 3, 14476 Potsdam",
+  "lat": 52.41384,
+  "lon": 12.97074,
+  "url": "http://www.blha.de",
+  "opac": null,
+  "email": "bibliothek@blha.brandenburg.de",
+  "phone": "0049 331 56 74-257"
+ },
+ {
+  "isil": "DE-Po75",
+  "aliases": [
+   "FILMUNI"
+  ],
+  "short_name": "Filmuni Bbg.",
+  "portal_name": "Filmuniversität Babelsberg",
+  "name": "Filmuniversität Babelsberg KONRAD WOLF, Universitätsbibliothek",
+  "type": "Zentrale Universitätsbibliothek",
+  "city": "Potsdam",
+  "address": "Marlene-Dietrich-Allee 11, 14482 Potsdam",
+  "lat": 52.38875,
+  "lon": 13.11673,
+  "url": "https://www.filmuniversitaet.de/filmuni/universitaetsbibliothek/",
+  "opac": "http://opac.bibl.filmuniversitaet.de",
+  "email": "ausleihe@filmuniversitaet.de",
+  "phone": "0049 331 62 02-401"
+ },
+ {
+  "isil": "DE-Po79",
+  "aliases": [
+   "ZMSBW"
+  ],
+  "short_name": "ZMSBw Potsdam",
+  "portal_name": "Zentrum f. Militärgeschichte",
+  "name": "Zentrum für Militärgeschichte und Sozialwissenschaften der Bundeswehr (ZMSBw), Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Potsdam",
+  "address": "Zeppelinstr. 127/128, 14471 Potsdam",
+  "lat": 52.38469,
+  "lon": 13.02383,
+  "url": "https://zms.bundeswehr.de/de/zmsbw-bibliothek",
+  "opac": "http://portal.kobv.de/init.do?sortCrit=score&sortOrder=desc&lang=de&hitsPerPage=10&searchHistorySize=20&format=ris&encoding=utf8&version=1.0&facetListPosition=lhs&maxNumberOfFacetsPerValue=20&autoCompletionEnabled=true&usedLibs=DE-Po79&index=internal&feedFormat=rss_2.0&numItemsPerFeed=100&plv=2",
+  "email": "zmsbwbibliothek@bundeswehr.org",
+  "phone": "0049 331 97 14-490"
+ },
+ {
+  "isil": "DE-Po82",
+  "aliases": [
+   "ZZF"
+  ],
+  "short_name": "ZZF Potsdam",
+  "portal_name": "ZZF Potsdam",
+  "name": "Leibniz-Zentrum für Zeithistorische Forschung Potsdam, Bibliothek",
+  "type": "Wissenschaftliche Spezialbibliothek",
+  "city": "Potsdam",
+  "address": "Am Neuen Markt 9d, 14467 Potsdam",
+  "lat": 52.39677,
+  "lon": 13.05589,
+  "url": "https://zzf-potsdam.de/de/bibliothek",
+  "opac": "https://lbsvz3.gbv.de/LNG=DU/DB=10/",
+  "email": "bibliothek@zzf-potsdam.de",
+  "phone": "0049 331 7 45 10-132"
+ },
+ {
+  "isil": "DE-Pr3",
+  "aliases": [
+   "PRENZLAU"
+  ],
+  "short_name": "SB Prenzlau",
+  "portal_name": null,
+  "name": "Stadtbibliothek (im Dominikanerkloster)",
+  "type": "Öffentliche Bibliothek",
+  "city": "Prenzlau",
+  "address": "Uckerwiek 813, 17291 Prenzlau",
+  "lat": 53.30988,
+  "lon": 13.8607,
+  "url": "http://www.prenzlau.eu/cms/detail.php/land_bb_boa_01.c.164613.de",
+  "opac": null,
+  "email": "stadtbibliothek@dominikanerkloster-prenzlau.de",
+  "phone": "0049 3984 75-4241 (Ausleihe) und -4041 (Leitung)"
+ },
+ {
+  "isil": "DE-Sen5",
+  "aliases": [
+   "SENFTENBER"
+  ],
+  "short_name": "SB Senftenberg",
+  "portal_name": null,
+  "name": "Stadtbibliothek Senftenberg",
+  "type": "Öffentliche Bibliothek",
+  "city": "Senftenberg",
+  "address": "Krankenhausstr. 4, 01968 Senftenberg",
+  "lat": 51.5273,
+  "lon": 14.00162,
+  "url": "http://www.senftenberg.de/index.phtml?mNavID=1704.7&sNavID=1704.19&La=1",
+  "opac": null,
+  "email": "sb.senftenberg@t-online.de",
+  "phone": "0049 3573 37 80-12"
+ },
+ {
+  "isil": "DE-Sht10",
+  "aliases": [
+   "SCHWEDT"
+  ],
+  "short_name": "SB Schwedt",
+  "portal_name": null,
+  "name": "Stadtbibliothek Schwedt",
+  "type": "Öffentliche Bibliothek",
+  "city": "Schwedt",
+  "address": "Lindenallee 36, 16303 Schwedt",
+  "lat": 53.06021,
+  "lon": 14.28739,
+  "url": "http://www.schwedt.de/stadtbibliothek",
+  "opac": null,
+  "email": "bibliothek.stadt@schwedt.de",
+  "phone": "0049 3332 2 23 79"
+ },
+ {
+  "isil": "DE-Spr10",
+  "aliases": [
+   "SPREMBERG"
+  ],
+  "short_name": "KB Spree-Neiße",
+  "portal_name": null,
+  "name": "Kreisbibliothek des Landkreises Spree-Neiße",
+  "type": "Öffentliche Bibliothek",
+  "city": "Spremberg",
+  "address": "Schlossbezirk 3, 03130 Spremberg",
+  "lat": 51.57028,
+  "lon": 14.38375,
+  "url": "http://www.kreisbibliothek-spn.de/start.htm",
+  "opac": "http://my-bibliotheca.net/opac-108531/App/Pages/webopac/index.aspx",
+  "email": "bibliothek@kulturschloss-lkspn.de",
+  "phone": "0049 3563 59 33 40 22"
+ },
+ {
+  "isil": "DE-Te3",
+  "aliases": [
+   "TEMPLIN"
+  ],
+  "short_name": "SB Templin",
+  "portal_name": null,
+  "name": "Stadtbibliothek Templin",
+  "type": "Öffentliche Bibliothek",
+  "city": "Templin",
+  "address": "Prenzlauer Allee 7, 17268 Templin",
+  "lat": 53.12175,
+  "lon": 13.50831,
+  "url": "http://www.templin.de/verzeichnis/visitenkarte.php?mandat=50003",
+  "opac": null,
+  "email": "bibliothek@templin.de",
+  "phone": "0049 3987 27 98"
+ },
+ {
+  "isil": "DE-To5",
+  "aliases": [
+   "TELTOW"
+  ],
+  "short_name": "SB Teltow",
+  "portal_name": null,
+  "name": "Stadtbibliothek Teltow",
+  "type": "Öffentliche Bibliothek",
+  "city": "Teltow",
+  "address": "Jahnstr 2a, 14513 Teltow",
+  "lat": 52.40361,
+  "lon": 13.25897,
+  "url": "http://www.teltow.de/bildung-soziales/bibliothek.html",
+  "opac": null,
+  "email": "bibliothek@teltow.de",
+  "phone": "0049 3328 47 81-650"
+ },
+ {
+  "isil": "DE-Wbe4",
+  "aliases": [
+   "WITTENBERG"
+  ],
+  "short_name": "SB Wittenberge",
+  "portal_name": null,
+  "name": "Stadtbibliothek 'Martin Andersen Nexö' Wittenberge",
+  "type": "Öffentliche Bibliothek",
+  "city": "Wittenberge",
+  "address": "Bernard-Remy-Str. 6 a, 19322 Wittenberge",
+  "lat": 52.99792,
+  "lon": 11.74891,
+  "url": "http://www.wittenberge.de/verzeichnis/visitenkarte.php?mandat=61180",
+  "opac": null,
+  "email": "stadtbibliothek@kfh-wbge.de",
+  "phone": "0049 3877 40 38 81"
+ }
+]
