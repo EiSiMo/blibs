@@ -32,7 +32,7 @@ use serde::de::{MapAccess, Visitor};
 
 use crate::error::{Error, UnexpectedError};
 use crate::libraries;
-use crate::model::{Holding, Isil, Item, Note, Status};
+use crate::model::{Holding, Isil, Item, Note, Status, note_kinds};
 
 /// What names this document for the reader of an error message.
 const DOCUMENT: &str = "availability fragment";
@@ -118,7 +118,7 @@ pub fn parse(json: &str) -> Result<AvailabilityResponse, Error> {
     let has_availability = data.has_availability.unwrap_or(false);
     if !has_availability {
         notes.push(Note::new(
-            "availability_not_stated",
+            note_kinds::AVAILABILITY_NOT_STATED,
             "the availability service holds no information for this record — \
              the copies below come from the catalogue and may carry no status",
         ));
@@ -131,7 +131,7 @@ pub fn parse(json: &str) -> Result<AvailabilityResponse, Error> {
         .any(|item| item.status == Status::Unknown)
     {
         notes.push(Note::new(
-            "availability_unknown_status",
+            note_kinds::AVAILABILITY_UNKNOWN_STATUS,
             "some copies came back without a traffic light blibs recognises; \
              their status is reported as unknown",
         ));
@@ -237,7 +237,7 @@ pub fn merge(response: &AvailabilityResponse, holdings: &mut Vec<Holding>) -> Ve
             }
         } else {
             notes.push(Note::new(
-                "holding_without_isil",
+                note_kinds::HOLDING_WITHOUT_ISIL,
                 format!(
                     "the availability service listed copies under {:?}, which is not in \
                      the library list — they are shown without a library code",
@@ -268,7 +268,7 @@ fn assign(
 ) -> Vec<Option<Isil>> {
     if by_isil.len() != groups.len() {
         notes.push(Note::new(
-            "availability_matched_by_name",
+            note_kinds::AVAILABILITY_MATCHED_BY_NAME,
             format!(
                 "the availability service listed {} libraries and {} blocks of copies; \
                  the blocks were matched by library name instead of by position",
@@ -287,7 +287,7 @@ fn assign(
             && by_name != *isil
         {
             notes.push(Note::new(
-                "availability_match_conflict",
+                note_kinds::AVAILABILITY_MATCH_CONFLICT,
                 format!(
                     "the block of copies at position {} belongs to {isil} by order and to \
                      {by_name} by name ({:?}); it was assigned by order",
@@ -400,8 +400,7 @@ fn item(row: ElementRef<'_>, columns: &Columns) -> Item {
     Item {
         location: location_cell
             .map(|cell| collapse(&text_of(cell)))
-            .filter(|text| !is_placeholder(text))
-            .unwrap_or_default(),
+            .filter(|text| !is_placeholder(text)),
         branch,
         branch_name,
         call_number: columns
@@ -471,12 +470,11 @@ fn status_of(cell: ElementRef<'_>) -> Status {
 /// unrecognised heading is ignored rather than shifting the ones after it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Columns {
-    /// The owning library. Its content is the portal's own name for the house, which
-    /// `data-name` already carries; the column is required as evidence that the table is
-    /// still the table this parser knows.
-    library: usize,
+    /// Where the copy stands.
     location: Option<usize>,
+    /// Its shelfmark.
     call_number: Option<usize>,
+    /// Its traffic light. Required — a row without one says nothing.
     availability: usize,
     /// `Volume/Issue/Year`, present only for serials (`newspaper.json`).
     volume: Option<usize>,
@@ -502,10 +500,16 @@ impl Columns {
             }
         }
 
+        // The `Library` column is required but not kept: its content is the portal's own
+        // name for the house, which `data-name` on the group already carries. Its
+        // *presence* is the evidence that this is still the table this parser knows, so a
+        // header without it is an error rather than a table read with shifted columns.
+        if library.is_none() {
+            return Err(missing_selector(
+                "table.result-availability-items thead th:Library",
+            ));
+        }
         Ok(Self {
-            library: library.ok_or_else(|| {
-                missing_selector("table.result-availability-items thead th:Library")
-            })?,
             location,
             call_number,
             availability: availability.ok_or_else(|| {
@@ -636,14 +640,14 @@ fn is_placeholder(text: &str) -> bool {
 fn colour_status(colour: Option<&str>, field: &str, notes: &mut Vec<Note>) -> Status {
     let Some(colour) = colour else {
         notes.push(Note::new(
-            "availability_unknown_status",
+            note_kinds::AVAILABILITY_UNKNOWN_STATUS,
             format!("the availability service sent no colour in `{field}`"),
         ));
         return Status::Unknown;
     };
     Status::from_color(colour).unwrap_or_else(|| {
         notes.push(Note::new(
-            "availability_unknown_status",
+            note_kinds::AVAILABILITY_UNKNOWN_STATUS,
             format!(
                 "the availability service used the colour {colour:?} in `{field}`, \
                  which blibs does not know; the status is reported as unknown"
@@ -806,8 +810,8 @@ mod tests {
 
         let item = &humboldt.items[0];
         assert_eq!(
-            item.location,
-            "ZB Grimm-Zentrum, 3. OG / Bereich B - Freihandbestand"
+            item.location.as_deref(),
+            Some("ZB Grimm-Zentrum, 3. OG / Bereich B - Freihandbestand")
         );
         assert_eq!(item.branch.as_deref(), Some("HUB00028"));
         assert_eq!(item.branch_name.as_deref(), Some("ZB Grimm-Zentrum"));
@@ -839,7 +843,7 @@ mod tests {
         assert_eq!(first.branch.as_deref(), Some("BIB000000001"));
         // The link text is the placeholder `'`, which is not a branch name.
         assert_eq!(first.branch_name, None);
-        assert_eq!(first.location, "");
+        assert_eq!(first.location, None);
 
         let statuses: Vec<Status> = group.items.iter().map(|item| item.status).collect();
         assert_eq!(
@@ -874,7 +878,10 @@ mod tests {
         assert_eq!(group.items.len(), 2);
         for item in &group.items {
             assert_eq!(item.call_number, None);
-            assert_eq!(item.location, "", "`Library` is a placeholder, not a place");
+            assert_eq!(
+                item.location, None,
+                "`Library` is a placeholder, not a place"
+            );
             assert_eq!(item.branch_name, None);
             assert_eq!(item.branch.as_deref(), Some("SIG00057"));
             assert_eq!(item.status, Status::Reference);
@@ -903,17 +910,17 @@ mod tests {
         }
 
         let empty_cell = &response.groups[0].items[0];
-        assert_eq!(empty_cell.location, "");
+        assert_eq!(empty_cell.location, None);
         assert_eq!(empty_cell.branch, None);
         assert_eq!(empty_cell.branch_name, None);
 
         let url_cell = &response.groups[2].items[0];
-        assert!(url_cell.location.starts_with("https://elibrary.utb.de/"));
-        assert!(
-            url_cell
-                .location
-                .ends_with("(Zugriff für angemeldete Bibliotheksnutzer)")
-        );
+        let url_location = url_cell
+            .location
+            .as_deref()
+            .expect("the third group's cell holds a URL");
+        assert!(url_location.starts_with("https://elibrary.utb.de/"));
+        assert!(url_location.ends_with("(Zugriff für angemeldete Bibliotheksnutzer)"));
         assert_eq!(url_cell.branch, None);
     }
 
@@ -993,7 +1000,7 @@ mod tests {
         let note = response
             .notes
             .iter()
-            .find(|note| note.kind == "availability_unknown_status")
+            .find(|note| note.kind == note_kinds::AVAILABILITY_UNKNOWN_STATUS)
             .expect("an unknown colour must be noted");
         assert!(note.message.contains("purple"));
         assert!(note.message.contains("DE-188"));
@@ -1009,7 +1016,7 @@ mod tests {
             response
                 .notes
                 .iter()
-                .any(|note| note.kind == "availability_unknown_status")
+                .any(|note| note.kind == note_kinds::AVAILABILITY_UNKNOWN_STATUS)
         );
     }
 
@@ -1025,7 +1032,7 @@ mod tests {
             response
                 .notes
                 .iter()
-                .any(|note| note.kind == "availability_not_stated")
+                .any(|note| note.kind == note_kinds::AVAILABILITY_NOT_STATED)
         );
     }
 
@@ -1126,7 +1133,7 @@ mod tests {
         response.groups.push(ItemGroup {
             portal_name: "Bibliothek von Babel".to_string(),
             items: vec![Item {
-                location: "Hexagon 6".to_string(),
+                location: Some("Hexagon 6".to_string()),
                 branch: None,
                 branch_name: None,
                 call_number: Some("MCV".to_string()),
@@ -1143,9 +1150,13 @@ mod tests {
         assert!(
             notes
                 .iter()
-                .any(|note| note.kind == "availability_matched_by_name")
+                .any(|note| note.kind == note_kinds::AVAILABILITY_MATCHED_BY_NAME)
         );
-        assert!(notes.iter().any(|note| note.kind == "holding_without_isil"));
+        assert!(
+            notes
+                .iter()
+                .any(|note| note.kind == note_kinds::HOLDING_WITHOUT_ISIL)
+        );
         let orphan = holdings
             .iter()
             .find(|holding| holding.isil.is_none())
@@ -1165,7 +1176,7 @@ mod tests {
         assert!(
             notes
                 .iter()
-                .any(|note| note.kind == "availability_match_conflict"),
+                .any(|note| note.kind == note_kinds::AVAILABILITY_MATCH_CONFLICT),
             "a swapped block must be noticed: {notes:?}"
         );
     }

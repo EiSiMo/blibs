@@ -665,11 +665,12 @@ fn diagnostic_code(uri: &str) -> &str {
 pub enum UnexpectedError {
     /// The body did not parse as XML at all — typically an HTML error page with status
     /// 200.
-    #[error("{context}: expected XML, got something else")]
+    #[error("{context}: expected XML, the body begins {snippet:?}")]
     NotXml {
         /// Which request produced it.
         context: String,
-        /// The first few characters of the body, for the message.
+        /// The first few characters of the body. Part of the message, because "not XML"
+        /// on its own tells a bug report nothing about what actually arrived.
         snippet: String,
     },
     /// A required XML element or MARC field was absent.

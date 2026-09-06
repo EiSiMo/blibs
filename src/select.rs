@@ -86,7 +86,9 @@ pub fn sort(records: &mut [Record], by: SortKey, at: Option<&Location>) {
         SortKey::Title => records.sort_by_cached_key(|record| record.title.trim().to_lowercase()),
         SortKey::Author => records.sort_by_cached_key(author_key),
         SortKey::Availability => {
-            records.sort_by_cached_key(|record| Reverse(rank(status_of(record, at))));
+            // `Status::rank` rather than a table of its own: the sort and
+            // `Status::summarize` must agree, and one definition cannot drift from itself.
+            records.sort_by_cached_key(|record| Reverse(status_of(record, at).rank()));
         }
     }
 }
@@ -102,21 +104,6 @@ fn author_key(record: &Record) -> (bool, String) {
         .map(|author| author.name.trim().to_lowercase())
         .filter(|name| !name.is_empty());
     (name.is_none(), name.unwrap_or_default())
-}
-
-/// Ordering rank of a status, best first.
-///
-/// Mirrors the private `Status::rank` that drives [`Status::summarize`]; the two are
-/// pinned together by `the_sort_rank_agrees_with_summarize`, so a change to one that is
-/// not made to the other fails the build rather than quietly reordering results.
-fn rank(status: Status) -> u8 {
-    match status {
-        Status::Available => 4,
-        Status::Reference => 3,
-        Status::PossiblyAvailable => 2,
-        Status::Unavailable => 1,
-        Status::Unknown => 0,
-    }
 }
 
 /// The status a sort or a block heading should show for a record: the location's traffic
@@ -393,7 +380,7 @@ mod tests {
 
     fn item(location: &str, branch: Option<&str>, status: Status) -> Item {
         Item {
-            location: location.to_owned(),
+            location: Some(location.to_owned()),
             branch: branch.map(ToOwned::to_owned),
             branch_name: None,
             call_number: None,
@@ -696,8 +683,9 @@ mod tests {
         );
     }
 
-    /// The local rank must stay in step with the private one behind
-    /// [`Status::summarize`]: for every pair, summarising picks the better-ranked status.
+    /// The one rank behind both the sort and [`Status::summarize`]: for every pair,
+    /// summarising picks the better-ranked status. Kept as a test because the two uses
+    /// live in different modules and only this pins the meaning of the number.
     #[test]
     fn the_sort_rank_agrees_with_summarize() {
         let all = [
@@ -709,7 +697,7 @@ mod tests {
         ];
         for a in all {
             for b in all {
-                let better = if rank(a) >= rank(b) { a } else { b };
+                let better = if a.rank() >= b.rank() { a } else { b };
                 assert_eq!(
                     Status::summarize([a, b]),
                     better,
@@ -911,12 +899,20 @@ mod tests {
         let blocks = blocks(&result, &locations);
         let hu = &blocks[0].records[0];
         assert_eq!(hu.status, Status::Available);
-        let locations_shown: Vec<&str> = hu.items.iter().map(|i| i.location.as_str()).collect();
+        let locations_shown: Vec<&str> = hu
+            .items
+            .iter()
+            .filter_map(|i| i.location.as_deref())
+            .collect();
         assert_eq!(locations_shown, ["Grimm-Zentrum", "ZwB Germanistik"]);
 
         let stabi = &blocks[1].records[0];
         assert_eq!(stabi.status, Status::Reference);
-        let locations_shown: Vec<&str> = stabi.items.iter().map(|i| i.location.as_str()).collect();
+        let locations_shown: Vec<&str> = stabi
+            .items
+            .iter()
+            .filter_map(|i| i.location.as_deref())
+            .collect();
         assert_eq!(locations_shown, ["Haus Potsdamer Straße"]);
     }
 

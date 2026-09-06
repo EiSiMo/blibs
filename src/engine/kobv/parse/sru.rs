@@ -26,14 +26,17 @@
 //!   `pqf_diag_truncation.xml`). Demanding it unconditionally would turn every exit-5
 //!   rejection into an exit-6 "missing structure", so it is required only when the
 //!   response carries no top-level diagnostic.
-//! - **A record's payload is kept as raw XML**, sliced out of the body by the parser's
-//!   byte range. [`super::marc`] takes it apart; this module never looks inside it, so a
-//!   change to the MARC parser cannot break envelope handling and vice versa.
+//! - **A record's payload is handed to [`super::marc`] as it is walked.** Building the
+//!   [`MarcRecord`] here rather than keeping the raw XML means the document is parsed
+//!   once instead of twice, and it is the only thing this module does with the payload:
+//!   the envelope rules above still hold whatever the MARC layer makes of it.
 
 use roxmltree::{Document, Node};
 
 use crate::error::{Error, RejectedError, UnexpectedError};
-use crate::model::Note;
+use crate::model::{Note, note_kinds};
+
+use super::marc::MarcRecord;
 
 /// Namespaces an SRU envelope element may live in. `k2` speaks SRU 2.0; the 1.x
 /// namespace is accepted because the same code path serves any `searchRetrieve`
@@ -84,8 +87,8 @@ pub struct SruRecord {
 /// What one delivered record turned out to be.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecordPayload {
-    /// A MARCXML record, as raw XML for [`super::marc`] to take apart.
-    Marc(String),
+    /// A MARCXML record, already taken apart by [`super::marc`].
+    Marc(MarcRecord),
     /// A surrogate diagnostic in place of a record.
     Diagnostic(Diagnostic),
     /// A schema this tool does not know. Kept rather than dropped, so it can be counted
@@ -134,7 +137,7 @@ pub fn parse(body: &str) -> Result<SruResponse, Error> {
         Some(list) => list
             .children()
             .filter(|node| is_element(*node, SRU_NAMESPACES, "record"))
-            .map(|node| record(node, body))
+            .map(record)
             .collect::<Result<Vec<_>, Error>>()?,
         None => Vec::new(),
     };
@@ -192,7 +195,7 @@ pub fn record_notes(response: &SruResponse) -> Vec<Note> {
         .filter_map(|record| match &record.payload {
             RecordPayload::Marc(_) => None,
             RecordPayload::Diagnostic(diagnostic) => Some(Note::new(
-                "record_undelivered",
+                note_kinds::RECORD_UNDELIVERED,
                 format!(
                     "the catalogue could not deliver the record at {}: {} ({})",
                     position_text(record.position),
@@ -201,7 +204,7 @@ pub fn record_notes(response: &SruResponse) -> Vec<Note> {
                 ),
             )),
             RecordPayload::Unknown { schema } => Some(Note::new(
-                "record_schema_unknown",
+                note_kinds::RECORD_SCHEMA_UNKNOWN,
                 format!(
                     "the record at {} arrived as {}, which blibs cannot read",
                     position_text(record.position),
@@ -215,7 +218,7 @@ pub fn record_notes(response: &SruResponse) -> Vec<Note> {
 /// One `<zs:record>`: its position, its declared schema, and the payload that schema
 /// promises. A declared schema whose payload element is absent is an error — an empty
 /// record list and "the element moved" must stay distinguishable.
-fn record(node: Node<'_, '_>, body: &str) -> Result<SruRecord, Error> {
+fn record(node: Node<'_, '_>) -> Result<SruRecord, Error> {
     let position = child_text(node, SRU_NAMESPACES, "recordPosition")
         .and_then(|text| text.parse::<u32>().ok());
     let context = format!("{CONTEXT}, record at {}", position_text(position));
@@ -226,7 +229,7 @@ fn record(node: Node<'_, '_>, body: &str) -> Result<SruRecord, Error> {
     let payload = if is_marcxml(&schema) {
         let record = child(data, MARC_NAMESPACES, "record")
             .ok_or_else(|| missing_element("a MARCXML <record> element", &context))?;
-        RecordPayload::Marc(body[record.range()].to_string())
+        RecordPayload::Marc(MarcRecord::from_node(record))
     } else if is_diagnostic_schema(&schema) {
         let element = child(data, DIAGNOSTIC_NAMESPACES, "diagnostic")
             .ok_or_else(|| missing_element("a <diagnostic> element", &context))?;
@@ -410,14 +413,22 @@ mod tests {
         }
     }
 
-    fn marc_payloads(response: &SruResponse) -> Vec<&str> {
+    fn marc_payloads(response: &SruResponse) -> Vec<&MarcRecord> {
         response
             .records
             .iter()
             .filter_map(|record| match &record.payload {
-                RecordPayload::Marc(xml) => Some(xml.as_str()),
+                RecordPayload::Marc(marc) => Some(marc),
                 _ => None,
             })
+            .collect()
+    }
+
+    /// The `001` of every MARC record in a response, in delivery order.
+    fn marc_ids(response: &SruResponse) -> Vec<&str> {
+        marc_payloads(response)
+            .into_iter()
+            .filter_map(|marc| marc.control("001"))
             .collect()
     }
 
@@ -473,26 +484,37 @@ mod tests {
         assert!(check(&response).is_ok());
     }
 
-    /// `record.xml`: a single-record lookup, and the payload is the raw MARCXML element —
-    /// re-parsable on its own, because the namespace is declared on `<record>` itself.
+    /// `record.xml`: a single-record lookup. The payload arrives already taken apart, so
+    /// the envelope hands on a usable record rather than a string to parse a second time.
     #[test]
-    fn a_record_payload_is_the_raw_marcxml_element() {
+    fn a_record_payload_is_a_parsed_marc_record() {
         let response = parsed(RECORD);
         assert_eq!(response.number_of_records, 1);
         assert_eq!(response.records.len(), 1);
         assert_eq!(response.records[0].position, Some(1));
 
         let payloads = marc_payloads(&response);
-        let xml = payloads.first().expect("the record must carry MARCXML");
-        assert!(xml.starts_with("<record "), "payload starts at the element");
-        assert!(xml.ends_with("</record>"), "payload ends at the element");
-        assert!(xml.contains("almafu_BV008885798"));
-
-        let document = roxmltree::Document::parse(xml).expect("the payload re-parses alone");
-        assert_eq!(document.root_element().tag_name().name(), "record");
+        let marc = payloads.first().expect("the record must carry MARCXML");
+        assert_eq!(marc.control("001"), Some("almafu_BV008885798"));
         assert_eq!(
-            document.root_element().tag_name().namespace(),
-            Some("http://www.loc.gov/MARC21/slim")
+            marc.first_with("245", 'a').and_then(|field| field.sub('a')),
+            Some("Augenblick und Irritation :")
+        );
+    }
+
+    /// The records of an ordinary search come out with their titles in place — the point
+    /// of parsing the payload here rather than passing the XML on.
+    #[test]
+    fn the_delivered_records_carry_their_titles() {
+        let response = parsed(MONO_KAFKA);
+        let titles: Vec<&str> = marc_payloads(&response)
+            .into_iter()
+            .filter_map(|marc| marc.first_with("245", 'a')?.sub('a'))
+            .collect();
+        assert_eq!(titles.len(), 2, "both delivered records have a title");
+        assert!(
+            titles.iter().all(|title| !title.is_empty()),
+            "no title is empty: {titles:?}"
         );
     }
 
@@ -583,7 +605,7 @@ mod tests {
 
         let notes = record_notes(&response);
         assert_eq!(notes.len(), 1);
-        assert_eq!(notes[0].kind, "record_undelivered");
+        assert_eq!(notes[0].kind, note_kinds::RECORD_UNDELIVERED);
         assert!(notes[0].message.contains("position 49"));
         assert!(notes[0].message.contains("1/63"));
     }
@@ -596,10 +618,7 @@ mod tests {
         let response = parsed(NEWSPAPER);
         assert_eq!(response.number_of_records, 3144);
         assert_eq!(response.records.len(), 1);
-        let payloads = marc_payloads(&response);
-        let xml = payloads.first().expect("the record must carry MARCXML");
-        assert!(xml.contains("<!--"), "comments stay in the raw payload");
-        assert!(xml.contains("kobvindex_SLB42822"));
+        assert_eq!(marc_ids(&response), ["kobvindex_SLB42822"]);
     }
 
     /// Records and a top-level diagnostic can arrive together — measured with `sortKeys`
@@ -653,7 +672,7 @@ mod tests {
         );
         let notes = record_notes(&response);
         assert_eq!(notes.len(), 1);
-        assert_eq!(notes[0].kind, "record_schema_unknown");
+        assert_eq!(notes[0].kind, note_kinds::RECORD_SCHEMA_UNKNOWN);
         assert!(notes[0].message.contains("position 3"));
     }
 
@@ -667,11 +686,16 @@ mod tests {
         assert!(error.to_string().contains("<html>"));
     }
 
-    /// A body that is not markup at all fails the same way.
+    /// A body that is not markup at all fails the same way, and the message quotes what
+    /// arrived — without it a bug report says only "not XML".
     #[test]
     fn a_body_that_is_not_xml_at_all_fails_as_not_xml() {
         let error = parse("upstream connect error").expect_err("plain text is not XML");
         assert_eq!(error.kind(), "not_xml");
+        assert!(
+            error.to_string().contains("upstream connect error"),
+            "the message carries the snippet: {error}"
+        );
     }
 
     /// Without a diagnostic to explain it, a missing count is a broken envelope and says

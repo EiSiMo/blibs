@@ -276,20 +276,56 @@ pub enum SortScope {
 /// facet that could not be applied.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Note {
-    /// Stable machine-readable tag.
+    /// Stable machine-readable tag; one of the constants in [`note_kinds`].
     pub kind: &'static str,
     /// Human-readable explanation.
     pub message: String,
 }
 
 impl Note {
-    /// Build a note.
+    /// Build a note. `kind` is meant to be one of the constants in [`note_kinds`] — an
+    /// agent switches on it, so a tag invented at a call site is a silent break.
     pub fn new(kind: &'static str, message: impl Into<String>) -> Self {
         Self {
             kind,
             message: message.into(),
         }
     }
+}
+
+/// Every value [`Note::kind`] can take.
+///
+/// The tags are the agent-facing half of a note: the message explains, the tag is what
+/// can be branched on, so it is part of the JSON contract exactly like a field name.
+/// They live here rather than next to the code that emits them because that code is
+/// spread over two parse modules and two engines, and a vocabulary scattered over four
+/// files is a vocabulary that grows two spellings of the same thing.
+pub mod note_kinds {
+    /// The catalogue announced a record and delivered a diagnostic in its place.
+    pub const RECORD_UNDELIVERED: &str = "record_undelivered";
+
+    /// A record arrived under a `recordSchema` this tool cannot read.
+    pub const RECORD_SCHEMA_UNKNOWN: &str = "record_schema_unknown";
+
+    /// The availability service holds no information for this record
+    /// (`hasAvailability: false`); the copies come from the catalogue alone.
+    pub const AVAILABILITY_NOT_STATED: &str = "availability_not_stated";
+
+    /// A traffic-light colour was missing or is not one of the four known ones, so a
+    /// status is reported as unknown rather than guessed.
+    pub const AVAILABILITY_UNKNOWN_STATUS: &str = "availability_unknown_status";
+
+    /// The positional match between traffic lights and blocks of copies did not apply,
+    /// and the blocks were matched by library name instead.
+    pub const AVAILABILITY_MATCHED_BY_NAME: &str = "availability_matched_by_name";
+
+    /// Order and name disagree about which library a block of copies belongs to; the
+    /// order won, and the disagreement is stated rather than hidden.
+    pub const AVAILABILITY_MATCH_CONFLICT: &str = "availability_match_conflict";
+
+    /// A block of copies could not be matched to any ISIL and is shown under the
+    /// portal's own name for the library.
+    pub const HOLDING_WITHOUT_ISIL: &str = "holding_without_isil";
 }
 
 /// The query, echoed back so a result can be reproduced without the shell history.
@@ -340,6 +376,35 @@ mod tests {
     use crate::model::{
         AuthorKind, Format, Holding, Item, Limit, RecordId, SortKey, SortScope, Status, UrlKind,
     };
+
+    /// The note vocabulary is the agent-facing half of `notes[]`. Two modules spelling
+    /// the same limitation two ways is exactly what the constants prevent, so the list is
+    /// checked for duplicates and for the one shape agents can rely on.
+    #[test]
+    fn note_kinds_are_unique_lowercase_tags() {
+        let all = [
+            note_kinds::RECORD_UNDELIVERED,
+            note_kinds::RECORD_SCHEMA_UNKNOWN,
+            note_kinds::AVAILABILITY_NOT_STATED,
+            note_kinds::AVAILABILITY_UNKNOWN_STATUS,
+            note_kinds::AVAILABILITY_MATCHED_BY_NAME,
+            note_kinds::AVAILABILITY_MATCH_CONFLICT,
+            note_kinds::HOLDING_WITHOUT_ISIL,
+        ];
+        for (index, kind) in all.iter().enumerate() {
+            assert!(
+                !kind.is_empty()
+                    && kind
+                        .bytes()
+                        .all(|byte| byte.is_ascii_lowercase() || byte == b'_'),
+                "{kind:?} is not a snake_case tag"
+            );
+            assert!(
+                !all[index + 1..].contains(kind),
+                "{kind:?} is used for two different notes"
+            );
+        }
+    }
 
     /// The shell strips the quotes, so whitespace is the only evidence left that the user
     /// asked for a phrase.
@@ -477,7 +542,7 @@ mod tests {
             ],
             availability: AvailabilityMode::Fetched,
             notes: vec![Note::new(
-                "record_diagnostic",
+                note_kinds::RECORD_UNDELIVERED,
                 "record 49 of the SRU response was a diagnostic and was skipped",
             )],
             records: vec![kobv_record(), voebb_record()],
@@ -531,7 +596,7 @@ mod tests {
                     summary: Status::Available,
                     items: vec![
                         Item {
-                            location: "ZB Grimm-Zentrum, 7. OG / Bereich B".to_owned(),
+                            location: Some("ZB Grimm-Zentrum, 7. OG / Bereich B".to_owned()),
                             branch: Some("KOB00032".to_owned()),
                             branch_name: Some("Grimm-Zentrum".to_owned()),
                             call_number: Some("96 A 10064".to_owned()),
@@ -540,7 +605,7 @@ mod tests {
                             order_option: None,
                         },
                         Item {
-                            location: "ZB Grimm-Zentrum, Magazin".to_owned(),
+                            location: Some("ZB Grimm-Zentrum, Magazin".to_owned()),
                             branch: None,
                             branch_name: None,
                             call_number: Some("96 A 10064+1".to_owned()),
@@ -560,8 +625,10 @@ mod tests {
                     local_id: Some("275177939".to_owned()),
                     mine: false,
                     summary: Status::Reference,
+                    // The portal wrote one of its placeholders in the location cell:
+                    // what is not stated is `null`, never an empty string.
                     items: vec![Item {
-                        location: "Lesesaal".to_owned(),
+                        location: None,
                         branch: None,
                         branch_name: None,
                         call_number: Some("A 1234".to_owned()),
@@ -607,7 +674,7 @@ mod tests {
                 mine: true,
                 summary: Status::Reference,
                 items: vec![Item {
-                    location: "AGB Erwachsenenbibliothek".to_owned(),
+                    location: Some("AGB Erwachsenenbibliothek".to_owned()),
                     branch: Some("SIG00036".to_owned()),
                     branch_name: Some("Amerika-Gedenkbibliothek".to_owned()),
                     call_number: Some("Kaf 1".to_owned()),

@@ -45,6 +45,10 @@ const SUBJECT_MARKS: &[char] = &[' ', '.'];
 /// Trailing punctuation on life dates (`1911-2004.`, `1821-1881,`).
 const DATE_MARKS: &[char] = &[' ', '.', ','];
 
+/// Trailing punctuation a name may be compared without. The full stop is only ever
+/// dropped from the comparison key, never from the displayed name — see [`trimmed_name`].
+const NAME_MARKS: &[char] = &[' ', '.', ','];
+
 /// The name fields, in the order their authors are emitted: main entries first, then
 /// added entries. 254 records have no `1XX` at all and only a `700`, so added entries are
 /// never "just contributors" — dropping them would empty `authors` for a fifth of the
@@ -110,11 +114,15 @@ pub fn from_marc(marc: &MarcRecord) -> Result<Record, Error> {
 /// Assemble the availability key from the holdings.
 ///
 /// `ISIL;LocalId` pairs joined by commas and terminated by one, exactly as the portal
-/// writes it into `data-availability-id`. The ISIL is deduplicated while the field order
-/// is kept — 6.3 % of records name the same library twice in `924`, and the response is
-/// keyed by ISIL, so a repeated key would collide with itself. The local id is the
+/// writes it into `data-availability-id`, in holdings order. The local id is the
 /// library's own (`924$a`) and is **never** reconstructed from `001`: a quarter of them
 /// differ.
+///
+/// An ISIL is emitted at most once. [`holdings`] already folds repeated `924` fields into
+/// one holding, so this is a guard rather than a case — but it is a guard worth keeping:
+/// the response is keyed by ISIL, and a key naming a library twice collides with itself,
+/// which is a wrong answer rather than a failure. The function therefore does not rely on
+/// its caller having deduplicated.
 ///
 /// `None` when the record has no usable holding — there is then nothing to ask about, and
 /// the call is skipped rather than sent empty.
@@ -192,9 +200,13 @@ fn subtitle(field: &Field) -> Option<String> {
 
 /// Every name in the record, main entries before added entries, deduplicated.
 ///
-/// Deduplication is over `(name, dates, gnd)`: a name-title added entry repeats the same
-/// person once per work, six times over in `almahu_BV010644426`. Roles are never filtered
-/// — an editor or a translator is who the user is looking for as often as the author.
+/// A name-title added entry repeats the same person once per work — `almahu_BV010644426`
+/// names Dostoevskij seven times over — so without deduplication the author line of a
+/// collected edition is one person printed eight times. Roles are never filtered: an
+/// editor or a translator is who the user is looking for as often as the author.
+///
+/// Where two entries collapse, the one carrying a GND wins its position, because that is
+/// the entry that identifies the person rather than a work of theirs.
 fn authors(marc: &MarcRecord) -> Vec<Author> {
     let mut authors: Vec<Author> = Vec::new();
     for (tag, kind) in NAME_FIELDS {
@@ -202,17 +214,100 @@ fn authors(marc: &MarcRecord) -> Vec<Author> {
             let Some(candidate) = author(field, kind) else {
                 continue;
             };
-            let duplicate = authors.iter().any(|seen| {
-                seen.name == candidate.name
-                    && seen.dates == candidate.dates
-                    && seen.gnd == candidate.gnd
-            });
-            if !duplicate {
-                authors.push(candidate);
+            let seen = authors.iter().position(|seen| is_repeat(seen, &candidate));
+            match seen {
+                // Same slot, better entry: the position stays where the record first
+                // named the person, so main entries keep coming before added ones.
+                Some(index) if authors[index].gnd.is_none() && candidate.gnd.is_some() => {
+                    authors[index] = candidate;
+                }
+                Some(_) => {}
+                None => authors.push(candidate),
             }
         }
     }
     authors
+}
+
+/// Whether `candidate` names someone the record has already named.
+///
+/// Two rules, because the strict one alone leaves a collected edition with the same
+/// person on three lines:
+///
+/// 1. **Identical `(name, dates, gnd)`.** The plain repeat.
+/// 2. **Same class, same `dates`, same folded name, and at least one side without a
+///    GND.** A name-title entry contributes no GND (see [`gnd`]), so it can only ever be
+///    matched against the main entry by its name — and the spelling of that name varies
+///    within one record: `almahu_BV010644426` writes `Fëdor` both precomposed and as `e`
+///    plus a combining diaeresis. Requiring one side to lack a GND is what keeps the rule
+///    safe: two entries that both carry a GND are two authority records, and this tool
+///    does not overrule the cataloguer who kept them apart.
+fn is_repeat(seen: &Author, candidate: &Author) -> bool {
+    let identical =
+        seen.name == candidate.name && seen.dates == candidate.dates && seen.gnd == candidate.gnd;
+    let folded = seen.kind == candidate.kind
+        && seen.dates == candidate.dates
+        && (seen.gnd.is_none() || candidate.gnd.is_none())
+        && name_key(&seen.name) == name_key(&candidate.name);
+    identical || folded
+}
+
+/// The key one name is compared with another under. Never displayed.
+///
+/// Combining marks are dropped, the rest is lowercased, and trailing name punctuation
+/// goes. That is deliberately *close to* a Unicode normalisation rather than one: a
+/// precomposed `ë` (U+00EB) and a decomposed `e` + U+0308 still differ here, because
+/// decomposing them would need a full normalisation table this crate does not carry. The
+/// consequence is measured and documented on
+/// `a_name_title_entry_keeps_the_person_and_drops_the_work`: the rule under-merges, which
+/// costs a duplicate line, where over-merging would fuse two people into one.
+fn name_key(name: &str) -> String {
+    name.chars()
+        .filter(|character| !is_combining(*character))
+        .flat_map(char::to_lowercase)
+        .collect::<String>()
+        .trim_end_matches(NAME_MARKS)
+        .to_owned()
+}
+
+/// Whether this is a combining mark of the kind MARC names carry.
+///
+/// U+0300..=U+036F is the *Combining Diacritical Marks* block. It contains U+034F, the
+/// combining grapheme joiner, which is not an accent but sits in front of one in this
+/// index (`Fe` + U+034F + U+0308 + `dor` in `almahu_BV010644426`).
+fn is_combining(character: char) -> bool {
+    matches!(character, '\u{300}'..='\u{36f}')
+}
+
+/// Drop the trailing punctuation a cataloguing rule put after a name.
+///
+/// A comma always goes: it separates the name from the `$d` that follows it in the record
+/// and means nothing once the two are separate fields. A full stop goes **unless the last
+/// word is a single letter** — `Rahsin, E. K.` ends in an initial, and stripping that stop
+/// would turn the initial into something that reads like a truncated surname.
+fn trimmed_name(name: &str) -> String {
+    let mut name = name.trim_end();
+    loop {
+        if let Some(shorter) = name.strip_suffix(',') {
+            name = shorter.trim_end();
+            continue;
+        }
+        match name.strip_suffix('.') {
+            Some(shorter) if !ends_in_an_initial(shorter) => name = shorter.trim_end(),
+            _ => break,
+        }
+    }
+    name.to_owned()
+}
+
+/// Whether the last word of a name is a single **letter** — an initial, whose full stop
+/// belongs to the name. A lone punctuation mark is not an initial, so `Franz ,.` still
+/// trims down to `Franz`.
+fn ends_in_an_initial(name: &str) -> bool {
+    name.split_whitespace().next_back().is_some_and(|word| {
+        let mut characters = word.chars();
+        characters.next().is_some_and(char::is_alphabetic) && characters.next().is_none()
+    })
 }
 
 /// One name field.
@@ -226,7 +321,7 @@ fn author(field: &Field, kind: AuthorKind) -> Option<Author> {
         AuthorKind::Corporate | AuthorKind::Meeting => corporate_name(field)?,
     };
     Some(Author {
-        name: non_empty(name)?,
+        name: non_empty(trimmed_name(&name))?,
         kind,
         dates: dates(field, kind),
         gnd: gnd(field),
@@ -280,8 +375,10 @@ fn gnd(field: &Field) -> Option<String> {
         if let Some(identifier) = value.strip_prefix(GND_PREFIX) {
             return non_empty(identifier.to_owned());
         }
-        if value.contains(GND_URI) {
-            return non_empty(value.rsplit('/').next().unwrap_or_default().to_owned());
+        if let Some((_, identifier)) = value.rsplit_once('/')
+            && value.contains(GND_URI)
+        {
+            return non_empty(identifier.to_owned());
         }
         None
     })
@@ -534,7 +631,8 @@ fn url_kind(label: Option<&str>) -> UrlKind {
     }
 }
 
-/// The holdings stated in the record, one per `924`.
+/// The holdings stated in the record: **one per library**, in the order the `924` fields
+/// first name it.
 ///
 /// `library` is filled with the bare ISIL here; the display name and the short alias are
 /// added later from the library list, which is data and may not know a code. `$c` is
@@ -545,25 +643,41 @@ fn url_kind(label: Option<&str>) -> UrlKind {
 /// A `924` without `$b` names no library at all: it cannot be resolved, cannot be asked
 /// about and would render as a blank line, so it is skipped. Every one of the 1776 fields
 /// in the sample has all four subfields, so this is a guard, not a case.
+///
+/// Repeated ISILs are folded into the holding that came first, keeping its `local_id`.
+/// 6.3 % of records name a library several times — `gbv_519092074` names `DE-B11` six
+/// times over — and every one of those fields says the same thing: *this house holds the
+/// title*. The copies are what differ, and those come from the availability service,
+/// which answers **once per ISIL**. Six identical holdings would therefore render as six
+/// identical lines and, worse, would attach one library's copies to each of them.
 fn holdings(marc: &MarcRecord) -> Vec<Holding> {
-    marc.fields("924")
-        .filter_map(|field| {
-            let isil = field.sub('b').filter(|value| !value.is_empty())?;
-            Some(Holding {
-                isil: Some(Isil::new(isil)),
-                alias: None,
-                library: isil.to_owned(),
-                short_name: None,
-                local_id: field
-                    .sub('a')
-                    .filter(|value| !value.is_empty())
-                    .map(str::to_owned),
-                mine: false,
-                summary: Status::Unknown,
-                items: Vec::new(),
-            })
-        })
-        .collect()
+    let mut holdings: Vec<Holding> = Vec::new();
+    for field in marc.fields("924") {
+        let Some(isil) = field.sub('b').filter(|value| !value.is_empty()) else {
+            continue;
+        };
+        let isil = Isil::new(isil);
+        if holdings
+            .iter()
+            .any(|holding| holding.isil.as_ref() == Some(&isil))
+        {
+            continue;
+        }
+        holdings.push(Holding {
+            library: isil.as_str().to_owned(),
+            isil: Some(isil),
+            alias: None,
+            short_name: None,
+            local_id: field
+                .sub('a')
+                .filter(|value| !value.is_empty())
+                .map(str::to_owned),
+            mine: false,
+            summary: Status::Unknown,
+            items: Vec::new(),
+        });
+    }
+    holdings
 }
 
 /// Drop trailing ISBD punctuation from a display value.
@@ -614,12 +728,21 @@ mod tests {
         assert_eq!(record.authors[0].kind, AuthorKind::Person);
     }
 
-    /// Every `924` becomes a holding; the availability key deduplicates the ISIL that
-    /// occurs twice and keeps the library's own local id, which differs from `001` here.
+    /// Six `924` fields, five libraries: `DE-11` occurs twice and becomes one holding.
+    /// The availability key follows the same order and keeps the library's own local id,
+    /// which differs from `001` here.
     #[test]
     fn the_availability_key_deduplicates_isils_and_keeps_field_order() {
         let record = convert("record.xml", "almafu_BV008885798");
-        assert_eq!(record.holdings.len(), 6);
+        assert_eq!(record.holdings.len(), 5, "{:?}", record.holdings);
+        assert_eq!(
+            record
+                .holdings
+                .iter()
+                .filter_map(|holding| holding.isil.as_ref().map(Isil::as_str))
+                .collect::<Vec<_>>(),
+            ["DE-188", "DE-609", "DE-11", "DE-521", "DE-1"]
+        );
         let key = availability_id(&record.holdings).expect("the record has holdings");
         assert_eq!(
             key.as_str(),
@@ -640,12 +763,18 @@ mod tests {
         );
     }
 
-    /// Six identical `924` fields, one ISIL: the key must name it once, while the
-    /// holdings list stays as the record has it.
+    /// Six identical `924` fields, one ISIL: one holding and one pair in the key.
+    /// Six holdings would print six identical lines and would each claim the one set of
+    /// copies the availability service returns for `DE-B11`.
     #[test]
     fn a_repeated_isil_appears_once_in_the_key() {
         let record = convert("av_dvd.xml", "gbv_519092074");
-        assert_eq!(record.holdings.len(), 6);
+        assert_eq!(record.holdings.len(), 1, "{:?}", record.holdings);
+        assert_eq!(
+            record.holdings[0].local_id.as_deref(),
+            Some("519092074"),
+            "the first field's local id is the one that is kept"
+        );
         let key = availability_id(&record.holdings).expect("the record has holdings");
         assert_eq!(key.as_str(), "DE-B11;519092074,");
     }
@@ -802,6 +931,13 @@ mod tests {
 
     /// Seven name-title added entries for one person, each with the GND of a *different
     /// work*. Using that as the person's identifier would make each one a separate human.
+    ///
+    /// The record spells the same name two ways: `Fëdor` precomposed (U+00EB) in five
+    /// entries and `Fe` + U+034F + U+0308 + `dor` in two. Everything with the first
+    /// spelling folds into the `100`; the second spelling stays a line of its own, because
+    /// [`name_key`] removes combining marks but does not decompose a precomposed letter.
+    /// That is the deliberate direction of the error — one duplicate line rather than two
+    /// people fused into one.
     #[test]
     fn identical_name_title_entries_are_deduplicated() {
         let record = convert("nonlatin_ru.xml", "almahu_BV010644426");
@@ -812,17 +948,9 @@ mod tests {
             .collect();
         assert_eq!(
             dostoevskij.len(),
-            3,
-            "the 100 plus two spellings of the added entry, not eight entries: {:?}",
+            2,
+            "eight entries, two spellings: {:?}",
             record.authors
-        );
-        assert!(
-            dostoevskij
-                .iter()
-                .filter(|author| author.gnd.is_none())
-                .count()
-                == 2,
-            "a name-title entry contributes no GND"
         );
         assert_eq!(
             dostoevskij[0].gnd.as_deref(),
@@ -830,14 +958,61 @@ mod tests {
             "the 100 keeps the GND of the person"
         );
         assert_eq!(dostoevskij[0].dates.as_deref(), Some("1821-1881"));
+        assert_eq!(
+            dostoevskij[1].gnd, None,
+            "a name-title entry contributes no GND"
+        );
+        assert_eq!(
+            record.authors.len(),
+            3,
+            "and the translator is untouched: {:?}",
+            record.authors
+        );
     }
 
-    /// `$t` is dropped and the person kept: two added entries for the same translator's
-    /// two works collapse into one author.
+    /// `100$a` ends `Dostoevskij, Fëdor Michajlovič,` and `700$a` `Rahsin, E. K.,`: the
+    /// separating comma goes, the initial's full stop stays.
+    #[test]
+    fn trailing_commas_go_and_initials_keep_their_full_stop() {
+        let record = convert("nonlatin_ru.xml", "almahu_BV010644426");
+        assert_eq!(record.authors[0].name, "Dostoevskij, Fëdor Michajlovič");
+        assert_eq!(record.authors[1].name, "Rahsin, E. K.");
+    }
+
+    #[test]
+    fn name_punctuation_is_trimmed_but_an_initial_is_not() {
+        assert_eq!(trimmed_name("Kafka, Franz,"), "Kafka, Franz");
+        assert_eq!(trimmed_name("Kafka, Franz."), "Kafka, Franz");
+        assert_eq!(trimmed_name("Kafka, Franz ,."), "Kafka, Franz");
+        assert_eq!(trimmed_name("Rahsin, E. K.,"), "Rahsin, E. K.");
+        assert_eq!(trimmed_name("Ferlinghetti, M. F."), "Ferlinghetti, M. F.");
+        assert_eq!(trimmed_name("A."), "A.");
+        assert_eq!(trimmed_name("Verlag Alpha GmbH"), "Verlag Alpha GmbH");
+    }
+
+    /// Two entries that both carry a GND are two authority records and stay apart, even
+    /// when name and dates agree — this tool does not overrule the cataloguer.
+    #[test]
+    fn two_entries_with_different_gnds_are_two_people() {
+        let with_gnd = |gnd: &str| Author {
+            name: "Müller, Hans".to_owned(),
+            kind: AuthorKind::Person,
+            dates: Some("1900-1980".to_owned()),
+            gnd: Some(gnd.to_owned()),
+            role: None,
+        };
+        assert!(!is_repeat(&with_gnd("1"), &with_gnd("2")));
+        let mut nameless = with_gnd("1");
+        nameless.gnd = None;
+        assert!(is_repeat(&with_gnd("1"), &nameless));
+    }
+
+    /// `$t` is dropped and the person kept: the two name-title entries for Maḥfūẓ fold
+    /// into the `100`, leaving the author and the translator.
     #[test]
     fn a_name_title_entry_keeps_the_person_and_drops_the_work() {
         let record = convert("arabic.xml", "gbv_660841622");
-        assert_eq!(record.authors.len(), 3, "{:?}", record.authors);
+        assert_eq!(record.authors.len(), 2, "{:?}", record.authors);
         assert_eq!(record.authors[0].name, "Maḥfūẓ, Naǧīb");
         assert_eq!(record.authors[0].gnd.as_deref(), Some("118576259"));
         assert_eq!(record.authors[0].role.as_deref(), Some("aut"));

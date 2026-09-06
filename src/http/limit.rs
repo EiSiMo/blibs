@@ -4,7 +4,9 @@
 //! rather than crawling, which makes the rules stricter, not looser. Six in flight per
 //! host, measured, and **not user-configurable** — a flag would only ever be turned up.
 
-use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
+use std::sync::{Condvar, Mutex, PoisonError};
+
+use crate::http::lock;
 
 /// The cap. Not configurable, by design.
 pub const MAX_IN_FLIGHT_PER_HOST: usize = 6;
@@ -37,19 +39,17 @@ impl HostLimits {
     pub fn acquire(&self, host: &str) -> HostSlot<'_> {
         let mut table = lock(&self.inner);
         loop {
-            let Some(index) = table.iter().position(|(name, _)| name == host) else {
-                table.push((host.to_owned(), 1));
-                break;
-            };
-            let taken = match table.get_mut(index) {
+            match table.iter_mut().find(|(name, _)| name == host) {
                 Some(entry) if entry.1 < MAX_IN_FLIGHT_PER_HOST => {
                     entry.1 += 1;
-                    true
+                    break;
                 }
-                _ => false,
-            };
-            if taken {
-                break;
+                // The host is at the cap: wait for a slot to be released and look again.
+                Some(_) => {}
+                None => {
+                    table.push((host.to_owned(), 1));
+                    break;
+                }
             }
             table = self
                 .ready
@@ -74,12 +74,6 @@ impl HostLimits {
     }
 }
 
-/// Take the lock, recovering from poisoning. See [`HostLimits::acquire`] for why that is
-/// the right call here.
-fn lock(mutex: &Mutex<Vec<(String, usize)>>) -> MutexGuard<'_, Vec<(String, usize)>> {
-    mutex.lock().unwrap_or_else(PoisonError::into_inner)
-}
-
 /// A held slot. Releases on drop.
 pub struct HostSlot<'a> {
     limits: &'a HostLimits,
@@ -88,12 +82,10 @@ pub struct HostSlot<'a> {
 
 impl Drop for HostSlot<'_> {
     fn drop(&mut self) {
-        let mut table = match self.limits.inner.lock() {
-            Ok(table) => table,
-            // A poisoned lock means another thread panicked while holding it. Releasing
-            // the slot is still the right thing; there is nothing to recover.
-            Err(poisoned) => poisoned.into_inner(),
-        };
+        // A poisoned lock means another thread panicked while holding it. Releasing the
+        // slot is still the right thing, and a leaked slot would stall every later
+        // request to this host.
+        let mut table = lock(&self.limits.inner);
         if let Some(entry) = table.iter_mut().find(|(host, _)| *host == self.host) {
             entry.1 = entry.1.saturating_sub(1);
         }

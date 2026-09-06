@@ -156,11 +156,13 @@ pub struct Layout {
     gap: usize,
 }
 
-/// Columns that are not separated by a gap of their own; [`Layout::with_gap`] changes it.
-const DEFAULT_GAP: usize = 2;
+/// Blank columns between two laid-out columns; [`Layout::with_gap`] changes it.
+pub const DEFAULT_GAP: usize = 2;
 
 impl Layout {
-    /// A layout from explicit column rules.
+    /// A layout from explicit column rules, one per column, separated by
+    /// [`DEFAULT_GAP`]. Rows wider than the plan are laid out as [`Column::Auto`];
+    /// [`Layout::with_gap`] changes the separation.
     pub fn new(columns: Vec<Column>) -> Self {
         Self {
             columns,
@@ -168,7 +170,9 @@ impl Layout {
         }
     }
 
-    /// `count` columns sized to their content, the last one never shortened.
+    /// `count` columns sized to their content, the last one [`Column::Last`] — never
+    /// shortened, because the last column is where the record id goes and a shortened id
+    /// cannot be typed back into `show`. `count` of zero is an empty plan, not an error.
     pub fn auto(count: usize) -> Self {
         let mut columns = vec![Column::Auto; count];
         if let Some(last) = columns.last_mut() {

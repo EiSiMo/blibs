@@ -7,10 +7,11 @@
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Mutex, PoisonError};
 
 use crate::error::Error;
 use crate::http::limit::MAX_IN_FLIGHT_PER_HOST;
+use crate::http::lock;
 
 /// Map `f` over `items` on up to [`crate::http::limit::MAX_IN_FLIGHT_PER_HOST`] threads,
 /// preserving input order.
@@ -74,15 +75,6 @@ where
     let mut done = into_inner(done);
     done.sort_by_key(|(index, _)| *index);
     Ok(done.into_iter().map(|(_, value)| value).collect())
-}
-
-/// Take a lock, recovering from poisoning.
-///
-/// Poisoning here means `f` panicked in another worker. That panic is re-raised when the
-/// scope joins, so the recovered data is only ever used on the way to unwinding; refusing
-/// to take the lock would replace a useful panic with a deadlock.
-fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
-    mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 /// Unwrap a mutex after the workers have joined, recovering from poisoning.

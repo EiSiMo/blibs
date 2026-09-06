@@ -19,9 +19,22 @@ pub mod limit;
 pub mod pool;
 pub mod retry;
 
+use std::sync::{Mutex, MutexGuard, PoisonError};
+
 use crate::error::{Error, NetworkError, ServiceError, UnexpectedError};
 
 pub use pool::scope_map;
+
+/// Take a lock, recovering from poisoning.
+///
+/// Every mutex in this module tree guards either a counter table or a list of results
+/// that are only read once the threads have joined. A poisoned lock therefore means a
+/// worker panicked, not that the data is inconsistent — and that panic is re-raised when
+/// the scope joins. Refusing the lock would turn a useful panic into a deadlock, or a
+/// released slot into a leaked one.
+pub(crate) fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
+}
 
 /// The `User-Agent` every request carries. Names the tool and where to complain about it.
 pub const USER_AGENT: &str = concat!(

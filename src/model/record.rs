@@ -217,8 +217,10 @@ pub struct Holding {
 /// One copy on one shelf.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Item {
-    /// The location cell of the availability table, verbatim.
-    pub location: String,
+    /// The location cell of the availability table, verbatim. `None` when the cell was
+    /// empty or held one of the portal's placeholders (`Library`, `Bibliothek`, `'`):
+    /// what is not stated is null, never an empty string that renders as a blank shelf.
+    pub location: Option<String>,
     /// The branch's KOBV id, from the `bibids=` link in the location cell.
     pub branch: Option<String>,
     /// The branch's name, from the text of that link.
@@ -281,10 +283,13 @@ impl Status {
         }
     }
 
-    /// Ordering rank, best first. Private because it is an implementation detail of
-    /// [`Status::summarize`] and of the availability sort; nothing else may depend on a
-    /// numeric ordering of statuses.
-    fn rank(self) -> u8 {
+    /// Ordering rank, best first: `Available` 4 … `Unknown` 0.
+    ///
+    /// Crate-visible because [`Status::summarize`] and the availability sort in
+    /// [`crate::select`] must agree on one order; a second copy of the table elsewhere
+    /// would be free to drift out of step with this one. Not part of the public
+    /// interface — the numbers are an ordering, not a value anything may serialise.
+    pub(crate) fn rank(self) -> u8 {
         match self {
             Status::Available => 4,
             Status::Reference => 3,

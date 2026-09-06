@@ -37,7 +37,7 @@
   "availability": "fetched",
   "notes": [
     {
-      "kind": "record_diagnostic",
+      "kind": "record_undelivered",
       "message": "record 49 of the SRU response was a diagnostic and was skipped"
     }
   ],
@@ -129,7 +129,7 @@
           "summary": "reference",
           "items": [
             {
-              "location": "Lesesaal",
+              "location": null,
               "branch": null,
               "branch_name": null,
               "call_number": "A 1234",
