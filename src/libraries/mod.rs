@@ -17,4 +17,6 @@ pub mod text;
 
 pub use data::{Branch, Library, all};
 pub use geo::LatLon;
-pub use resolve::{by_isil, by_kobvid, by_portal_name, display_name, find, near, resolve};
+pub use resolve::{
+    alias_for, by_isil, by_kobvid, by_portal_name, display_name, find, near, resolve, suggest,
+};

@@ -18,6 +18,45 @@ pub enum Term {
     Phrase(String),
 }
 
+impl Term {
+    /// Classify one command-line argument.
+    ///
+    /// The shell has already removed the quotes, so the *only* surviving evidence that
+    /// the user quoted something is that the argument contains whitespace. Terms are
+    /// never quoted on the user's behalf: an unquoted CQL/PQF term is an implicit AND and
+    /// a quoted one is a phrase, and the two find wildly different numbers of records.
+    pub fn from_argument(argument: &str) -> Self {
+        let trimmed = argument.trim();
+        if trimmed.chars().any(char::is_whitespace) {
+            Term::Phrase(trimmed.to_owned())
+        } else {
+            Term::Word(trimmed.to_owned())
+        }
+    }
+
+    /// The term's text, without the quoting decision.
+    pub fn text(&self) -> &str {
+        match self {
+            Term::Word(text) | Term::Phrase(text) => text,
+        }
+    }
+
+    /// Whether the term carries no text at all. An argument of only whitespace produces
+    /// one of these, and `cli` rejects a query that is empty after they are dropped.
+    pub fn is_empty(&self) -> bool {
+        self.text().is_empty()
+    }
+
+    /// The term as it must be typed back in — a phrase keeps the quotes that made it one,
+    /// so that `query.terms` in the JSON can be pasted straight back onto a command line.
+    fn echo(&self) -> String {
+        match self {
+            Term::Word(text) => text.clone(),
+            Term::Phrase(text) => format!("\"{text}\""),
+        }
+    }
+}
+
 /// A standard number the user searched by.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Identifier {
@@ -49,6 +88,38 @@ pub struct QuerySpec {
     pub year: Option<u16>,
     /// `--isbn`/`--issn`.
     pub identifier: Option<Identifier>,
+}
+
+impl QuerySpec {
+    /// Whether this query would send nothing at all.
+    ///
+    /// Checked in `cli` before the first byte goes out: an empty query is diagnostic
+    /// 1/10 upstream, which would surface as exit 5 for what is plainly a usage error.
+    /// Free terms that are only whitespace do not count as content.
+    pub fn is_empty(&self) -> bool {
+        self.terms.iter().all(Term::is_empty)
+            && self.title.is_none()
+            && self.subject.is_none()
+            && self.publisher.is_none()
+            && self.author.is_none()
+            && self.year.is_none()
+            && self.identifier.is_none()
+    }
+
+    /// The free terms as the user typed them, for `query.terms` in the JSON.
+    ///
+    /// Only the free terms: the flagged fields are reproduced by their own flags, and
+    /// folding them in here would produce a string that does not reproduce the search.
+    /// Phrases keep their quotes, so the echo can be pasted back onto a command line and
+    /// yield the same query. Empty when the query is made of flags alone.
+    pub fn echo(&self) -> String {
+        self.terms
+            .iter()
+            .filter(|term| !term.is_empty())
+            .map(Term::echo)
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
 }
 
 /// One resolved entry of `--at`.
@@ -260,4 +331,416 @@ pub struct SearchResult {
     pub notes: Vec<Note>,
     /// The records.
     pub records: Vec<Record>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{Author, ResourceUrl};
+    use crate::model::{
+        AuthorKind, Format, Holding, Item, Limit, RecordId, SortKey, SortScope, Status, UrlKind,
+    };
+
+    /// The shell strips the quotes, so whitespace is the only evidence left that the user
+    /// asked for a phrase.
+    #[test]
+    fn whitespace_is_the_only_thing_that_makes_a_phrase() {
+        assert_eq!(Term::from_argument("Kafka"), Term::Word("Kafka".to_owned()));
+        assert_eq!(
+            Term::from_argument("Der Prozess"),
+            Term::Phrase("Der Prozess".to_owned())
+        );
+        assert_eq!(
+            Term::from_argument("  Kafka  "),
+            Term::Word("Kafka".to_owned())
+        );
+        assert_eq!(
+            Term::from_argument("Der\tProzess"),
+            Term::Phrase("Der\tProzess".to_owned())
+        );
+    }
+
+    #[test]
+    fn a_whitespace_only_argument_is_an_empty_term() {
+        assert!(Term::from_argument("   ").is_empty());
+        assert!(!Term::from_argument("Kafka").is_empty());
+        assert_eq!(Term::from_argument("Kafka").text(), "Kafka");
+    }
+
+    #[test]
+    fn a_query_of_only_whitespace_terms_is_empty() {
+        assert!(QuerySpec::default().is_empty());
+        assert!(
+            QuerySpec {
+                terms: vec![Term::from_argument("  ")],
+                ..QuerySpec::default()
+            }
+            .is_empty()
+        );
+    }
+
+    #[test]
+    fn any_single_field_makes_a_query_non_empty() {
+        let with = |spec: QuerySpec| assert!(!spec.is_empty());
+        with(QuerySpec {
+            terms: vec![Term::from_argument("Kafka")],
+            ..QuerySpec::default()
+        });
+        with(QuerySpec {
+            title: Some(Term::from_argument("Prozess")),
+            ..QuerySpec::default()
+        });
+        with(QuerySpec {
+            subject: Some(Term::from_argument("Roman")),
+            ..QuerySpec::default()
+        });
+        with(QuerySpec {
+            publisher: Some(Term::from_argument("Fischer")),
+            ..QuerySpec::default()
+        });
+        with(QuerySpec {
+            author: Some("Kafka, Franz".to_owned()),
+            ..QuerySpec::default()
+        });
+        with(QuerySpec {
+            year: Some(1953),
+            ..QuerySpec::default()
+        });
+        with(QuerySpec {
+            identifier: Some(Identifier::Isbn("9783596294331".to_owned())),
+            ..QuerySpec::default()
+        });
+    }
+
+    /// The echo must be paste-able: without the quotes, `blibs search "Der Prozess"`
+    /// would come back as two and-ed words and find something else.
+    #[test]
+    fn the_echo_reproduces_the_free_terms_including_their_quotes() {
+        let spec = QuerySpec {
+            terms: vec![
+                Term::from_argument("Kafka"),
+                Term::from_argument("Der Prozess"),
+            ],
+            ..QuerySpec::default()
+        };
+        assert_eq!(spec.echo(), "Kafka \"Der Prozess\"");
+    }
+
+    /// Flags reproduce themselves; folding them into the term echo would produce a string
+    /// that does not run.
+    #[test]
+    fn the_echo_covers_free_terms_only() {
+        let spec = QuerySpec {
+            author: Some("Kafka".to_owned()),
+            year: Some(1953),
+            ..QuerySpec::default()
+        };
+        assert_eq!(spec.echo(), "");
+    }
+
+    /// A fully populated result: both engines, two locations, two records, two holdings
+    /// with items on the KOBV one, an `order_option` on the voebb one, and a note.
+    fn full_result() -> SearchResult {
+        SearchResult {
+            query: QueryEcho {
+                terms: "Kafka \"Der Prozess\"".to_owned(),
+                pqf: Some("@and @attr 1=1016 \"Kafka\" @attr 1=1016 \"Der Prozess\"".to_owned()),
+            },
+            total: Some(774),
+            shown: 2,
+            page: Page::FIRST,
+            sort: SortSpec {
+                by: SortKey::Relevance,
+                scope: SortScope::Fetched,
+            },
+            window: WindowInfo {
+                fetched: 50,
+                after_filter: 2,
+                undelivered: 0,
+            },
+            engines: vec![Engine::Kobv, Engine::Voebb],
+            at: vec![
+                AtBlock {
+                    key: "HU".to_owned(),
+                    isil: Isil::new("DE-11"),
+                    branch: None,
+                    engine: Engine::Kobv,
+                    total: Some(6),
+                },
+                AtBlock {
+                    key: "AGB".to_owned(),
+                    isil: Isil::new("DE-609"),
+                    branch: Some("SIG00036".to_owned()),
+                    engine: Engine::Voebb,
+                    total: Some(35),
+                },
+            ],
+            availability: AvailabilityMode::Fetched,
+            notes: vec![Note::new(
+                "record_diagnostic",
+                "record 49 of the SRU response was a diagnostic and was skipped",
+            )],
+            records: vec![kobv_record(), voebb_record()],
+        }
+    }
+
+    fn kobv_record() -> Record {
+        Record {
+            id: RecordId::parse("almafu_BV008885798").expect("a prefixed id parses"),
+            title: "Der Prozess".to_owned(),
+            subtitle: Some("Roman".to_owned()),
+            authors: vec![
+                Author {
+                    name: "Kafka, Franz".to_owned(),
+                    kind: AuthorKind::Person,
+                    dates: Some("1883-1924".to_owned()),
+                    gnd: Some("118559230".to_owned()),
+                    role: Some("author".to_owned()),
+                },
+                Author {
+                    name: "S. Fischer Verlag".to_owned(),
+                    kind: AuthorKind::Corporate,
+                    dates: None,
+                    gnd: None,
+                    role: None,
+                },
+            ],
+            year: Some(1953),
+            publisher: Some("S. Fischer".to_owned()),
+            place: Some("Frankfurt am Main".to_owned()),
+            edition: Some("2. Auflage".to_owned()),
+            extent: Some("345 Seiten".to_owned()),
+            languages: vec!["ger".to_owned()],
+            format: Format::Book,
+            online: false,
+            isbns: vec!["9783596294331".to_owned()],
+            subjects: vec!["Deutsche Literatur".to_owned(), "Roman".to_owned()],
+            urls: vec![ResourceUrl {
+                url: "https://d-nb.info/930000000/04".to_owned(),
+                kind: UrlKind::Toc,
+                label: Some("Inhaltsverzeichnis".to_owned()),
+            }],
+            holdings: vec![
+                Holding {
+                    isil: Some(Isil::new("DE-11")),
+                    alias: Some("HU".to_owned()),
+                    library: "Humboldt-Universität zu Berlin, Universitätsbibliothek".to_owned(),
+                    short_name: Some("HU Berlin".to_owned()),
+                    local_id: Some("BV008885798".to_owned()),
+                    mine: true,
+                    summary: Status::Available,
+                    items: vec![
+                        Item {
+                            location: "ZB Grimm-Zentrum, 7. OG / Bereich B".to_owned(),
+                            branch: Some("KOB00032".to_owned()),
+                            branch_name: Some("Grimm-Zentrum".to_owned()),
+                            call_number: Some("96 A 10064".to_owned()),
+                            volume: None,
+                            status: Status::Available,
+                            order_option: None,
+                        },
+                        Item {
+                            location: "ZB Grimm-Zentrum, Magazin".to_owned(),
+                            branch: None,
+                            branch_name: None,
+                            call_number: Some("96 A 10064+1".to_owned()),
+                            volume: Some("1".to_owned()),
+                            status: Status::Unavailable,
+                            order_option: None,
+                        },
+                    ],
+                },
+                // An ISIL that is not in the library list: the display name falls back to
+                // the bare code and the holding is still shown.
+                Holding {
+                    isil: Some(Isil::new("DE-Zz999")),
+                    alias: None,
+                    library: "DE-Zz999".to_owned(),
+                    short_name: None,
+                    local_id: Some("275177939".to_owned()),
+                    mine: false,
+                    summary: Status::Reference,
+                    items: vec![Item {
+                        location: "Lesesaal".to_owned(),
+                        branch: None,
+                        branch_name: None,
+                        call_number: Some("A 1234".to_owned()),
+                        volume: None,
+                        status: Status::Reference,
+                        order_option: None,
+                    }],
+                },
+            ],
+        }
+    }
+
+    fn voebb_record() -> Record {
+        Record {
+            id: RecordId::voebb("SAK13776205"),
+            title: "Der Prozeß".to_owned(),
+            subtitle: None,
+            authors: vec![Author {
+                name: "Kafka, Franz".to_owned(),
+                kind: AuthorKind::Person,
+                dates: None,
+                gnd: None,
+                role: None,
+            }],
+            year: Some(2008),
+            publisher: None,
+            place: None,
+            edition: None,
+            extent: None,
+            languages: vec![],
+            format: Format::Book,
+            online: false,
+            isbns: vec![],
+            subjects: vec![],
+            urls: vec![],
+            holdings: vec![Holding {
+                isil: Some(Isil::new("DE-609")),
+                alias: Some("AGB".to_owned()),
+                library: "Zentral- und Landesbibliothek Berlin, Amerika-Gedenkbibliothek"
+                    .to_owned(),
+                short_name: Some("AGB".to_owned()),
+                local_id: None,
+                mine: true,
+                summary: Status::Reference,
+                items: vec![Item {
+                    location: "AGB Erwachsenenbibliothek".to_owned(),
+                    branch: Some("SIG00036".to_owned()),
+                    branch_name: Some("Amerika-Gedenkbibliothek".to_owned()),
+                    call_number: Some("Kaf 1".to_owned()),
+                    volume: None,
+                    status: Status::Reference,
+                    order_option: Some("nicht entleihbar (Freihand) - Präsenzbestand".to_owned()),
+                }],
+            }],
+        }
+    }
+
+    /// The JSON document is the agent-facing contract: member **names and order** are
+    /// fixed by `plan/cli.md`, missing values are `null` or `[]` and never an empty
+    /// string. Adding a member is allowed and shows up here as a snapshot diff to be
+    /// reviewed; renaming, reordering or removing one is a break.
+    #[test]
+    fn the_search_document_matches_the_committed_schema_snapshot() {
+        let rendered =
+            serde_json::to_string_pretty(&full_result()).expect("a SearchResult always serialises");
+        let expected = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/schema/search.json"
+        ));
+        assert_eq!(
+            rendered.trim_end(),
+            expected.trim_end(),
+            "the JSON schema changed; review the diff before updating \
+             tests/fixtures/schema/search.json"
+        );
+    }
+
+    /// The record members, in the order `plan/cli.md` fixes them. Spelled out separately
+    /// from the snapshot so that a reordering names itself instead of showing up as a
+    /// wall of diff.
+    #[test]
+    fn record_members_appear_in_the_documented_order() {
+        // `serde_json` is built with `preserve_order`, so the object keeps the order the
+        // struct serialised them in.
+        let value = serde_json::to_value(kobv_record()).expect("a Record always serialises");
+        let object = value.as_object().expect("a Record is a JSON object");
+        let members: Vec<&str> = object.keys().map(String::as_str).collect();
+        let expected = [
+            "id",
+            "engine",
+            "source",
+            "local_id",
+            "title",
+            "subtitle",
+            "authors",
+            "year",
+            "publisher",
+            "place",
+            "edition",
+            "extent",
+            "languages",
+            "format",
+            "online",
+            "isbns",
+            "subjects",
+            "urls",
+            "holdings",
+        ];
+        assert_eq!(members, expected);
+    }
+
+    /// `undelivered` is additive: absent when it is zero, present the moment SRU
+    /// announces more records than it delivers.
+    #[test]
+    fn undelivered_is_reported_only_when_it_happened() {
+        let quiet = serde_json::to_string(&WindowInfo {
+            fetched: 50,
+            after_filter: 2,
+            undelivered: 0,
+        })
+        .expect("WindowInfo serialises");
+        assert_eq!(quiet, r#"{"fetched":50,"after_filter":2}"#);
+
+        let loud = serde_json::to_string(&WindowInfo {
+            fetched: 48,
+            after_filter: 2,
+            undelivered: 2,
+        })
+        .expect("WindowInfo serialises");
+        assert_eq!(loud, r#"{"fetched":48,"after_filter":2,"undelivered":2}"#);
+    }
+
+    /// Empty notes vanish from the document; a non-empty one must never be swallowed.
+    #[test]
+    fn notes_are_omitted_when_there_are_none() {
+        let mut result = full_result();
+        result.notes.clear();
+        let json = serde_json::to_string(&result).expect("a SearchResult always serialises");
+        assert!(!json.contains("\"notes\""));
+        assert!(
+            serde_json::to_string(&full_result())
+                .expect("a SearchResult always serialises")
+                .contains("\"notes\"")
+        );
+    }
+
+    /// A holding whose ISIL is not in the library list keeps its display name and is
+    /// never dropped — `library` is the one member that is never null.
+    #[test]
+    fn an_unknown_isil_still_renders_a_library_name() {
+        let record = kobv_record();
+        let unknown = record
+            .holdings
+            .last()
+            .expect("the fixture record has two holdings");
+        assert_eq!(unknown.alias, None);
+        assert_eq!(unknown.library, "DE-Zz999");
+    }
+
+    /// The window and the fetched size are two different numbers; `plan` is the only
+    /// place that relates them.
+    #[test]
+    fn a_search_request_carries_the_planned_window() {
+        let request = SearchRequest {
+            query: QuerySpec {
+                terms: vec![Term::from_argument("Kafka")],
+                ..QuerySpec::default()
+            },
+            locations: vec![Location {
+                key: "HU".to_owned(),
+                isil: Isil::new("DE-11"),
+                branch: None,
+                engine: Engine::Kobv,
+                display: "Humboldt-Universität zu Berlin".to_owned(),
+            }],
+            window: FetchWindow::plan(Limit::new(10).expect("10 is in range"), Page::FIRST, false),
+            want_totals: true,
+        };
+        assert_eq!(request.window.start, 1);
+        assert_eq!(request.window.size.get(), 10);
+    }
 }

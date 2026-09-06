@@ -1,0 +1,195 @@
+{
+  "query": {
+    "terms": "Kafka \"Der Prozess\"",
+    "pqf": "@and @attr 1=1016 \"Kafka\" @attr 1=1016 \"Der Prozess\""
+  },
+  "total": 774,
+  "shown": 2,
+  "page": 1,
+  "sort": {
+    "by": "relevance",
+    "scope": "fetched"
+  },
+  "window": {
+    "fetched": 50,
+    "after_filter": 2
+  },
+  "engines": [
+    "kobv",
+    "voebb"
+  ],
+  "at": [
+    {
+      "key": "HU",
+      "isil": "DE-11",
+      "branch": null,
+      "engine": "kobv",
+      "total": 6
+    },
+    {
+      "key": "AGB",
+      "isil": "DE-609",
+      "branch": "SIG00036",
+      "engine": "voebb",
+      "total": 35
+    }
+  ],
+  "availability": "fetched",
+  "notes": [
+    {
+      "kind": "record_diagnostic",
+      "message": "record 49 of the SRU response was a diagnostic and was skipped"
+    }
+  ],
+  "records": [
+    {
+      "id": "almafu_BV008885798",
+      "engine": "kobv",
+      "source": "almafu",
+      "local_id": "BV008885798",
+      "title": "Der Prozess",
+      "subtitle": "Roman",
+      "authors": [
+        {
+          "name": "Kafka, Franz",
+          "kind": "person",
+          "dates": "1883-1924",
+          "gnd": "118559230",
+          "role": "author"
+        },
+        {
+          "name": "S. Fischer Verlag",
+          "kind": "corporate",
+          "dates": null,
+          "gnd": null,
+          "role": null
+        }
+      ],
+      "year": 1953,
+      "publisher": "S. Fischer",
+      "place": "Frankfurt am Main",
+      "edition": "2. Auflage",
+      "extent": "345 Seiten",
+      "languages": [
+        "ger"
+      ],
+      "format": "book",
+      "online": false,
+      "isbns": [
+        "9783596294331"
+      ],
+      "subjects": [
+        "Deutsche Literatur",
+        "Roman"
+      ],
+      "urls": [
+        {
+          "url": "https://d-nb.info/930000000/04",
+          "kind": "toc",
+          "label": "Inhaltsverzeichnis"
+        }
+      ],
+      "holdings": [
+        {
+          "isil": "DE-11",
+          "alias": "HU",
+          "library": "Humboldt-Universität zu Berlin, Universitätsbibliothek",
+          "short_name": "HU Berlin",
+          "local_id": "BV008885798",
+          "mine": true,
+          "summary": "available",
+          "items": [
+            {
+              "location": "ZB Grimm-Zentrum, 7. OG / Bereich B",
+              "branch": "KOB00032",
+              "branch_name": "Grimm-Zentrum",
+              "call_number": "96 A 10064",
+              "volume": null,
+              "status": "available",
+              "order_option": null
+            },
+            {
+              "location": "ZB Grimm-Zentrum, Magazin",
+              "branch": null,
+              "branch_name": null,
+              "call_number": "96 A 10064+1",
+              "volume": "1",
+              "status": "unavailable",
+              "order_option": null
+            }
+          ]
+        },
+        {
+          "isil": "DE-Zz999",
+          "alias": null,
+          "library": "DE-Zz999",
+          "short_name": null,
+          "local_id": "275177939",
+          "mine": false,
+          "summary": "reference",
+          "items": [
+            {
+              "location": "Lesesaal",
+              "branch": null,
+              "branch_name": null,
+              "call_number": "A 1234",
+              "volume": null,
+              "status": "reference",
+              "order_option": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "voebb_SAK13776205",
+      "engine": "voebb",
+      "source": "voebb",
+      "local_id": "SAK13776205",
+      "title": "Der Prozeß",
+      "subtitle": null,
+      "authors": [
+        {
+          "name": "Kafka, Franz",
+          "kind": "person",
+          "dates": null,
+          "gnd": null,
+          "role": null
+        }
+      ],
+      "year": 2008,
+      "publisher": null,
+      "place": null,
+      "edition": null,
+      "extent": null,
+      "languages": [],
+      "format": "book",
+      "online": false,
+      "isbns": [],
+      "subjects": [],
+      "urls": [],
+      "holdings": [
+        {
+          "isil": "DE-609",
+          "alias": "AGB",
+          "library": "Zentral- und Landesbibliothek Berlin, Amerika-Gedenkbibliothek",
+          "short_name": "AGB",
+          "local_id": null,
+          "mine": true,
+          "summary": "reference",
+          "items": [
+            {
+              "location": "AGB Erwachsenenbibliothek",
+              "branch": "SIG00036",
+              "branch_name": "Amerika-Gedenkbibliothek",
+              "call_number": "Kaf 1",
+              "volume": null,
+              "status": "reference",
+              "order_option": "nicht entleihbar (Freihand) - Präsenzbestand"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -147,8 +147,46 @@ impl Format {
     ///
     /// `online` splits `book`/`ebook` and `journal`/`ejournal`; it comes from
     /// `007/00-01=cr` or `338$b=cr`, not from the leader, which is identical for both.
-    pub fn from_leader(_l06: char, _l07: char, _online: bool) -> Self {
-        todo!("phase 1: model")
+    ///
+    /// The rule is two-stage: the material comes from position 06, and **only** for `a`
+    /// (textual material) position 07 then splits monograph from serial from analytic.
+    /// A combination that is in neither table is [`Format::Unknown`] — the leader is
+    /// sometimes shifted (`||`, `20` occur) and a shifted leader must never make the
+    /// record disappear.
+    pub fn from_leader(l06: char, l07: char, online: bool) -> Self {
+        match l06 {
+            'a' => Self::from_text_leader(l07, online),
+            't' => Format::Manuscript,
+            // `d` is manuscript music, which is still notated music.
+            'c' | 'd' => Format::Score,
+            'e' | 'f' => Format::Map,
+            'g' => Format::Video,
+            'i' | 'j' => Format::Audio,
+            'k' => Format::Image,
+            // Not `software`: half of these records are e-book collections and
+            // digitised journals, the other half CD-ROMs.
+            'm' => Format::Electronic,
+            'o' | 'p' => Format::Mixed,
+            'r' => Format::Object,
+            _ => Format::Unknown,
+        }
+    }
+
+    /// Stage two, for leader/06 = `a`. This is the only place where `online` enters the
+    /// `format` value at all: `database` and `article` are online almost by definition and
+    /// get no `e`-variant, and for the other materials an `e`-variant would be invented.
+    /// Every record carries `online` separately, so nothing is lost either way.
+    fn from_text_leader(l07: char, online: bool) -> Self {
+        match l07 {
+            's' if online => Format::Ejournal,
+            's' => Format::Journal,
+            'i' => Format::Database,
+            'a' | 'b' => Format::Article,
+            // `m`, `c`, `d` and — deliberately — everything else: an unrecognised
+            // bibliographic level on textual material is still text.
+            _ if online => Format::Ebook,
+            _ => Format::Book,
+        }
     }
 }
 
@@ -220,8 +258,14 @@ impl Status {
     ///
     /// `yellow` means `reference`, `black` means `possibly_available`. An unknown colour
     /// returns `None` rather than a guess.
-    pub fn from_color(_color: &str) -> Option<Status> {
-        todo!("phase 1: model")
+    pub fn from_color(color: &str) -> Option<Status> {
+        match color.trim() {
+            "green" => Some(Status::Available),
+            "yellow" => Some(Status::Reference),
+            "red" => Some(Status::Unavailable),
+            "black" => Some(Status::PossiblyAvailable),
+            _ => None,
+        }
     }
 
     /// The symbol used in terminal output.
@@ -229,14 +273,178 @@ impl Status {
     /// [`Status::PossiblyAvailable`] prints `?`, like [`Status::Unknown`]: `○` would be a
     /// claim the service did not make.
     pub fn symbol(self) -> char {
-        todo!("phase 1: model")
+        match self {
+            Status::Available => '●',
+            Status::Reference => '◐',
+            Status::Unavailable => '○',
+            Status::PossiblyAvailable | Status::Unknown => '?',
+        }
+    }
+
+    /// Ordering rank, best first. Private because it is an implementation detail of
+    /// [`Status::summarize`] and of the availability sort; nothing else may depend on a
+    /// numeric ordering of statuses.
+    fn rank(self) -> u8 {
+        match self {
+            Status::Available => 4,
+            Status::Reference => 3,
+            Status::PossiblyAvailable => 2,
+            Status::Unavailable => 1,
+            Status::Unknown => 0,
+        }
     }
 
     /// Summarise several item statuses into one traffic light.
     ///
     /// Rank: `Available` > `Reference` > `PossiblyAvailable` > `Unavailable` >
     /// `Unknown`. An empty iterator summarises to [`Status::Unknown`].
-    pub fn summarize(_items: impl IntoIterator<Item = Status>) -> Status {
-        todo!("phase 1: model")
+    pub fn summarize(items: impl IntoIterator<Item = Status>) -> Status {
+        items
+            .into_iter()
+            .max_by_key(|status| status.rank())
+            .unwrap_or(Status::Unknown)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every leader combination observed in the 1396-record sample, plus the two shifted
+    /// leaders. Source: `plan/marc-mapping.md` § format.
+    #[test]
+    fn the_observed_leader_combinations_map_as_measured() {
+        let cases = [
+            (('a', 'm'), Format::Book),
+            (('a', 's'), Format::Journal),
+            (('a', 'i'), Format::Database),
+            (('a', 'a'), Format::Article),
+            (('a', 'b'), Format::Article),
+            (('a', 'c'), Format::Book),
+            (('a', 'd'), Format::Book),
+            (('e', 'm'), Format::Map),
+            (('f', 'm'), Format::Map),
+            (('m', 'm'), Format::Electronic),
+            (('m', 'i'), Format::Electronic),
+            (('m', 's'), Format::Electronic),
+            (('j', 'm'), Format::Audio),
+            (('j', 'a'), Format::Audio),
+            (('i', 'm'), Format::Audio),
+            (('c', 'm'), Format::Score),
+            (('c', 'a'), Format::Score),
+            (('d', 'm'), Format::Score),
+            (('d', 'a'), Format::Score),
+            (('g', 'm'), Format::Video),
+            (('g', 'a'), Format::Video),
+            (('p', 'm'), Format::Mixed),
+            (('o', 'm'), Format::Mixed),
+            (('k', 'm'), Format::Image),
+            (('t', 'm'), Format::Manuscript),
+            (('r', 'm'), Format::Object),
+        ];
+        for ((l06, l07), expected) in cases {
+            assert_eq!(
+                Format::from_leader(l06, l07, false),
+                expected,
+                "leader/06={l06} leader/07={l07}"
+            );
+        }
+    }
+
+    /// Four records carry `||` (not coded) and two have a shifted leader that reads `20`.
+    /// Neither is an error and neither may be guessed at.
+    #[test]
+    fn an_uncoded_or_shifted_leader_is_unknown() {
+        assert_eq!(Format::from_leader('|', '|', false), Format::Unknown);
+        assert_eq!(Format::from_leader('2', '0', false), Format::Unknown);
+        assert_eq!(Format::from_leader('|', '|', true), Format::Unknown);
+        assert_eq!(Format::from_leader('2', '0', true), Format::Unknown);
+    }
+
+    /// E-books look exactly like printed books in the leader; only `007`/`338` tell them
+    /// apart, and that arrives here as `online`.
+    #[test]
+    fn online_splits_only_the_text_formats() {
+        assert_eq!(Format::from_leader('a', 'm', true), Format::Ebook);
+        assert_eq!(Format::from_leader('a', 's', true), Format::Ejournal);
+        // No `e`-variant is invented for the rest.
+        assert_eq!(Format::from_leader('a', 'i', true), Format::Database);
+        assert_eq!(Format::from_leader('a', 'a', true), Format::Article);
+        assert_eq!(Format::from_leader('m', 'm', true), Format::Electronic);
+        assert_eq!(Format::from_leader('e', 'm', true), Format::Map);
+        assert_eq!(Format::from_leader('c', 'm', true), Format::Score);
+    }
+
+    /// An unrecognised bibliographic level on textual material is still text — the
+    /// fallback of the second table, not `unknown`.
+    #[test]
+    fn an_unknown_level_on_text_falls_back_to_book() {
+        assert_eq!(Format::from_leader('a', 'z', false), Format::Book);
+        assert_eq!(Format::from_leader('a', 'z', true), Format::Ebook);
+    }
+
+    #[test]
+    fn formats_serialise_lowercase() {
+        let json = serde_json::to_string(&Format::Ejournal).expect("Format serialises");
+        assert_eq!(json, "\"ejournal\"");
+    }
+
+    #[test]
+    fn the_four_traffic_light_colours_map_onto_statuses() {
+        assert_eq!(Status::from_color("green"), Some(Status::Available));
+        assert_eq!(Status::from_color("yellow"), Some(Status::Reference));
+        assert_eq!(Status::from_color("red"), Some(Status::Unavailable));
+        assert_eq!(Status::from_color("black"), Some(Status::PossiblyAvailable));
+    }
+
+    #[test]
+    fn an_unknown_colour_is_none_not_a_guess() {
+        assert_eq!(Status::from_color("blue"), None);
+        assert_eq!(Status::from_color(""), None);
+        assert_eq!(Status::from_color("GREEN"), None);
+    }
+
+    /// `? ` for `possibly_available` as well: `○` would claim the service said the copy
+    /// is out, which it did not.
+    #[test]
+    fn possibly_available_prints_a_question_mark_like_unknown() {
+        assert_eq!(Status::Available.symbol(), '●');
+        assert_eq!(Status::Reference.symbol(), '◐');
+        assert_eq!(Status::Unavailable.symbol(), '○');
+        assert_eq!(Status::PossiblyAvailable.symbol(), '?');
+        assert_eq!(Status::Unknown.symbol(), '?');
+    }
+
+    #[test]
+    fn summarize_takes_the_best_status() {
+        assert_eq!(
+            Status::summarize([Status::Unavailable, Status::Available]),
+            Status::Available
+        );
+        assert_eq!(
+            Status::summarize([Status::Unknown, Status::Reference, Status::Unavailable]),
+            Status::Reference
+        );
+        assert_eq!(
+            Status::summarize([Status::Unavailable, Status::PossiblyAvailable]),
+            Status::PossiblyAvailable
+        );
+        assert_eq!(
+            Status::summarize([Status::Unknown, Status::Unavailable]),
+            Status::Unavailable
+        );
+        assert_eq!(Status::summarize([Status::Unknown]), Status::Unknown);
+    }
+
+    /// A library with no items is not "nothing available", it is "nothing was said".
+    #[test]
+    fn summarizing_nothing_is_unknown() {
+        assert_eq!(Status::summarize([]), Status::Unknown);
+    }
+
+    #[test]
+    fn statuses_serialise_snake_case() {
+        let json = serde_json::to_string(&Status::PossiblyAvailable).expect("Status serialises");
+        assert_eq!(json, "\"possibly_available\"");
     }
 }
