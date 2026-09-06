@@ -313,6 +313,23 @@ pub enum UsageError {
         /// The value given.
         value: u32,
     },
+    /// `--page` and `--limit` together name a window past where a catalogue can be paged.
+    #[error(
+        "--page {page} with --limit {limit} reaches result {position}, past where the \
+         {engine} catalogue can be paged"
+    )]
+    WindowTooDeep {
+        /// The catalogue that stops there.
+        engine: Engine,
+        /// `--page` as given.
+        page: u32,
+        /// `--limit` as given, or its default.
+        limit: u32,
+        /// The last result the window would need.
+        position: u32,
+        /// The last result the catalogue serves.
+        max: u32,
+    },
     /// A flag that one engine honours and the other cannot — there is no index for it in
     /// that catalogue, and guessing would answer the wrong question.
     #[error("{flag} is not supported by the {engine} catalogue")]
@@ -353,6 +370,7 @@ impl UsageError {
             UsageError::QueryTooLong { .. } => "query_too_long",
             UsageError::LimitOutOfRange { .. } => "limit_out_of_range",
             UsageError::PageOutOfRange { .. } => "page_out_of_range",
+            UsageError::WindowTooDeep { .. } => "window_too_deep",
             UsageError::FlagUnsupportedByEngine { .. } => "unsupported_by_engine",
             UsageError::NearNeedsCoordinates { .. } => "near_needs_coordinates",
             UsageError::RecordId { .. } => "invalid_record_id",
@@ -407,6 +425,10 @@ impl UsageError {
             UsageError::PageOutOfRange { .. } => {
                 "pages are 1-based: the first page is --page 1".to_string()
             }
+            UsageError::WindowTooDeep { engine, max, .. } => format!(
+                "{engine} paging stops at position {max}; narrow the search, or leave the \
+                 {engine} locations out of --at so the other catalogue answers"
+            ),
             UsageError::FlagUnsupportedByEngine { flag, engine, .. } => format!(
                 "drop {flag}, or leave the {engine} locations out of --at so the other \
                  catalogue answers"
@@ -883,6 +905,14 @@ mod tests {
             UsageError::QueryTooLong { chars: 2400 }.into(),
             UsageError::LimitOutOfRange { value: 200 }.into(),
             UsageError::PageOutOfRange { value: 0 }.into(),
+            UsageError::WindowTooDeep {
+                engine: Engine::Voebb,
+                page: 30,
+                limit: 10,
+                position: 300,
+                max: 220,
+            }
+            .into(),
             UsageError::FlagUnsupportedByEngine {
                 flag: "--publisher".to_string(),
                 engine: Engine::Voebb,

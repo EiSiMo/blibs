@@ -25,14 +25,20 @@
       "isil": "DE-11",
       "branch": null,
       "engine": "kobv",
-      "total": 6
+      "total": 6,
+      "records": [
+        "almafu_BV008885798"
+      ]
     },
     {
       "key": "AGB",
       "isil": "DE-609",
       "branch": "SIG00036",
       "engine": "voebb",
-      "total": 35
+      "total": 35,
+      "records": [
+        "voebb_SAK13776205"
+      ]
     }
   ],
   "availability": "fetched",

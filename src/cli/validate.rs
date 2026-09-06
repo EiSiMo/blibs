@@ -23,11 +23,12 @@ use crate::cli::{
     FORMAT_VALUES, LibrariesArgs, LibrariesPlan, Plan, SORT_VALUES, SearchArgs, ShowArgs, ShowPlan,
     isbn,
 };
+use crate::engine::voebb;
 use crate::error::{Error, UsageError};
 use crate::libraries::{self, Branch, LatLon, Library};
 use crate::model::{
-    AvailabilityMode, Engine, Format, Identifier, Limit, Location, Page, QuerySpec, RecordId,
-    SortKey, Term,
+    AvailabilityMode, Engine, FetchWindow, Format, Identifier, Limit, Location, Page, QuerySpec,
+    RecordId, SortKey, Term,
 };
 use crate::select::Filters;
 
@@ -76,6 +77,11 @@ fn plan(args: &SearchArgs, json: bool, cache: bool) -> Result<Plan, UsageError> 
     let page = args.page.map_or(Ok(Page::FIRST), Page::new)?;
     let locations = locations(&args.at)?;
     check_engine_support(args, &locations)?;
+    let filters = Filters {
+        format: args.format.as_deref().map(format).transpose()?,
+        language: args.language.as_deref().map(language).transpose()?,
+    };
+    check_window_depth(limit, page, &filters, &locations)?;
 
     Ok(Plan {
         terms_echo: echo(args, &query),
@@ -84,10 +90,7 @@ fn plan(args: &SearchArgs, json: bool, cache: bool) -> Result<Plan, UsageError> 
         limit,
         page,
         sort: sort_key(args.sort.as_deref())?,
-        filters: Filters {
-            format: args.format.as_deref().map(format).transpose()?,
-            language: args.language.as_deref().map(language).transpose()?,
-        },
+        filters,
         availability: availability(args.no_availability),
         json,
         cache,
@@ -160,23 +163,32 @@ pub fn locations(entries: &[String]) -> Result<Vec<Location>, UsageError> {
 /// renders three blocks, and the same edition may legitimately appear in more than one.
 /// Records are never matched across catalogues.
 ///
+/// The groups come out in [`Engine::ALL`] order, **not** in the order of `--at`, and only
+/// engines that have a location at all appear. `--at AGB,HU` and `--at HU,AGB` ask the
+/// same question, so they must produce the same document — the engine order decides
+/// `engines[]` and the order the two catalogues' records follow each other in, while the
+/// user's order survives where it belongs, in `at[]` and in the rendered blocks.
+///
+/// Inside a group the locations keep the user's order, which is what `at[]` is built
+/// from on the KOBV side.
+///
 /// An empty list is one `kobv` group with no locations — no `--at` means one search
 /// without a holdings filter, and encoding that here keeps the rule out of `run`.
 pub fn split_by_engine(locations: &[Location]) -> Vec<(Engine, Vec<Location>)> {
     if locations.is_empty() {
         return vec![(Engine::Kobv, Vec::new())];
     }
-    let mut groups: Vec<(Engine, Vec<Location>)> = Vec::new();
-    for location in locations {
-        match groups
-            .iter_mut()
-            .find(|(engine, _)| *engine == location.engine)
-        {
-            Some((_, group)) => group.push(location.clone()),
-            None => groups.push((location.engine, vec![location.clone()])),
-        }
-    }
-    groups
+    Engine::ALL
+        .into_iter()
+        .filter_map(|engine| {
+            let group: Vec<Location> = locations
+                .iter()
+                .filter(|location| location.engine == engine)
+                .cloned()
+                .collect();
+            (!group.is_empty()).then_some((engine, group))
+        })
+        .collect()
 }
 
 /// Assemble the query from the free terms and the field flags.
@@ -332,6 +344,43 @@ fn language(value: &str) -> Result<String, UsageError> {
              (ger, eng, fre — not de and not German), got {value:?}"
         )))
     }
+}
+
+/// Refuse a window a VÖBB branch cannot be paged to.
+///
+/// voebb.de has no offset: reaching result 200 means walking ten result pages, one
+/// sequential request each, on a session that must be replayed in order. So the depth is
+/// capped at [`voebb::MAX_POSITION`] and a deeper window is a usage error **before** the
+/// session is opened, rather than a minute of requests ending in a short answer.
+///
+/// The window that is measured is the one that would actually be fetched: `--format` and
+/// `--language` widen it to 50 records a page, which moves its end.
+///
+/// The KOBV side is not checked here — SRU takes `startRecord` directly, and a window
+/// past the last hit comes back as an honest empty page.
+fn check_window_depth(
+    limit: Limit,
+    page: Page,
+    filters: &Filters,
+    locations: &[Location],
+) -> Result<(), UsageError> {
+    if !locations.iter().any(|at| at.engine == Engine::Voebb) {
+        return Ok(());
+    }
+    let window = FetchWindow::plan(limit, page, filters.is_active());
+    let position = window
+        .start
+        .saturating_add(u32::from(window.size.get()).saturating_sub(1));
+    if position <= voebb::MAX_POSITION {
+        return Ok(());
+    }
+    Err(UsageError::WindowTooDeep {
+        engine: Engine::Voebb,
+        page: page.get(),
+        limit: u32::from(limit.get()),
+        position,
+        max: voebb::MAX_POSITION,
+    })
 }
 
 /// Refuse a flag the answering catalogue has no index for.
@@ -668,6 +717,33 @@ mod tests {
         assert_eq!(grouped[1].1.len(), 1);
     }
 
+    /// The engines run in [`Engine::ALL`] order whatever `--at` says, so the same
+    /// question asked with the locations swapped produces the same document. The user's
+    /// order survives in `at[]` and in the rendered blocks, which is where it belongs.
+    #[test]
+    fn the_engine_order_does_not_follow_the_order_of_at() {
+        for at in ["AGB,HU", "HU,AGB", "AGB,STABI,HU", "HU,AGB,STABI"] {
+            let plan = search(&["search", "Kafka", "--at", at]).expect("known libraries");
+            assert_eq!(
+                plan.engines(),
+                [Engine::Kobv, Engine::Voebb],
+                "--at {at} must still run kobv first"
+            );
+            let grouped = plan.by_engine();
+            assert_eq!(grouped[0].0, Engine::Kobv);
+            assert_eq!(grouped[1].0, Engine::Voebb);
+        }
+        // Inside a group the user's order stands: `at[]` on the KOBV side is built from it.
+        let plan = search(&["search", "Kafka", "--at", "HU,AGB,STABI"]).expect("known libraries");
+        let grouped = plan.by_engine();
+        let keys: Vec<&str> = grouped[0]
+            .1
+            .iter()
+            .map(|location| location.key.as_str())
+            .collect();
+        assert_eq!(keys, ["HU", "STABI"]);
+    }
+
     /// A branch of a university is not a location: the KOBV record carries every copy of
     /// the institution anyway, and voebb.de does not know the house.
     #[test]
@@ -717,6 +793,55 @@ mod tests {
         }
     }
 
+    // ---- paging depth ----
+
+    /// voebb.de has no offset: result 221 is behind ten sequential pages on a session
+    /// that must be replayed in order, so a window reaching past it is refused before the
+    /// session is opened rather than walked to.
+    #[test]
+    fn a_voebb_window_past_the_tenth_page_is_refused() {
+        let deep = &[
+            "search", "Vorleser", "--at", "AGB", "--limit", "10", "--page",
+        ];
+        assert!(
+            search(&[deep.as_slice(), &["22"]].concat()).is_ok(),
+            "page 22 of 10 ends exactly at 220"
+        );
+        let error = match search(&[deep.as_slice(), &["23"]].concat()) {
+            Ok(plan) => panic!("expected a usage error, got {plan:?}"),
+            Err(error) => error,
+        };
+        assert_eq!(error.exit(), ExitCode::Usage, "{error}");
+        assert_eq!(error.kind(), "window_too_deep");
+        assert!(error.to_string().contains("--page 23"), "{error}");
+        assert!(
+            error.hint().unwrap_or_default().contains("220"),
+            "the hint names where paging stops: {error}"
+        );
+    }
+
+    /// The measured window is the one that would be fetched, and a client-side filter
+    /// widens it to 50 a page — so the same `--page` reaches much further with one.
+    #[test]
+    fn a_filter_widens_the_window_and_with_it_the_depth() {
+        let with_filter = &[
+            "search", "Vorleser", "--at", "AGB", "--limit", "10", "--page", "6", "--format", "book",
+        ];
+        assert_eq!(usage_kind(with_filter), "window_too_deep");
+        assert!(
+            search(&with_filter[..8]).is_ok(),
+            "without the filter the same page is well inside"
+        );
+    }
+
+    /// The depth is voebb.de's, not the tool's: SRU takes `startRecord` directly and
+    /// answers a window past the last hit with an honest empty page.
+    #[test]
+    fn a_deep_window_is_fine_without_a_voebb_location() {
+        assert!(search(&["search", "Kafka", "--page", "10000"]).is_ok());
+        assert!(search(&["search", "Kafka", "--at", "HU", "--page", "10000"]).is_ok());
+    }
+
     /// Those two are fine as long as no VÖBB branch is asked to answer them.
     #[test]
     fn publisher_and_year_are_fine_for_kobv() {
@@ -755,7 +880,8 @@ mod tests {
         );
     }
 
-    /// Paging works on voebb.de (the toolbar is a plain form field), so it is allowed.
+    /// Paging works on voebb.de (the toolbar is a plain form field), so it is allowed —
+    /// only its depth is capped, which the tests above pin.
     #[test]
     fn paging_is_allowed_for_voebb() {
         assert!(search(&["search", "Vorleser", "--at", "AGB", "--page", "2"]).is_ok());

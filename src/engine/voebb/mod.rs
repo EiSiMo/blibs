@@ -49,6 +49,24 @@ use session::Session;
 /// What names this engine in an error message.
 const CONTEXT: &str = "the voebb.de result list";
 
+/// How many rows one result page carries. An observation, not a promise — nothing pages
+/// with it, and [`Voebb::collect_window`] reads every row's own absolute position.
+const ROWS_PER_PAGE: u32 = 22;
+
+/// How many result pages this tool is willing to walk for one window.
+///
+/// Every page past the first is a further request on a session that must be replayed in
+/// order, so a deep window is both slow and a load on the house. Ten pages is where
+/// `plan/voebb.md` draws the line.
+const MAX_PAGES: u32 = 10;
+
+/// The last result position a VÖBB window may reach.
+///
+/// `cli` refuses `--page`/`--limit` past this **before** a session is opened
+/// ([`crate::error::UsageError::WindowTooDeep`]): walking there would be 10 sequential
+/// requests, and a window that ends beyond it could not be filled at all.
+pub const MAX_POSITION: u32 = ROWS_PER_PAGE * MAX_PAGES;
+
 /// The voebb.de engine.
 pub struct Voebb<'f> {
     client: VoebbClient<'f>,
@@ -63,6 +81,18 @@ struct Located {
     hits: Vec<Hit>,
     /// What had to be compromised on the way.
     notes: Vec<Note>,
+}
+
+impl Located {
+    /// The ids this location's search returned, in the order the site ranked them.
+    ///
+    /// This is the block's membership and the only honest source of it: every voebb.de
+    /// holding carries `DE-609`, so nothing in the record itself says which *branch* the
+    /// row came back for, and two branches in `--at` would otherwise show each other's
+    /// hits.
+    fn ids(&self) -> Vec<RecordId> {
+        self.hits.iter().map(|hit| hit.id.clone()).collect()
+    }
 }
 
 impl<'f> Voebb<'f> {
@@ -208,14 +238,15 @@ impl Catalog for Voebb<'_> {
             let branch = branch_of(location)?;
             let found = self.search_at(&request.query, Some(branch), request.window)?;
             extend_records(&mut records, &found.hits);
-            notes.extend(found.notes);
             at.push(AtBlock {
                 key: location.key.clone(),
                 isil: location.isil.clone(),
                 branch: Some(branch.kobvid.clone()),
                 engine: Engine::Voebb,
                 total: found.total,
+                records: found.ids(),
             });
+            notes.extend(found.notes);
         }
 
         Ok(EngineSearch {

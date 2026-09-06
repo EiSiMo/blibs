@@ -282,7 +282,10 @@ pub struct SearchArgs {
 
     /// Which page of results, 1-based [default: 1].
     ///
-    /// All location blocks page together.
+    /// All location blocks page together. A VÖBB branch in --at is the one limit:
+    /// voebb.de has no offset and every page past the first is another request on the
+    /// same session, so --page times --limit may not reach past result 220 and a deeper
+    /// window is refused instead of walked.
     #[arg(long, value_name = "N")]
     pub page: Option<u32>,
 

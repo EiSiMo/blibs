@@ -167,6 +167,10 @@ fn search_one_engine(
     select::mark_mine(&mut records, &plan.locations);
 
     search.records = records;
+    // Last, and after availability: `at[].records` is the block, and a record can still
+    // gain a holding here — the availability service names libraries the record's own
+    // `924` fields do not.
+    select::assign_blocks(&mut search.at, &search.records, &plan.locations);
     Ok(EngineOutcome {
         search,
         after_filter,
@@ -270,6 +274,11 @@ fn at_blocks(plan: &Plan, outcomes: &[EngineOutcome]) -> Vec<AtBlock> {
                     branch: location.branch.as_ref().map(|branch| branch.kobvid.clone()),
                     engine: location.engine,
                     total: None,
+                    // No engine reported for this location, so nothing is known about its
+                    // membership either. `select` falls back to the holdings for a block
+                    // whose entry states none, which is why this is not a claim of "no
+                    // records here".
+                    records: Vec::new(),
                 })
         })
         .collect()

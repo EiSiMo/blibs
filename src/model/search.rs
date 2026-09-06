@@ -3,7 +3,7 @@
 //! [`SearchResult`] is the JSON document. Its member order is the document's member order
 //! and part of the contract in `plan/cli.md`.
 
-use crate::model::{Engine, FetchWindow, Isil, Page, Record};
+use crate::model::{Engine, FetchWindow, Isil, Page, Record, RecordId};
 
 /// One search term.
 ///
@@ -181,7 +181,8 @@ pub struct EngineSearch {
     pub notes: Vec<Note>,
 }
 
-/// One entry of `at[]`: a location, and the true number of hits at it.
+/// One entry of `at[]`: a location, the true number of hits at it, and which of the
+/// displayed records belong under it.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct AtBlock {
     /// The alias as it appears in `--at`.
@@ -194,6 +195,25 @@ pub struct AtBlock {
     pub engine: Engine,
     /// Hits at this location. `None` when the engine cannot state one.
     pub total: Option<u64>,
+    /// The ids of the displayed records this location holds, in the order of `records[]`.
+    ///
+    /// This is what makes the human grouping *derivable* rather than a second schema: the
+    /// block under a heading is exactly these records. It exists because a holding cannot
+    /// always answer the question — every VÖBB holding carries `DE-609`, the network's
+    /// ISIL, so two branches in `--at` would otherwise show each other's hits. The engine
+    /// states which records its search for this location returned; `cli` cuts the list
+    /// down to the records the page actually shows.
+    #[serde(serialize_with = "record_ids")]
+    pub records: Vec<RecordId>,
+}
+
+/// Serialise record ids as the plain strings a user types back in.
+///
+/// [`RecordId`] serialises as the four flat members `id`/`engine`/`source`/`local_id`,
+/// which is what [`Record`] flattens — inside a list of ids that shape would be four
+/// objects' worth of noise for one string that is already unique.
+fn record_ids<S: serde::Serializer>(ids: &[RecordId], serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.collect_seq(ids.iter().map(RecordId::as_str))
 }
 
 /// Whether availability was fetched.
@@ -563,6 +583,9 @@ mod tests {
                     branch: None,
                     engine: Engine::Kobv,
                     total: Some(6),
+                    records: vec![
+                        RecordId::parse("almafu_BV008885798").expect("a prefixed id parses"),
+                    ],
                 },
                 AtBlock {
                     key: "AGB".to_owned(),
@@ -570,6 +593,7 @@ mod tests {
                     branch: Some("SIG00036".to_owned()),
                     engine: Engine::Voebb,
                     total: Some(35),
+                    records: vec![RecordId::voebb("SAK13776205")],
                 },
             ],
             availability: AvailabilityMode::Fetched,

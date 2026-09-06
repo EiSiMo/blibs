@@ -841,6 +841,11 @@ fn library_name(holding: &Holding) -> String {
 ///
 /// Without locations everything is "mine" in record order and nothing is marked — there
 /// is no user preference to sort by.
+///
+/// What counts as the user's is [`select::holding_is_at`] and nothing spelled out again
+/// here: it is the same rule that sets `holdings[].mine` in the JSON, and a second
+/// spelling of it would let the two outputs disagree about the same record — including
+/// over the branch narrowing, which an ISIL comparison cannot see.
 fn split_holdings(record: &Record, locations: &[Location]) -> (Vec<usize>, Vec<usize>) {
     if locations.is_empty() {
         return ((0..record.holdings.len()).collect(), Vec::new());
@@ -848,7 +853,7 @@ fn split_holdings(record: &Record, locations: &[Location]) -> (Vec<usize>, Vec<u
     let mut mine: Vec<usize> = Vec::new();
     for location in locations {
         for (index, holding) in record.holdings.iter().enumerate() {
-            if holding.isil.as_ref() == Some(&location.isil) && !mine.contains(&index) {
+            if select::holding_is_at(holding, location) && !mine.contains(&index) {
                 mine.push(index);
             }
         }
@@ -1226,13 +1231,19 @@ mod tests {
         }
     }
 
-    fn at(key: &str, isil: &str, total: u64, engine: Engine) -> AtBlock {
+    /// One `at[]` entry, with the ids the engine reported for that location — which is
+    /// what decides the block, exactly as it does in a real document.
+    fn at(key: &str, isil: &str, total: u64, engine: Engine, records: &[&str]) -> AtBlock {
         AtBlock {
             key: key.to_owned(),
             isil: Isil::new(isil),
             branch: None,
             engine,
             total: Some(total),
+            records: records
+                .iter()
+                .map(|id| RecordId::parse(id).expect("the fixture ids are prefixed"))
+                .collect(),
         }
     }
 
@@ -1274,6 +1285,28 @@ mod tests {
         let mut out = Vec::new();
         show(record, locations, &mut out, Style::plain(WIDE)).expect("a vector accepts bytes");
         String::from_utf8(out).expect("the renderer writes UTF-8")
+    }
+
+    /// The `at[]` of [`vorleser`]: what each location's search returned, which is what
+    /// the blocks are built from.
+    fn vorleser_at() -> Vec<AtBlock> {
+        vec![
+            at(
+                "HU",
+                "DE-11",
+                6,
+                Engine::Kobv,
+                &["almahu_BV011234567", "almahu_BV019876543"],
+            ),
+            at("STABI", "DE-1", 3, Engine::Kobv, &["almafu_BV010111222"]),
+            at(
+                "AGB",
+                "DE-609",
+                35,
+                Engine::Voebb,
+                &["voebb_SAK13776205", "voebb_SAK14200311"],
+            ),
+        ]
     }
 
     /// The three-location example, built to match `plan/cli.md` § *Mit `--at`*.
@@ -1364,11 +1397,7 @@ mod tests {
             Some(6),
             vec![hu_first, hu_second, stabi, agb_first, agb_second],
         );
-        search_result.at = vec![
-            at("HU", "DE-11", 6, Engine::Kobv),
-            at("STABI", "DE-1", 3, Engine::Kobv),
-            at("AGB", "DE-609", 35, Engine::Voebb),
-        ];
+        search_result.at = vorleser_at();
         search_result.engines = vec![Engine::Kobv, Engine::Voebb];
         let locations = vec![
             institution("HU", "DE-11", "HU Berlin"),

@@ -511,6 +511,165 @@ fn a_mixed_at_runs_both_engines_and_renders_both_blocks() {
     );
 }
 
+/// Two branches of the same network, each on its own session, each with its own facet
+/// checkbox. The AGB list and the `BStB` list share eight of nine records and differ in one.
+fn two_branches_fetch() -> FixtureFetch {
+    let bstb = read_fixture("voebb/results_filtered.html").replace("SAK15039548", "SAK99999901");
+    FixtureFetch::new()
+        .route(
+            |request| field(request, "$CbTree_text") == Some(AGB_CHECKBOX),
+            read_fixture("voebb/results_filtered.html"),
+        )
+        .route(
+            |request| field(request, "$CbTree_text") == Some(BSTB_CHECKBOX),
+            bstb,
+        )
+        .route(
+            |request| has_field(request, "$Autosuggest"),
+            read_fixture("voebb/results.html"),
+        )
+        .fallback("voebb/start.html")
+}
+
+/// The facet checkboxes of the two aliased ZLB branches in `voebb/results.html`.
+const AGB_CHECKBOX: &str = "sub-PTL1_tree_1_90";
+const BSTB_CHECKBOX: &str = "sub-PTL1_tree_1_91";
+
+/// Every voebb.de holding carries `DE-609`, the network's ISIL, and with
+/// `--no-availability` no copy exists that could name a branch either — so nothing *in a
+/// record* says which branch's search returned it. What the blocks are built from is
+/// `at[].records`, which each location's own search states, and a record only the AGB
+/// holds must never appear under the `BStB` heading.
+#[test]
+fn two_branches_show_only_their_own_hits() {
+    let fetch = two_branches_fetch();
+    let recorder = fetch.recorder();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB,BSTB",
+            "--limit",
+            "22",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    assert_eq!(
+        recorder.total(),
+        6,
+        "one session per location: open, search, filter — twice: {:?}",
+        recorder.log()
+    );
+
+    let document = ran.json();
+    let at = document["at"].as_array().expect("at[] is an array");
+    let members = |index: usize| -> Vec<String> {
+        at[index]["records"]
+            .as_array()
+            .unwrap_or_else(|| panic!("at[{index}].records is an array"))
+            .iter()
+            .filter_map(|id| id.as_str().map(str::to_owned))
+            .collect()
+    };
+    assert_eq!(at[0]["key"], "AGB");
+    assert_eq!(at[1]["key"], "BSTB");
+    let agb = members(0);
+    let bstb = members(1);
+    assert!(agb.contains(&"voebb_SAK15039548".to_owned()), "{agb:?}");
+    assert!(!agb.contains(&"voebb_SAK99999901".to_owned()), "{agb:?}");
+    assert!(bstb.contains(&"voebb_SAK99999901".to_owned()), "{bstb:?}");
+    assert!(!bstb.contains(&"voebb_SAK15039548".to_owned()), "{bstb:?}");
+    // The eight editions both branches hold are one record each, listed under both.
+    assert!(agb.contains(&"voebb_SAK16112988".to_owned()), "{agb:?}");
+    assert!(bstb.contains(&"voebb_SAK16112988".to_owned()), "{bstb:?}");
+
+    // Every id in at[] is a record of the document — the grouping is reconstructable.
+    let shown: Vec<String> = document["records"]
+        .as_array()
+        .expect("records is an array")
+        .iter()
+        .filter_map(|record| record["id"].as_str().map(str::to_owned))
+        .collect();
+    assert_eq!(shown.len(), 10, "nine editions plus the one only BStB has");
+    for id in agb.iter().chain(&bstb) {
+        assert!(shown.contains(id), "{id} is in at[] but not in records[]");
+    }
+}
+
+/// The same, in the terminal: one block per location, and the record only one of them
+/// holds appears under that heading alone.
+#[test]
+fn a_branch_block_never_shows_the_other_branchs_record() {
+    let fetch = two_branches_fetch();
+    let ran = invoke(
+        &[
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB,BSTB",
+            "--limit",
+            "22",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let split = ran
+        .out
+        .find("BSTB (VÖBB)")
+        .unwrap_or_else(|| panic!("no BStB block in\n{}", ran.out));
+    let (agb_block, bstb_block) = ran.out.split_at(split);
+    assert!(agb_block.contains("AGB (VÖBB)"), "{}", ran.out);
+    assert!(agb_block.contains("voebb_SAK15039548"), "{agb_block}");
+    assert!(!agb_block.contains("voebb_SAK99999901"), "{agb_block}");
+    assert!(bstb_block.contains("voebb_SAK99999901"), "{bstb_block}");
+    assert!(!bstb_block.contains("voebb_SAK15039548"), "{bstb_block}");
+}
+
+/// `--at AGB,HU` and `--at HU,AGB` ask the same question, so they must answer with the
+/// same document: the engines run in their own fixed order and the records of the two
+/// catalogues follow each other in it. Only `at[]` and the rendered blocks follow the
+/// user, which is where the user's order belongs.
+#[test]
+fn the_engines_run_in_a_fixed_order_whatever_at_says() {
+    let order = |at: &str| -> serde_json::Value {
+        let fetch = both_engines_fetch();
+        let ran = invoke(
+            &["--json", "search", "Vorleser", "--at", at, "--limit", "2"],
+            &fetch,
+        );
+        assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+        ran.json()
+    };
+
+    let first = order("AGB,HU");
+    let second = order("HU,AGB");
+    assert_eq!(first["engines"], serde_json::json!(["kobv", "voebb"]));
+    assert_eq!(second["engines"], serde_json::json!(["kobv", "voebb"]));
+    assert_eq!(
+        first["records"], second["records"],
+        "the records must not depend on the order of --at"
+    );
+
+    // at[] is the one thing that does follow the user.
+    let keys = |document: &serde_json::Value| -> Vec<String> {
+        document["at"]
+            .as_array()
+            .expect("at[] is an array")
+            .iter()
+            .filter_map(|block| block["key"].as_str().map(str::to_owned))
+            .collect()
+    };
+    assert_eq!(keys(&first), ["AGB", "HU"]);
+    assert_eq!(keys(&second), ["HU", "AGB"]);
+}
+
 /// `show` routes on the id's prefix, and the record page answers on its own: one request,
 /// no session, no form state.
 #[test]

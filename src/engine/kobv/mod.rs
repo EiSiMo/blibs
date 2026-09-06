@@ -54,7 +54,16 @@ impl<'f> Kobv<'f> {
     /// locations are still listed, with `total: None` — a location the user named must
     /// appear even when its count was not paid for, because a missing block cannot be
     /// told apart from a forgotten one.
-    fn at_blocks(&self, request: &SearchRequest) -> Result<Vec<AtBlock>, Error> {
+    ///
+    /// `records` is the membership of the block, and here it is simply which of the
+    /// fetched records carry a `924` for that ISIL — the same question the renderer used
+    /// to ask of every holding. Stating it costs nothing and is what lets the grouping be
+    /// read off the JSON for both engines alike.
+    fn at_blocks(
+        &self,
+        request: &SearchRequest,
+        records: &[Record],
+    ) -> Result<Vec<AtBlock>, Error> {
         if request.locations.is_empty() {
             return Ok(Vec::new());
         }
@@ -73,6 +82,7 @@ impl<'f> Kobv<'f> {
                 branch: None,
                 engine: Engine::Kobv,
                 total,
+                records: held_at(records, &location.isil),
             })
             .collect())
     }
@@ -116,7 +126,7 @@ impl Catalog for Kobv<'_> {
             total: Some(response.number_of_records),
             fetched: records.len(),
             undelivered: undelivered(&response),
-            at: self.at_blocks(request)?,
+            at: self.at_blocks(request, &records)?,
             records,
             query_echo: Some(query.as_str().to_owned()),
             notes: sru::record_notes(&response),
@@ -184,6 +194,23 @@ impl Catalog for Kobv<'_> {
         }
         Ok(Some(record))
     }
+}
+
+/// The ids of the records that state a holding of this ISIL.
+///
+/// A record with no `924` at all belongs to no location — 4.9 % have none, and that is
+/// "not stated in this record", never "held everywhere".
+fn held_at(records: &[Record], isil: &Isil) -> Vec<RecordId> {
+    records
+        .iter()
+        .filter(|record| {
+            record
+                .holdings
+                .iter()
+                .any(|holding| holding.isil.as_ref() == Some(isil))
+        })
+        .map(|record| record.id.clone())
+        .collect()
 }
 
 /// The ISILs of the locations this engine answers for, deduplicated, in the user's order.

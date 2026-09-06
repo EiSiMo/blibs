@@ -6,13 +6,19 @@
 //! window — and the output must never imply otherwise. `--at` is the exception: it is an
 //! upstream filter, so location results are complete and pageable.
 //!
-//! [`blocks`] derives the human grouping from a [`SearchResult`]. It is a *view*, not a
+//! Grouping happens in two steps, and both live here so that the terminal and the JSON
+//! cannot disagree about which location holds what. [`assign_blocks`] writes the
+//! membership into `at[].records` once the displayed records are known; [`blocks`] then
+//! derives the human grouping from a [`SearchResult`]. The second is a *view*, not a
 //! second schema: the JSON stays record-centric and a record appears once, no matter how
 //! many blocks show it.
 
 use std::cmp::Reverse;
 
-use crate::model::{Format, Holding, Item, Limit, Location, Record, SearchResult, SortKey, Status};
+use crate::model::{
+    AtBlock, Format, Holding, Item, Limit, Location, Record, RecordId, SearchResult, SortKey,
+    Status,
+};
 
 /// The client-side filters.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -142,23 +148,46 @@ pub fn mark_mine(records: &mut [Record], locations: &[Location]) {
 
 /// Whether a holding belongs to a location.
 ///
-/// ISIL equality, and deliberately nothing more. A VÖBB branch shares `DE-609` with the
-/// whole network, but a branch location is only ever answered by the `voebb` engine,
-/// which has already applied the branch facet upstream — so every holding that comes
-/// back is the branch's. The copy-level narrowing that [`items_at`] does on top of this
-/// is a refinement of the *display*, never a reason to drop a holding.
-fn holding_is_at(holding: &Holding, location: &Location) -> bool {
-    holding.isil.as_ref() == Some(&location.isil)
+/// For an **institution** that is ISIL equality and nothing more. For a **branch** the
+/// ISIL cannot decide it: every copy in the Berlin public network is catalogued under
+/// `DE-609`, so `--at AGB,BSTB` would show each block the other's holdings. What decides
+/// it there is the copies — the holding belongs to the branch when one of them stands in
+/// it ([`Item::branch`] against [`BranchRef::kobvid`]).
+///
+/// The one deliberate exception is a holding whose copies name **no** branch at all,
+/// which includes a holding with no copies yet: `--no-availability` was given, or the
+/// copies have not been fetched, or the link the branch id is read from was missing. That
+/// is "not stated", never "not there", so the holding is kept rather than dropped — the
+/// same rule [`items_at`] follows one level down. A holding whose copies name only
+/// *other* branches is a statement, and it is not this location's.
+///
+/// Which records a *block* contains is a different question and is answered by
+/// [`blocks`]: it uses what the engine reported in `at[].records`, because a record that
+/// has no copies yet cannot say which branch's search returned it.
+///
+/// [`BranchRef::kobvid`]: crate::model::BranchRef::kobvid
+pub fn holding_is_at(holding: &Holding, location: &Location) -> bool {
+    if holding.isil.as_ref() != Some(&location.isil) {
+        return false;
+    }
+    match location.branch.as_ref() {
+        None => true,
+        Some(branch) => {
+            let kobvid = branch.kobvid.as_str();
+            let here = |item: &Item| item.branch.as_deref() == Some(kobvid);
+            let unstated = |item: &Item| item.branch.is_none();
+            holding.items.iter().any(here) || holding.items.iter().all(unstated)
+        }
+    }
 }
 
 /// The copies of a holding that belong to a location.
 ///
 /// For an institution that is all of them. For a branch, the items whose `branch` id is
 /// the branch's — but only when at least one item actually carries it: `items[].branch`
-/// comes from a link that need not be there, and reporting *no copies* because a link
-/// was missing would be the worst possible answer. When nothing carries the id the
-/// holding degrades to the plain ISIL match, which is what the branch facet already
-/// guaranteed.
+/// comes from a link that need not be there, and reporting *no copies* because a link was
+/// missing would be the worst possible answer. When nothing carries the id every copy is
+/// shown, which is exactly the case [`holding_is_at`] lets through for the same reason.
 fn items_at<'a>(holding: &'a Holding, location: &Location) -> Vec<&'a Item> {
     let Some(branch) = location.branch.as_ref() else {
         return holding.items.iter().collect();
@@ -285,15 +314,11 @@ fn flat_block(result: &SearchResult) -> Block<'_> {
 
 /// One location's block: the records held there, in the order the engine ranked them.
 fn location_block<'a>(result: &'a SearchResult, location: &'a Location) -> Block<'a> {
+    let stated = stated_records(result, location);
     let records = result
         .records
         .iter()
-        .filter(|record| {
-            record
-                .holdings
-                .iter()
-                .any(|holding| holding_is_at(holding, location))
-        })
+        .filter(|record| record_is_at(record, location, stated))
         .map(|record| BlockRecord {
             record,
             status: location_status(record, location),
@@ -309,6 +334,83 @@ fn location_block<'a>(result: &'a SearchResult, location: &'a Location) -> Block
         location: Some(location),
         total: total_at(result, location),
         records,
+    }
+}
+
+/// Restate `at[].records` over the records that will actually be shown.
+///
+/// Called once per engine, after availability. The list *is* the block, so it has to name
+/// exactly the records shown under the heading, in the order of `records[]` — an id that
+/// `records[]` no longer carries would make the grouping unreconstructable from the JSON,
+/// and a missing one would hide a hit.
+///
+/// There are two sources, and which of them counts depends on the location:
+///
+/// - What the **engine** reported: which records its search for that location returned.
+///   For a branch this is the only source there is. Every VÖBB holding carries `DE-609`,
+///   so nothing in a record names the branch whose search returned it, and a record whose
+///   copies were never fetched names no branch at all.
+/// - What the **record** states: a holding at the location, by [`holding_is_at`]. For an
+///   institution this is *added* to the engine's list rather than replacing it — the
+///   upstream `1044` filter reads the catalogue's `924` fields while the availability
+///   service may name a library the record itself never did, and a block that dropped
+///   either would hide a holding. It is deliberately not consulted for a branch, where it
+///   would pull in records that branch's own window did not return and contradict both
+///   `at[].total` and the paging.
+pub fn assign_blocks(at: &mut [AtBlock], records: &[Record], locations: &[Location]) {
+    for block in at {
+        let location = locations
+            .iter()
+            .find(|location| location.key == block.key)
+            .filter(|location| location.branch.is_none());
+        let stated = std::mem::take(&mut block.records);
+        block.records = records
+            .iter()
+            .filter(|record| stated.contains(&record.id) || states_holding(record, location))
+            .map(|record| record.id.clone())
+            .collect();
+    }
+}
+
+/// Whether the record itself puts a holding at this location.
+///
+/// `None` for a branch, and for a location no `--at` entry resolved to: see
+/// [`assign_blocks`] for why a branch is never answered from the record.
+fn states_holding(record: &Record, location: Option<&Location>) -> bool {
+    location.is_some_and(|location| {
+        record
+            .holdings
+            .iter()
+            .any(|holding| holding_is_at(holding, location))
+    })
+}
+
+/// The membership `at[]` states for a location, if it states one.
+///
+/// `None` means no engine reported a block for this location — then, and only then, the
+/// holdings have to answer the question themselves.
+fn stated_records<'a>(result: &'a SearchResult, location: &Location) -> Option<&'a [RecordId]> {
+    result
+        .at
+        .iter()
+        .find(|block| block.key == location.key)
+        .map(|block| block.records.as_slice())
+}
+
+/// Whether a record belongs under a location's heading.
+///
+/// The engine's own answer wins wherever there is one: it knows which search returned the
+/// record, and for a VÖBB branch that is the *only* place the information exists — every
+/// holding carries the network's `DE-609`, and a record whose copies have not been
+/// fetched carries nothing that names a branch at all. Falling back to the holdings keeps
+/// a hand-built result (and any location no engine reported on) rendering sensibly.
+fn record_is_at(record: &Record, location: &Location, stated: Option<&[RecordId]>) -> bool {
+    match stated {
+        Some(ids) => ids.contains(&record.id),
+        None => record
+            .holdings
+            .iter()
+            .any(|holding| holding_is_at(holding, location)),
     }
 }
 
@@ -388,6 +490,12 @@ mod tests {
             status,
             order_option: None,
         }
+    }
+
+    fn ids(all: &[&str]) -> Vec<RecordId> {
+        all.iter()
+            .map(|id| RecordId::parse(id).expect("the fixture ids are prefixed"))
+            .collect()
     }
 
     fn institution(key: &str, isil: &str) -> Location {
@@ -474,6 +582,7 @@ mod tests {
                     branch: None,
                     engine: Engine::Kobv,
                     total: Some(6),
+                    records: ids(&["almahu_1", "almahu_2"]),
                 },
                 AtBlock {
                     key: "STABI".to_owned(),
@@ -481,6 +590,7 @@ mod tests {
                     branch: None,
                     engine: Engine::Kobv,
                     total: None,
+                    records: ids(&["almahu_1"]),
                 },
             ],
             availability: AvailabilityMode::Fetched,
@@ -847,6 +957,43 @@ mod tests {
         assert_eq!(record_status(&result.records[2]), Status::Unknown);
     }
 
+    /// Two VÖBB branches, one record each, as one voebb search per location produces
+    /// them: one shared `DE-609` holding, the copies naming the branch they stand in, and
+    /// `at[].records` stating which search returned which record.
+    fn two_branches() -> (SearchResult, Vec<Location>) {
+        let mut agb = record("voebb_SAK1", "Der Vorleser", Some(1997));
+        agb.holdings = vec![holding(
+            "DE-609",
+            Status::Available,
+            vec![item("Belletristik", Some("SIG00036"), Status::Available)],
+        )];
+        let mut bstb = record("voebb_SAK2", "Der Vorleser", Some(2012));
+        bstb.holdings = vec![holding(
+            "DE-609",
+            Status::Available,
+            vec![item("Erwachsene", Some("SIG00021"), Status::Unavailable)],
+        )];
+
+        let locations = vec![branch("AGB", "SIG00036"), branch("BSTB", "SIG00021")];
+        let (mut result, _) = result();
+        result.at = locations
+            .iter()
+            .zip([&["voebb_SAK1"][..], &["voebb_SAK2"][..]])
+            .map(|(location, members)| AtBlock {
+                key: location.key.clone(),
+                isil: location.isil.clone(),
+                branch: location.branch.as_ref().map(|b| b.kobvid.clone()),
+                engine: Engine::Voebb,
+                total: Some(1),
+                records: ids(members),
+            })
+            .collect();
+        result.records = vec![agb, bstb];
+        result.engines = vec![Engine::Voebb];
+        result.total = None;
+        (result, locations)
+    }
+
     #[test]
     fn without_locations_there_is_one_flat_block() {
         let (result, _) = result();
@@ -928,6 +1075,139 @@ mod tests {
         assert_eq!(blocks[0].location.map(|l| l.key.as_str()), Some("TU"));
         assert!(blocks[0].records.is_empty());
         assert_eq!(blocks[0].total, None);
+    }
+
+    /// Two branches of the same network, one record each: every voebb.de holding carries
+    /// `DE-609`, so the ISIL cannot tell the blocks apart and `at[].records` — what the
+    /// engine's search for that location returned — is what does.
+    #[test]
+    fn two_branches_of_one_network_do_not_show_each_others_hits() {
+        let (result, locations) = two_branches();
+        let blocks = blocks(&result, &locations);
+        let agb: Vec<String> = blocks[0]
+            .records
+            .iter()
+            .map(|r| r.record.id.as_str())
+            .collect();
+        let bstb: Vec<String> = blocks[1]
+            .records
+            .iter()
+            .map(|r| r.record.id.as_str())
+            .collect();
+        assert_eq!(agb, ["voebb_SAK1"]);
+        assert_eq!(bstb, ["voebb_SAK2"]);
+    }
+
+    /// The same, with `--no-availability`: neither record has a copy that could name a
+    /// branch, and only the engine's own list keeps the two blocks apart.
+    #[test]
+    fn a_record_without_copies_stays_in_the_block_its_search_returned_it_for() {
+        let (mut result, locations) = two_branches();
+        for record in &mut result.records {
+            for holding in &mut record.holdings {
+                holding.items.clear();
+            }
+        }
+        let blocks = blocks(&result, &locations);
+        assert_eq!(blocks[0].records.len(), 1);
+        assert_eq!(blocks[0].records[0].record.id.as_str(), "voebb_SAK1");
+        assert_eq!(blocks[1].records.len(), 1);
+        assert_eq!(blocks[1].records[0].record.id.as_str(), "voebb_SAK2");
+        // Nothing was asked, so the library-level light stands rather than "on loan".
+        assert_eq!(blocks[0].records[0].status, Status::Available);
+    }
+
+    /// A holding whose copies stand in *other* branches is not this branch's — that is a
+    /// statement, not a gap, so `mine` stays false and the location holds nothing.
+    #[test]
+    fn a_branch_does_not_own_a_holding_whose_copies_are_elsewhere() {
+        let mut elsewhere = record("voebb_SAK9", "Nur in Pankow", None);
+        elsewhere.holdings = vec![holding(
+            "DE-609",
+            Status::Available,
+            vec![item("Pankow", Some("SIG00099"), Status::Available)],
+        )];
+        let agb = branch("AGB", "SIG00036");
+        assert_eq!(location_status(&elsewhere, &agb), Status::Unknown);
+        let mut records = vec![elsewhere];
+        mark_mine(&mut records, std::slice::from_ref(&agb));
+        assert!(!records[0].holdings[0].mine);
+    }
+
+    /// An institution is unaffected by all of it: the ISIL still decides, and a location
+    /// `at[]` says nothing about still falls back to the holdings.
+    #[test]
+    fn an_institution_is_matched_by_its_isil_alone() {
+        let (result, locations) = result();
+        let stated = blocks(&result, &locations);
+        assert_eq!(stated[0].records.len(), 2, "HU");
+        assert_eq!(stated[1].records.len(), 1, "STABI");
+
+        let mut without_at = result.clone();
+        without_at.at.clear();
+        let derived = blocks(&without_at, &locations);
+        assert_eq!(derived[0].records.len(), 2, "HU, from the holdings alone");
+        assert_eq!(
+            derived[1].records.len(),
+            1,
+            "STABI, from the holdings alone"
+        );
+    }
+
+    /// `at[].records` names exactly the records of the block, in the document's order:
+    /// ids the page no longer shows fall out, and a record whose holding only the
+    /// availability service knows about is added rather than dropped.
+    #[test]
+    fn an_institution_block_keeps_what_the_record_states() {
+        let (mut result, locations) = result();
+        // As it comes back from an engine: an id that will not be displayed, and nothing
+        // for the record that only the availability service put at the Stabi.
+        result.at[0].records = ids(&["almahu_1", "almahu_2", "almahu_gone"]);
+        result.at[1].records = Vec::new();
+        assign_blocks(&mut result.at, &result.records, &locations);
+
+        let of = |index: usize| -> Vec<String> {
+            result.at[index]
+                .records
+                .iter()
+                .map(RecordId::as_str)
+                .collect()
+        };
+        assert_eq!(of(0), ["almahu_1", "almahu_2"], "the absent id falls out");
+        assert_eq!(
+            of(1),
+            ["almahu_1"],
+            "the Stabi holding puts the record in the block the engine did not list it in"
+        );
+    }
+
+    /// A branch is answered from the engine's list alone. The other branch's copies are
+    /// on the same record page, and reading membership off them would show the record
+    /// under a heading whose own window never returned it.
+    #[test]
+    fn a_branch_block_is_the_engines_list_and_nothing_else() {
+        let (mut result, locations) = two_branches();
+        // Both records name both branches in their copies, as a record page does.
+        for record in &mut result.records {
+            record.holdings[0]
+                .items
+                .push(item("Erwachsene", Some("SIG00021"), Status::Available));
+            record.holdings[0].items.push(item(
+                "Belletristik",
+                Some("SIG00036"),
+                Status::Available,
+            ));
+        }
+        assign_blocks(&mut result.at, &result.records, &locations);
+        let of = |index: usize| -> Vec<String> {
+            result.at[index]
+                .records
+                .iter()
+                .map(RecordId::as_str)
+                .collect()
+        };
+        assert_eq!(of(0), ["voebb_SAK1"]);
+        assert_eq!(of(1), ["voebb_SAK2"]);
     }
 
     /// The order inside a block is the order of `records`, which is the order the sort

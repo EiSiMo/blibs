@@ -21,6 +21,14 @@ pub enum Engine {
 }
 
 impl Engine {
+    /// Every engine, in the order an invocation runs them.
+    ///
+    /// This order — and not the order of `--at` — is what fixes `engines[]` and the order
+    /// the records of two catalogues follow each other in. `--at AGB,HU` and `--at HU,AGB`
+    /// ask the same question, so they must produce the same document; the *display* order
+    /// is the user's and lives in `at[]`.
+    pub const ALL: [Engine; 2] = [Engine::Kobv, Engine::Voebb];
+
     /// The lowercase name used in JSON, in messages and as the id prefix.
     pub fn as_str(self) -> &'static str {
         match self {
