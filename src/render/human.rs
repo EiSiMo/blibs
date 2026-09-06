@@ -36,7 +36,7 @@ use crate::model::{
 use crate::render::Style;
 use crate::render::style::label;
 use crate::render::table::{Cell, Column, Layout, display_width, pad_right, truncate};
-use crate::select::{self, Block, BlockRecord};
+use crate::select::{self, Block, BlockRecord, holding_status};
 
 /// Indent of a record line, in both list forms.
 const RECORD_INDENT: usize = 2;
@@ -185,7 +185,7 @@ fn write_flat_block(
     }
     writeln!(out)?;
 
-    let first = first_number(result, count);
+    let first = first_number(result);
     let number_width = digits(first + count as u64 - 1);
     let layout = flat_record_layout(number_width);
     let rows: Vec<Vec<Cell>> = block
@@ -295,18 +295,17 @@ fn flat_heading(result: &SearchResult, shown: usize) -> String {
     if shown == 0 {
         return head;
     }
-    let first = first_number(result, shown);
+    let first = first_number(result);
     format!("{head} · showing {first}-{}", first + shown as u64 - 1)
 }
 
 /// The running number of the first record on this page.
 ///
-/// Derived from the page and the page size, because the reading aid must continue across
-/// pages. Exact whenever every earlier page was full, which is how paging works here —
-/// only the last page can be short.
-fn first_number(result: &SearchResult, shown: usize) -> u64 {
-    let size = result.shown.max(shown) as u64;
-    u64::from(result.page.get() - 1) * size + 1
+/// `(page - 1) * limit + 1`, from the page size the user asked for rather than from the
+/// number of records that happened to arrive: the reading aid has to continue across
+/// pages, and a short last page would otherwise restart the count from a smaller stride.
+fn first_number(result: &SearchResult) -> u64 {
+    u64::from(result.page.get() - 1) * result.limit as u64 + 1
 }
 
 /// `1 result` / `774 results`.
@@ -762,19 +761,6 @@ fn library_name(holding: &Holding) -> String {
     }
 }
 
-/// The traffic light of one holding: its copies when they are known, the library-level
-/// light otherwise.
-///
-/// Mirrors the rule in [`crate::select`]: empty `items` means "not asked" as often as
-/// "nothing came back", so it never downgrades what the service already said.
-fn holding_status(holding: &Holding) -> Status {
-    if holding.items.is_empty() {
-        holding.summary
-    } else {
-        Status::summarize(holding.items.iter().map(|item| item.status))
-    }
-}
-
 /// Split the holdings into the user's own, in the order of `--at`, and the rest.
 ///
 /// Without locations everything is "mine" in record order and nothing is marked — there
@@ -1184,6 +1170,7 @@ mod tests {
             total,
             shown,
             page: Page::FIRST,
+            limit: shown.max(1),
             sort: SortSpec {
                 by: SortKey::Relevance,
                 scope: SortScope::Fetched,

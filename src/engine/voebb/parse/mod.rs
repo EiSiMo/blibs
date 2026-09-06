@@ -6,5 +6,6 @@
 
 pub mod detail;
 pub mod facet;
+pub mod form;
 pub mod noaccess;
 pub mod results;

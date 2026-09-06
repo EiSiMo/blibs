@@ -6,6 +6,7 @@
   "total": 774,
   "shown": 2,
   "page": 1,
+  "limit": 10,
   "sort": {
     "by": "relevance",
     "scope": "fetched"

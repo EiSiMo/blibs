@@ -246,16 +246,7 @@ fn undelivered(response: &SruResponse) -> usize {
 /// Berlin, Universitätsbibliothek" next to a `short_name` of "HU Berlin".
 fn name_libraries(holdings: &mut [Holding]) {
     for holding in holdings {
-        let Some(library) = holding.isil.as_ref().and_then(libraries::by_isil) else {
-            continue;
-        };
-        holding.alias = library.alias().map(str::to_owned);
-        holding.short_name = Some(library.short_name.clone());
-        // An entry whose name is blank keeps whatever the holding already had rather than
-        // rendering as an empty column.
-        if !library.name.trim().is_empty() {
-            holding.library = library.name.clone();
-        }
+        libraries::name_holding(holding);
     }
 }
 

@@ -18,5 +18,6 @@ pub mod text;
 pub use data::{Branch, Library, all};
 pub use geo::LatLon;
 pub use resolve::{
-    alias_for, by_isil, by_kobvid, by_portal_name, display_name, find, near, resolve, suggest,
+    VOEBB_NETWORK, alias_for, by_isil, by_kobvid, by_portal_name, display_name, find, name_holding,
+    near, resolve, short_name_for, suggest,
 };

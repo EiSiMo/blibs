@@ -6,8 +6,8 @@
 use crate::error::Error;
 use crate::http::Fetch;
 
-use super::parse::detail::Detail;
-use super::parse::results::ResultList;
+use super::parse::detail::DetailPage;
+use super::parse::results::ResultPage;
 use super::session::Session;
 
 /// The public entry point of the search form.
@@ -35,7 +35,7 @@ impl<'f> VoebbClient<'f> {
     }
 
     /// Submit the search form.
-    pub fn search(&self, _session: &Session, _terms: &str) -> Result<(Session, ResultList), Error> {
+    pub fn search(&self, _session: &Session, _terms: &str) -> Result<(Session, ResultPage), Error> {
         todo!("phase 5: voebb client")
     }
 
@@ -48,18 +48,18 @@ impl<'f> VoebbClient<'f> {
         &self,
         _session: &Session,
         _branch: &str,
-    ) -> Result<(Session, ResultList), Error> {
+    ) -> Result<(Session, ResultPage), Error> {
         todo!("phase 5: voebb client")
     }
 
     /// Advance to a further page of results.
-    pub fn page(&self, _session: &Session, _page: u32) -> Result<(Session, ResultList), Error> {
+    pub fn page(&self, _session: &Session, _page: u32) -> Result<(Session, ResultPage), Error> {
         todo!("phase 5: voebb client")
     }
 
     /// Fetch one record's detail page. Stateless — the detail URL works without a
     /// session, which is what makes `show voebb_...` a single request.
-    pub fn detail(&self, _local_id: &str) -> Result<Option<Detail>, Error> {
+    pub fn detail(&self, _local_id: &str) -> Result<Option<DetailPage>, Error> {
         todo!("phase 5: voebb client")
     }
 }

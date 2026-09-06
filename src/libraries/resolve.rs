@@ -3,7 +3,7 @@
 use crate::error::UsageError;
 use crate::libraries::text::{fold, levenshtein};
 use crate::libraries::{Branch, LatLon, Library, all};
-use crate::model::{BranchRef, Engine, Isil, Location};
+use crate::model::{BranchRef, Engine, Holding, Isil, Location};
 
 /// The public library network of Berlin. **The one ISIL this crate names.**
 ///
@@ -13,7 +13,7 @@ use crate::model::{BranchRef, Engine, Isil, Location};
 /// `kobv`; every other branch cannot be searched on its own at all. The rule is
 /// documented in CLAUDE.md § *Two engines* and in `plan/voebb.md`; nothing else in the
 /// crate branches on an ISIL.
-const VOEBB_NETWORK: &str = "DE-609";
+pub const VOEBB_NETWORK: &str = "DE-609";
 
 /// How the VÖBB is named in a block heading. The list's `short_name` for the network is
 /// `Berlin VÖBB/ZLB`, which is right for a table column and too long behind a branch.
@@ -222,20 +222,62 @@ pub fn near(point: LatLon) -> Vec<(&'static Library, f64)> {
     ranked
 }
 
-/// Display name for an ISIL.
+/// The full official name of an ISIL, for [`crate::model::Holding::library`].
 ///
-/// **Never `None`.** An ISIL that is not in the list renders as the bare code — an
-/// unknown library must never make a holding disappear.
+/// **Never `None` and never empty.** An ISIL that is not in the list renders as the bare
+/// code — an unknown library must never make a holding disappear. The full name is what
+/// the JSON contract in `plan/cli.md` puts in `library` ("Humboldt-Universität zu Berlin,
+/// Universitätsbibliothek, …"); the short one lives in `short_name` and comes from
+/// [`short_name_for`].
 pub fn display_name(isil: &Isil) -> String {
     let Some(library) = by_isil(isil) else {
         return isil.as_str().to_string();
     };
-    for candidate in [&library.short_name, &library.name] {
+    for candidate in [&library.name, &library.short_name] {
         if !candidate.trim().is_empty() {
             return candidate.clone();
         }
     }
     isil.as_str().to_string()
+}
+
+/// The short name of an ISIL, for [`crate::model::Holding::short_name`].
+///
+/// `None` for a code the list does not know, and for an entry whose short name is blank:
+/// the short name is an addition, and an empty column is worse than none.
+pub fn short_name_for(isil: &Isil) -> Option<&'static str> {
+    by_isil(isil)
+        .map(|library| library.short_name.trim())
+        .filter(|short| !short.is_empty())
+}
+
+/// Add the library list's names to one holding.
+///
+/// **The only place the naming rule lives.** Both engines and the availability parser go
+/// through it, so `library` cannot mean the full name in one and the short one in the
+/// other.
+///
+/// The list only ever *adds*: a holding whose ISIL it does not know keeps what the parser
+/// put there, and a holding with no ISIL at all is left untouched — a library that joined
+/// the network yesterday must still have its copies shown. `library` is filled with the
+/// bare code rather than left empty, because it is the one member that is never null.
+pub fn name_holding(holding: &mut Holding) {
+    let Some(isil) = holding.isil.clone() else {
+        return;
+    };
+    if holding.library.trim().is_empty() {
+        holding.library = isil.as_str().to_string();
+    }
+    let Some(library) = by_isil(&isil) else {
+        return;
+    };
+    holding.alias = library.alias().map(str::to_owned);
+    if let Some(short) = short_name_for(&isil) {
+        holding.short_name = Some(short.to_owned());
+    }
+    if !library.name.trim().is_empty() {
+        holding.library.clone_from(&library.name);
+    }
 }
 
 /// The canonical alias of an ISIL, for the `alias` field of a holding.

@@ -143,6 +143,31 @@ pub enum Format {
 }
 
 impl Format {
+    /// The vocabulary word for this material type — the same string the JSON carries and
+    /// the same one `--format` accepts. A closed vocabulary has to be able to name itself:
+    /// the value has to be quotable in a message ("none matched --format video") without
+    /// a second table that can drift from this one.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Format::Book => "book",
+            Format::Ebook => "ebook",
+            Format::Journal => "journal",
+            Format::Ejournal => "ejournal",
+            Format::Article => "article",
+            Format::Database => "database",
+            Format::Map => "map",
+            Format::Score => "score",
+            Format::Audio => "audio",
+            Format::Video => "video",
+            Format::Image => "image",
+            Format::Electronic => "electronic",
+            Format::Manuscript => "manuscript",
+            Format::Object => "object",
+            Format::Mixed => "mixed",
+            Format::Unknown => "unknown",
+        }
+    }
+
     /// Derive the format from leader positions 06 and 07 plus the online flag.
     ///
     /// `online` splits `book`/`ebook` and `journal`/`ejournal`; it comes from

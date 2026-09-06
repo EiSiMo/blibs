@@ -326,6 +326,14 @@ pub mod note_kinds {
     /// A block of copies could not be matched to any ISIL and is shown under the
     /// portal's own name for the library.
     pub const HOLDING_WITHOUT_ISIL: &str = "holding_without_isil";
+
+    /// voebb.de listed no copies for a record because the copies belong to the volumes
+    /// of a multi-part work, which are records of their own. Not "held nowhere".
+    pub const VOEBB_MULTIVOLUME: &str = "voebb_multivolume";
+
+    /// The record is an Onleihe title: it has no copies on a shelf, and its loan state
+    /// is stated only as prose in the link to the lending platform.
+    pub const VOEBB_ONLINE_ONLY: &str = "voebb_online_only";
 }
 
 /// The query, echoed back so a result can be reproduced without the shell history.
@@ -352,6 +360,12 @@ pub struct SearchResult {
     pub shown: usize,
     /// The page that was displayed.
     pub page: Page,
+    /// How many records a full page holds — `--limit`.
+    ///
+    /// Additive, and it exists so that the range of a page can be *computed* rather than
+    /// guessed: the first record of this page is `(page - 1) * limit + 1`, and a short
+    /// last page must not make the reading aid restart from a smaller stride.
+    pub limit: usize,
     /// How the displayed records were ordered.
     pub sort: SortSpec,
     /// What the client-side filters could see.
@@ -390,6 +404,8 @@ mod tests {
             note_kinds::AVAILABILITY_MATCHED_BY_NAME,
             note_kinds::AVAILABILITY_MATCH_CONFLICT,
             note_kinds::HOLDING_WITHOUT_ISIL,
+            note_kinds::VOEBB_MULTIVOLUME,
+            note_kinds::VOEBB_ONLINE_ONLY,
         ];
         for (index, kind) in all.iter().enumerate() {
             assert!(
@@ -514,6 +530,7 @@ mod tests {
             total: Some(774),
             shown: 2,
             page: Page::FIRST,
+            limit: usize::from(Limit::DEFAULT.get()),
             sort: SortSpec {
                 by: SortKey::Relevance,
                 scope: SortScope::Fetched,

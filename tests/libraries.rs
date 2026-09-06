@@ -5,9 +5,10 @@ mod common;
 use blibs::error::UsageError;
 use blibs::libraries::data::{LIBRARIES_JSON, Library};
 use blibs::libraries::{
-    alias_for, by_isil, by_kobvid, by_portal_name, display_name, find, near, resolve,
+    alias_for, by_isil, by_kobvid, by_portal_name, display_name, find, name_holding, near, resolve,
+    short_name_for,
 };
-use blibs::model::{Engine, Isil};
+use blibs::model::{Engine, Holding, Isil, Status};
 
 /// The file, parsed straight from the embedded string.
 ///
@@ -290,12 +291,56 @@ fn near_orders_by_distance() {
 
 /// An ISIL the list does not know renders as the bare code. A holding must never vanish
 /// because a house left the network.
+///
+/// `display_name` is the **full** official name — that is what `holdings[].library`
+/// promises in `plan/cli.md`; the short one is a separate member and a separate lookup.
 #[test]
 fn display_name_falls_back_to_the_bare_code() {
     assert_eq!(display_name(&Isil::new("DE-XYZ")), "DE-XYZ");
-    assert_eq!(display_name(&Isil::new("DE-11")), "HU Berlin");
+    assert_eq!(
+        display_name(&Isil::new("DE-11")),
+        "Humboldt-Universität zu Berlin, Universitätsbibliothek, Jacob-und-Wilhelm-Grimm-Zentrum"
+    );
+    assert_eq!(short_name_for(&Isil::new("DE-11")), Some("HU Berlin"));
+    assert_eq!(short_name_for(&Isil::new("DE-XYZ")), None);
     assert_eq!(alias_for(&Isil::new("DE-11")), Some("HU"));
     assert_eq!(alias_for(&Isil::new("DE-XYZ")), None);
+}
+
+/// The naming rule lives in one function, and both engines and the availability parser go
+/// through it: `library` is the full name, `short_name` the short one, and a code the
+/// list does not know keeps the bare ISIL rather than losing its copies.
+#[test]
+fn name_holding_is_the_one_naming_rule() {
+    let mut known = Holding {
+        isil: Some(Isil::new("DE-11")),
+        alias: None,
+        library: String::new(),
+        short_name: None,
+        local_id: None,
+        mine: false,
+        summary: Status::Unknown,
+        items: Vec::new(),
+    };
+    name_holding(&mut known);
+    assert_eq!(
+        known.library,
+        "Humboldt-Universität zu Berlin, Universitätsbibliothek, Jacob-und-Wilhelm-Grimm-Zentrum"
+    );
+    assert_eq!(known.short_name.as_deref(), Some("HU Berlin"));
+    assert_eq!(known.alias.as_deref(), Some("HU"));
+
+    let mut unknown = Holding {
+        isil: Some(Isil::new("DE-XYZ")),
+        library: String::new(),
+        ..known.clone()
+    };
+    unknown.alias = None;
+    unknown.short_name = None;
+    name_holding(&mut unknown);
+    assert_eq!(unknown.library, "DE-XYZ");
+    assert_eq!(unknown.short_name, None);
+    assert_eq!(unknown.alias, None);
 }
 
 /// The KOBV id is how a `bibids=` link becomes a place; it names a house or a branch.

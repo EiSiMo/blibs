@@ -3,12 +3,12 @@
 
 use std::io::Write as _;
 
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 
 use blibs::cli::Cli;
-use blibs::error::{Error, ExitCode, UsageError};
+use blibs::error::{Error, ExitCode, UnexpectedError, UsageError};
 use blibs::http::Http;
-use blibs::render;
+use blibs::render::{self, Style};
 
 fn main() {
     // Scanned before clap runs: a parse error must still be reported as JSON when the
@@ -22,34 +22,63 @@ fn main() {
 fn dispatch(json: bool) -> ExitCode {
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
-        // Help and version are requests, not mistakes: clap has already written them.
-        Err(err) if err.use_stderr() => return report(&UsageError::Cli(err).into(), json),
-        Err(err) => {
-            let _ = err.print();
+        Err(clap_error) if clap_error.use_stderr() => return refused(clap_error, json),
+        // Help and version are requests, not mistakes: clap has already rendered them.
+        Err(clap_error) => {
+            let _ = clap_error.print();
             return ExitCode::Success;
         }
     };
 
-    if cli.command.is_none() {
-        let _ = Cli::command().print_long_help();
-        return ExitCode::Success;
-    }
-
-    let http = Http::new(!cli.no_cache);
+    let http = Http::new(cli.cache());
     let mut stdout = std::io::stdout().lock();
-    match blibs::cli::run(&cli, &http, &mut stdout) {
+    let mut stderr = std::io::stderr().lock();
+    let style = Style::detect();
+    match blibs::cli::run(&cli, &http, &mut stdout, &mut stderr, style) {
         Ok(outcome) => outcome.exit(),
-        Err(err) => report(&err, cli.json),
+        Err(error) => report(&error, cli.json),
     }
 }
 
+/// Report what clap refused: an unknown subcommand, an unknown flag, a missing value.
+///
+/// In human form clap prints it itself, because only clap knows *which* help to point at
+/// — the top-level one for an unknown subcommand, the subcommand's for a flag inside it.
+/// In JSON form that text would be unparseable noise, so it goes through the same error
+/// envelope as everything else.
+fn refused(clap_error: clap::Error, json: bool) -> ExitCode {
+    if !json {
+        let _ = clap_error.print();
+        return ExitCode::Usage;
+    }
+    let error = Error::from(UsageError::Cli(clap_error));
+    let mut stderr = std::io::stderr().lock();
+    let _ = render::json::error(&error, &mut stderr);
+    error.exit()
+}
+
 /// Write an error to stderr in the requested shape and return its exit code.
+///
+/// A closed pipe is not a failure: `blibs search … | head` closes stdout on purpose, and
+/// complaining about it would turn a normal shell idiom into exit 6.
 fn report(error: &Error, json: bool) -> ExitCode {
+    if is_broken_pipe(error) {
+        return ExitCode::Success;
+    }
     let mut stderr = std::io::stderr().lock();
     if json {
         let _ = render::json::error(error, &mut stderr);
     } else {
-        let _ = render::human::error(error, &mut stderr, render::Style::detect());
+        let _ = render::human::error(error, &mut stderr, Style::detect());
     }
     error.exit()
+}
+
+/// Whether this error is "the reader went away".
+fn is_broken_pipe(error: &Error) -> bool {
+    matches!(
+        error,
+        Error::Unexpected(UnexpectedError::Output { source })
+            if source.kind() == std::io::ErrorKind::BrokenPipe
+    )
 }

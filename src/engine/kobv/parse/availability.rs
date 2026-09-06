@@ -319,19 +319,20 @@ fn holding_for<'h>(holdings: &'h mut Vec<Holding>, isil: &Isil) -> &'h mut Holdi
 
 /// A holding for a library the availability service named and the record did not.
 fn new_holding(isil: &Isil) -> Holding {
-    let library = libraries::by_isil(isil);
-    Holding {
+    let mut holding = Holding {
         isil: Some(isil.clone()),
-        alias: library
-            .and_then(|library| library.alias())
-            .map(str::to_string),
-        library: libraries::display_name(isil),
-        short_name: library.map(|library| library.short_name.clone()),
+        alias: None,
+        library: isil.as_str().to_string(),
+        short_name: None,
         local_id: None,
         mine: false,
         summary: Status::Unknown,
         items: Vec::new(),
-    }
+    };
+    // One naming rule for both engines and this parser: `library` is the full official
+    // name, `short_name` the short one, and an unknown code keeps the bare ISIL.
+    libraries::name_holding(&mut holding);
+    holding
 }
 
 /// The ISIL the library list gives this portal name, if it knows it.

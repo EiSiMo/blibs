@@ -178,7 +178,7 @@ fn items_at<'a>(holding: &'a Holding, location: &Location) -> Vec<&'a Item> {
 /// The traffic light of one holding: its copies when they are known, the library-level
 /// light otherwise. Empty `items` means "not asked" as often as "nothing came back", so
 /// it never downgrades the light the service already gave.
-fn holding_status(holding: &Holding) -> Status {
+pub fn holding_status(holding: &Holding) -> Status {
     if holding.items.is_empty() {
         holding.summary
     } else {
@@ -456,6 +456,7 @@ mod tests {
             total: Some(774),
             shown: 3,
             page: Page::FIRST,
+            limit: 10,
             sort: SortSpec {
                 by: SortKey::Relevance,
                 scope: SortScope::Fetched,
