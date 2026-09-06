@@ -1,0 +1,679 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>6803</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>09432nam#a2202521#ic4500</leader>
+  <controlfield tag="001">almahu_BV010644426</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20220325        </controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">960304|1925####xx######r#####|||#|#ger#u</controlfield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">634702881</subfield>
+    <subfield code="2">OCoLC</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">BV010644426</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)BVBBV010644426</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-604)BV010644426</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="c">DE-604</subfield>
+    <subfield code="e">rda</subfield>
+    <subfield code="a">29------</subfield>
+    <subfield code="d">DE-B486</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2="7">
+    <subfield code="a">ger</subfield>
+    <subfield code="2">ISO 639-2</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="h">rus</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;BV010644426</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;BV010644426</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almahu_BV010644426</subfield>
+  </datafield>
+  <datafield tag="093" ind1=" " ind2=" ">
+    <subfield code="a">almahu_BV009917235</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;,</subfield>
+    <subfield code="d">1821-1881,</subfield>
+    <subfield code="4">aut</subfield>
+    <subfield code="0">(DE-588)118527053</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="240" ind1="1" ind2="0">
+    <subfield code="a">Zapiski iz podpol&#x2B9;ja</subfield>
+    <subfield code="0">(DE-588)4330497-7</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">S&#xE4;mtliche Werke.</subfield>
+    <subfield code="p">zweite Abteilung.</subfield>
+    <subfield code="n">zwanzigster Band,</subfield>
+    <subfield code="p">Aus dem Dunkel der Gro&#xDF;stadt :</subfield>
+    <subfield code="b">acht Novellen /</subfield>
+    <subfield code="c">F. M. Dostojewski. Unter Mitarbeiterschaft von Dmitri Mereschkowski, herausgegeben von [Arthur] Moeller van den Bruck; F. M. Dostojewski ; &#xFC;bertragen von E. K. Rahsin.</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">18. - 20. Tsd.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="c">1925.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="4">
+    <subfield code="c">&#xA9; 1925.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">XXIII, 474 Seiten.</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Novelle.</subfield>
+    <subfield code="0">(DE-588)4042706-7</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="s">Novelle</subfield>
+    <subfield code="0">(DE-588)4042706-7</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Rahsin, E. K.,</subfield>
+    <subfield code="d">1886-1966</subfield>
+    <subfield code="4">trl</subfield>
+    <subfield code="0">(DE-588)105343870</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;,</subfield>
+    <subfield code="d">1821-1881.</subfield>
+    <subfield code="t">Gospodin Prochar&#x10D;in.</subfield>
+    <subfield code="0">(DE-588)1254066039</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;,</subfield>
+    <subfield code="d">1821-1881.</subfield>
+    <subfield code="t">Polzunkov.</subfield>
+    <subfield code="0">(DE-588)1254066608</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;,</subfield>
+    <subfield code="d">1821-1881.</subfield>
+    <subfield code="t">&#x10C;estnyj vor.</subfield>
+    <subfield code="0">(DE-588)1254067221</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Dostoevskij, Fe&#x34F;&#x308;dor Michajlovi&#x10D;,</subfield>
+    <subfield code="d">1821-1881.</subfield>
+    <subfield code="t">Skvernyi anekdot.</subfield>
+    <subfield code="0">(DE-588)1088012663</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;,</subfield>
+    <subfield code="d">1821-1881.</subfield>
+    <subfield code="t">Krotkaja.</subfield>
+    <subfield code="0">(DE-588)4099167-2</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;,</subfield>
+    <subfield code="d">1821-1881.</subfield>
+    <subfield code="t">Bobok.</subfield>
+    <subfield code="9">U:Cyrl</subfield>
+    <subfield code="9">L:rus</subfield>
+    <subfield code="0">(DE-588)1254070281</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Dostoevskij, Fe&#x34F;&#x308;dor Michajlovi&#x10D;,</subfield>
+    <subfield code="d">1821-1881.</subfield>
+    <subfield code="t">Son sme&#x161;nogo &#x10D;eloveka.</subfield>
+    <subfield code="0">(DE-588)4403451-9</subfield>
+  </datafield>
+  <datafield tag="773" ind1="0" ind2="8">
+    <subfield code="w">BV009917235</subfield>
+    <subfield code="q">2,20</subfield>
+  </datafield>
+  <datafield tag="852" ind1="7" ind2=" ">
+    <subfield code="b">ZB011</subfield>
+    <subfield code="c">0058</subfield>
+    <subfield code="h">Zn 47031:2:20:'20':F8</subfield>
+    <subfield code="2">zde11unbekannt</subfield>
+    <subfield code="8">22579932830002882</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Rasin, E. K.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Kaerrick, Elisabeth</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Kaerrick, Less</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">K&#x117;rrik, L.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">K&#x117;rrik, Less</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x41A;&#x44D;&#x440;&#x440;&#x438;&#x43A;, &#x41B;&#x435;&#x441;&#x441;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Duosituofusiji</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyewskiy, Fedor Mixaylowi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyewiskiy, Fedor Mixaylowi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyewiskiy, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyewskiy</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyewisiki</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Tuosituoyefusiji</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevski, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevski, Fedor Mikhailovitch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, Fedor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fjodor Michailowitch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostogephske, Th.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievski, Fedor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievski, F&#xE9;odor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievski, Fiodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievsky, Fiodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoiewsky, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojeffsky, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojeffsky, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojefski, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevski, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevsk&#xEF;, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevski, Fjodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevskij, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevskij, Fedor Mihajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, F.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fedor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fedor Michailowic</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fedor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Feodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fiodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fjodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fjodr Michailowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, M. F.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, F.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fedor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fedor Michailovic</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fedor Michailowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fedor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fedor Michajlowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Feodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevskij, Fjodor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyeffsky, Fedor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyevsky, F.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyevsky, Feodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewsky, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewsky, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Ntostogiephski, Phiontor Micha&#xEF;lobits</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">D&#x101;stavask&#x12B;, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Tosthoj&#x113;wskhi, Th.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">D&#x101;st&#x101;yiwsk&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dosutoefusuk&#x12B;, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fjodor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievsky, F.-M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x414;&#x43E;&#x441;&#x442;&#x43E;&#x435;&#x432;&#x441;&#x43A;&#x438;&#x439;, &#x424;&#x451;&#x434;&#x43E;&#x440; &#x41C;&#x438;&#x445;&#x430;&#x439;&#x43B;&#x43E;&#x432;&#x438;&#x447;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, Fedor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevsky, Fyodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevsky, Fyodor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevsky, Fyodor Mikhailovich</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievski, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievsky, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoiewski, Feodor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fjodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fjodor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fjodor Michajlowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskii, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fjodor Michailowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyevsky, Fyodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dosutoefusuk&#x12B;, Hy&#x14D;doru Mihairovicchi</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dos&#x1E6D;oiyevs&#x1E33;i, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskii, Fedor Michailovich</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fjodor Michajlowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevski, F.M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, Fedor Mihajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevsky, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, F.M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dasta&#x1E8F;ebhaski, Fiodara</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevsky, Fedor Michailovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevskij, Fedor Michailovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevsky&#x34F;&#x308;, Fedor Michailovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskii, Fedor Mikhailovich</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevskij, Fedor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojeffsky, Fedor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievski, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevskis, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevsk&#xFD;, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievski</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievski, F.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewsky, Fjodor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dosztojevszkij, Fjodor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, Fedor Michailovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dosutoefusuki</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fjedor Michailowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevs&#x2B9;kyj, Chvedir</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Th. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dosztojevszkij</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojev&#x15B;kij, Chvedir</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevsky, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskis, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevskij, Fedor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dasto&#x2BE;efsk&#x12B;, Fedor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoieffsky, Feodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoyevski, Fiodor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoievski, Fi&#xF3;dor Mikhailovich</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojevskij, Fjodor M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, Fjodor Michaijlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskij, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewskyrel tt, Th. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoi&#xEB;vsky, Th.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Theodor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fiodor Michajlowicz</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x110;&#xF4;xt&#xF4;iepxki, F. M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Tuo si tou ye fu si ji</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fjodor Michailowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostojewski, Fedor Michailowitsch</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dusituiyifusiji</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dusituifusiji</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Fei'aoduo'er Mihayiluoweiqi Tuosituoyefusiji</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x414;&#x43E;&#x441;&#x442;&#x43E;&#x435;&#x432;&#x441;&#x43A;&#x438;&#x439;, &#x424;. &#x41C;.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x9640;&#x601D;&#x59A5;&#x8036;&#x592B;&#x65AF;&#x57FA;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x591A;&#x601D;&#x59A5;&#x592B;&#x65AF;&#x57FA;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#xD45C;&#xB3C4;&#xB974; &#xBBF8;&#xD558;&#xC77C;&#xB85C;&#xBE44;&#xCE58; &#xB3C4;&#xC2A4;&#xD1A0;&#xC619;&#xC2A4;&#xD0A4;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#xB3C4;&#xC2A4;&#xD1A0;&#xC619;&#xC2A4;&#xD0A4;, &#xD45C;&#xB3C4;&#xB974; &#xBBF8;&#xD558;&#xC77C;&#xB85C;&#xBE44;&#xCE58;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#xB3C4;&#xC2A4;&#xD1A0;&#xC608;&#xD504;&#xC2A4;&#xD0A4;, &#xD45C;&#xB3C4;&#xB974; &#xBBF8;&#xD558;&#xC77C;&#xB85C;&#xBE44;&#xCE58;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x30C9;&#x30B9;&#x30C8;&#x30A8;&#x30D5;&#x30B9;&#x30AD;&#x30FC;, &#x30D5;&#x30E7;&#x30FC;&#x30C9;&#x30EB;&#x30FB;&#x30DF;&#x30CF;&#x30A4;&#x30ED;&#x30F4;&#x30A3;&#x30C1;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#xB3C4;&#xC2A4;&#xD1A0;&#xC608;&#xD504;&#xC2A4;&#xD0A4;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x62F;&#x648;&#x633;&#x62A;&#x648;&#x64A;&#x6D0;&#x6CB;&#x633;&#x643;&#x649;&#x64A;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x62F;&#x648;&#x633;&#x62A;&#x648;&#x64A;&#x6D0;&#x6CB;&#x633;&#x643;&#x649;&#x64A;, &#x6A7;. &#x645;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x62F;&#x648;&#x633;&#x62A;&#x648;&#x64A;&#x6D0;&#x6CB;&#x649;&#x633;&#x643;&#x649;&#x64A;, &#x6A7;. &#x645;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x62F;&#x648;&#x633;&#x62A;&#x648;&#x64A;&#x641;&#x633;&#x643;&#x64A;, &#x641;&#x64A;&#x62F;&#x648;&#x631;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x62F;&#x648;&#x633;&#x62A;&#x648;&#x64A;&#x6D0;&#x6CB;&#x649;&#x633;&#x643;&#x649;&#x64A;, &#x641;&#x6D0;&#x62F;&#x648;&#x631; &#x645;&#x649;&#x62E;&#x627;&#x64A;&#x644;&#x648;&#x6CB;&#x649;&#x686;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x62F;&#x648;&#x633;&#x62A;&#x648;&#x64A;&#x6D0;&#x6CB;&#x633;&#x643;&#x649;&#x64A;, &#x6A7;&#x6D0;&#x62F;&#x648;&#x631; &#x645;&#x649;&#x62E;&#x627;&#x64A;&#x644;&#x648;&#x6CB;&#x649;&#x686;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D0;&#x5E1;&#x5D8;&#x5D0;&#x5D9;&#x5E2;&#x5D5;&#x5D5;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;&#x5D9;&#x5D5;&#x5D3;&#x5D5;&#x5E8; &#x5DE;&#x5D9;&#x5DB;&#x5D0;&#x5D9;&#x5DC;&#x5D5;&#x5D1;&#x5D9;&#x5E5;'</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D0;&#x5E1;&#x5D8;&#x5D0;&#x5D9;&#x5E2;&#x5D5;&#x5D5;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;&#x5D9;&#x5D0;&#x5D3;&#x5D0;&#x5E8; &#x5DE;&#x5D9;&#x5DB;&#x5D0;&#x5D9;&#x5DC;&#x5D0;&#x5D5;&#x5D5;&#x5D9;&#x5D8;&#x5E9;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D0;&#x5E1;&#x5D8;&#x5D0;&#x5D9;&#x5E2;&#x5F0;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D5;&#x5E1;&#x5D8;&#x5D5;&#x5DC;&#x5D9;&#x5D9;&#x5D1;&#x5E1;&#x5E7;&#x5D9;, &#x5D8;&#x5D9;&#x5D0;&#x5D5;&#x5D3;&#x5D5;&#x5E8;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D5;&#x5E1;&#x5D8;&#x5D5;&#x5D9;&#x5D1;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;.&#x5DE;.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D5;&#x5E1;&#x5D8;&#x5D5;&#x5D9;&#x5D1;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;. &#x5DE;.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D5;&#x5E1;&#x5D8;&#x5D5;&#x5D9;&#x5D1;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;&#x5F3; &#x5DE;&#x5F3;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D5;&#x5E1;&#x5D8;&#x5D5;&#x5D9;&#x5D9;&#x5D1;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;&#x5D9;&#x5D5;&#x5D3;&#x5D5;&#x5E8; &#x5DE;&#x5D9;&#x5DB;&#x5D0;&#x5D9;&#x5DC;&#x5D5;&#x5D1;&#x5D9;&#x5E5;'</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D5;&#x5E1;&#x5D8;&#x5D5;&#x5D9;&#x5D1;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;&#x5D9;&#x5D5;&#x5D3;&#x5D5;&#x5E8;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D5;&#x5E1;&#x5D8;&#x5D5;&#x5D9;&#x5D9;&#x5D1;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;&#x5D9;&#x5D5;&#x5D3;&#x5D5;&#x5E8;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x5D3;&#x5D5;&#x5E1;&#x5D8;&#x5D5;&#x5D9;&#x5D1;&#x5E1;&#x5E7;&#x5D9;, &#x5E4;&#x5D9;&#x5D5;&#x5D3;&#x5D5;&#x5E8; &#x5DE;&#x5D9;&#x5DB;&#x5D0;&#x5D9;&#x5DC;&#x5D5;&#x5D1;&#x5D9;&#x5E5;&#x2B9;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x675C;&#x601D;&#x9000;&#x76CA;&#x592B;&#x65AF;&#x57FA;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x675C;&#x65AF;&#x9000;&#x592B;&#x65AF;&#x57FA;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x8D39;&#x5965;&#x591A;&#x5C14;&#xB7;&#x7C73;&#x54C8;&#x4F0A;&#x6D1B;&#x7EF4;&#x5947;&#xB7;&#x9640;&#x601D;&#x59A5;&#x8036;&#x592B;&#x65AF;&#x57FA;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dostoevskij, F&#xEB;dor Michajlovi&#x10D;</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">BV010644426</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="940" ind1=" " ind2=" ">
+    <subfield code="a">RDA-Aufnahme</subfield>
+  </datafield>
+  <datafield tag="942" ind1=" " ind2=" ">
+    <subfield code="a">05</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="a">BV010644426</subfield>
+    <subfield code="9">990039151710302882</subfield>
+  </datafield>
+  <datafield tag="967" ind1="0" ind2="0">
+    <subfield code="s">Novelle</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="c">BV009917235</subfield>
+    <subfield code="8">990039150710302882</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>3</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>Dostoevskij</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

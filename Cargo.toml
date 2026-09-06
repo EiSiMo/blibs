@@ -1,0 +1,99 @@
+[package]
+name = "blibs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Search the libraries of Berlin and Brandenburg from the command line — holdings, live availability and shelfmarks, for humans and for agents."
+license = "GPL-3.0"
+repository = "https://github.com/EiSiMo/blibs"
+keywords = ["library", "catalogue", "kobv", "voebb", "cli"]
+categories = ["command-line-utilities"]
+
+[lib]
+name = "blibs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "blibs"
+path = "src/main.rs"
+
+[dependencies]
+# Argument parsing. `derive` keeps the CLI contract next to the types it fills;
+# `wrap_help` reflows the long help that `blibs` prints when called without arguments.
+# `suggestions` (a default feature) turns a typo'd subcommand into a pointer, which the
+# exit-code-2 contract in plan/cli.md asks for.
+clap = { version = "4.6.6", features = ["derive", "wrap_help"] }
+
+# HTTP client. Blocking and thread-based on purpose (no async runtime, see plan/client.md);
+# `cookies` is required because voebb.de is session-bound, rustls arrives via the defaults.
+ureq = { version = "3.4.1", features = ["cookies"] }
+
+# The JSON output schema is derived from the domain types so human and agent output cannot
+# drift apart; `derive` is what makes that a one-liner per type.
+serde = { version = "1.0.229", features = ["derive"] }
+
+# `preserve_order` is not cosmetic: the availability response is matched positionally
+# against the key order of `isilAvailability` (CLAUDE.md, plan/scraping.md §B.5.1).
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+
+# One error enum with structured fields and a Display that says what failed.
+thiserror = "2.0.20"
+
+# MARCXML/SRU parsing. Read-only, zero-copy, no DTD/entity expansion — the whole SRU
+# envelope is walked once and never mutated.
+roxmltree = "0.21.1"
+
+# HTML: the shelf table inside the availability JSON and everything voebb.de returns.
+# A real parser is mandatory here — a failed selector must be nameable in an error.
+scraper = "0.27.0"
+
+# Cache keys: sha256 over method + host + path + sorted query (plan/client.md).
+sha2 = "0.11.0"
+
+# Terminal column widths must be computed on CJK and combining text, not on `str::len`.
+unicode-width = "0.2.2"
+
+# Terminal width for the table renderer; falls back to a fixed width when not a TTY.
+terminal_size = "0.4.4"
+
+# Colour as data: `anstyle` describes a style without deciding whether it is emitted.
+anstyle = "1.0.14"
+
+# ... and `anstream` does the deciding — TTY detection and NO_COLOR, so that the layout is
+# byte-identical with and without colour.
+anstream = "1.0.0"
+
+[dev-dependencies]
+# Black-box CLI tests: exit codes, stdout/stderr separation, help text.
+assert_cmd = "2.2.2"
+
+# Readable assertions on that output.
+predicates = "3.1.4"
+
+# Throwaway directories for the on-disk response cache tests.
+tempfile = "3.27.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Module paths are the namespace: `model::record::Record` reads worse than `RecordId` in
+# `model::id`, and the re-exports in `model::mod` are what callers actually use.
+module_name_repetitions = "allow"
+# Almost every accessor in `model` is a candidate; the annotation would outnumber the code.
+must_use_candidate = "allow"
+# Every fallible function in this crate returns the single `Error` enum, whose variants
+# carry their own remediation text (CLAUDE.md). Failure modes are documented in prose in
+# the doc comment instead of in a boilerplate `# Errors` section.
+missing_errors_doc = "allow"
+# Same reasoning: panics are documented where they exist, and no path reachable from user
+# or network input is allowed to panic at all.
+missing_panics_doc = "allow"

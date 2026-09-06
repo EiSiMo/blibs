@@ -1,0 +1,331 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>1</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>03934nam#a2200973#ib4500</leader>
+  <controlfield tag="001">almafu_BV008885798</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20260324        </controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">940207|1994####gw######rm####|||#u#ger#u</controlfield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">30982261</subfield>
+    <subfield code="2">OCoLC</subfield>
+  </datafield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">940317915</subfield>
+    <subfield code="2">DE-101b</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">3-89473-790-5</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">BV008885798</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)BVBBV008885798</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-604)BV008885798</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="c">DE-604</subfield>
+    <subfield code="e">rakddb</subfield>
+    <subfield code="a">739-----</subfield>
+    <subfield code="d">DE-11</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2="7">
+    <subfield code="a">ger</subfield>
+    <subfield code="2">ISO 639-2</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="a">gw</subfield>
+    <subfield code="c">DE</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-188;BV008885798</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;12349009</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;BV008885798</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;BV008885798</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-521;BV008885798</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;275177939</subfield>
+  </datafield>
+  <datafield tag="050" ind1=" " ind2="4">
+    <subfield code="a">PT2621.A26P7665 1994</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2="4">
+    <subfield code="a">833/.912 20</subfield>
+  </datafield>
+  <datafield tag="083" ind1="0" ind2="4">
+    <subfield code="a">833/.912</subfield>
+    <subfield code="2">20</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">53</subfield>
+    <subfield code="2">sdnb</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">GM 4004</subfield>
+    <subfield code="0">(DE-625)42088:11810</subfield>
+    <subfield code="2">rvk</subfield>
+  </datafield>
+  <datafield tag="089" ind1="0" ind2="4">
+    <subfield code="a">833/.912</subfield>
+    <subfield code="2">20</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-188;BV008885798</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;12349009</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;BV008885798</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;BV008885798</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-521;BV008885798</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;275177939</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almafu_BV008885798</subfield>
+  </datafield>
+  <datafield tag="093" ind1=" " ind2=" ">
+    <subfield code="a">almafu_BV000016422</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Kleinschmidt, Klaus</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Augenblick und Irritation :</subfield>
+    <subfield code="b">Figuren der Zeit in Kafkas "Prozess" /</subfield>
+    <subfield code="c">Klaus Kleinschmidt.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">M&#xFC;nster [u.a.] :</subfield>
+    <subfield code="b">Lit,</subfield>
+    <subfield code="c">1994.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">293 S.</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Germanistik</subfield>
+    <subfield code="v">7</subfield>
+  </datafield>
+  <datafield tag="502" ind1=" " ind2=" ">
+    <subfield code="a">Zugl.: Berlin, Freie Univ., Diss., 1992</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Time in literature</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Erz&#xE4;hltechnik</subfield>
+    <subfield code="0">(DE-588)4124854-5</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Zeit</subfield>
+    <subfield code="g">Motiv</subfield>
+    <subfield code="0">(DE-588)4207564-6</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Hochschulschrift</subfield>
+    <subfield code="0">(DE-588)4113937-9</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="0">
+    <subfield code="a">Kafka, Franz, 1883-1924</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="0">
+    <subfield code="a">Kafka, Franz &lt;1883-1924&gt;</subfield>
+    <subfield code="t">Prozess</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="7">
+    <subfield code="a">Kafka, Franz</subfield>
+    <subfield code="d">1883-1924</subfield>
+    <subfield code="t">&lt;&lt;Der&gt;&gt; Prozess</subfield>
+    <subfield code="0">(DE-588)4099250-0</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="p">Kafka, Franz</subfield>
+    <subfield code="d">1883-1924</subfield>
+    <subfield code="t">Der Prozess</subfield>
+    <subfield code="0">(DE-588)4099250-0</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="s">Erz&#xE4;hltechnik</subfield>
+    <subfield code="0">(DE-588)4124854-5</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="2">
+    <subfield code="s">Zeit</subfield>
+    <subfield code="g">Motiv</subfield>
+    <subfield code="0">(DE-588)4207564-6</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="0">
+    <subfield code="p">Kafka, Franz</subfield>
+    <subfield code="d">1883-1924</subfield>
+    <subfield code="t">Der Prozess</subfield>
+    <subfield code="0">(DE-588)4099250-0</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="1">
+    <subfield code="s">Zeit</subfield>
+    <subfield code="g">Motiv</subfield>
+    <subfield code="0">(DE-588)4207564-6</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2=" ">
+    <subfield code="5">DE-188</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Germanistik</subfield>
+    <subfield code="w">BV000016422</subfield>
+    <subfield code="v">7</subfield>
+    <subfield code="9">7</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://bvbr.bib-bvb.de:443/F?func=service&amp;doc_library=BVB01&amp;local_base=BVB01&amp;doc_number=005878470&amp;sequence=000001&amp;line_number=0001&amp;func_code=DB_RECORDS&amp;service_type=MEDIA</subfield>
+    <subfield code="3">Inhaltsverzeichnis</subfield>
+  </datafield>
+  <datafield tag="852" ind1="7" ind2=" ">
+    <subfield code="b">920</subfield>
+    <subfield code="c">EB/1</subfield>
+    <subfield code="h">GM 4004 K64 A9</subfield>
+    <subfield code="2">rvk</subfield>
+    <subfield code="8">22869457350002883</subfield>
+  </datafield>
+  <datafield tag="852" ind1="8" ind2=" ">
+    <subfield code="b">UB</subfield>
+    <subfield code="c">MAG-D</subfield>
+    <subfield code="h">88/94/60456(3)</subfield>
+    <subfield code="8">22869457330002883</subfield>
+  </datafield>
+  <datafield tag="852" ind1="8" ind2=" ">
+    <subfield code="b">UB</subfield>
+    <subfield code="c">MAG-D</subfield>
+    <subfield code="h">88/94/60456(3)/1</subfield>
+    <subfield code="8">22869457310002883</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Hochschulschrift</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Hochschulschrift</subfield>
+    <subfield code="0">(DE-588)4113937-9</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Hochschulschrift</subfield>
+    <subfield code="0">(DE-588)4113937-9</subfield>
+    <subfield code="0">(DE-627)105825778</subfield>
+    <subfield code="0">(DE-576)209480580</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="0">(DE-588)4113937-9</subfield>
+    <subfield code="a">Hochschulschrift</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://bvbr.bib-bvb.de:443/F?func=service&amp;doc_library=BVB01&amp;local_base=BVB01&amp;doc_number=005878470&amp;sequence=000001&amp;line_number=0001&amp;func_code=DB_RECORDS&amp;service_type=MEDIA</subfield>
+    <subfield code="3">Inhaltsverzeichnis</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="2">
+    <subfield code="m">DNB Datenaustausch</subfield>
+    <subfield code="q">application/pdf</subfield>
+    <subfield code="u">https://bvbr.bib-bvb.de:443/F?func=service&amp;doc_library=BVB01&amp;local_base=BVB01&amp;doc_number=005878470&amp;sequence=000001&amp;line_number=0001&amp;func_code=DB_RECORDS&amp;service_type=MEDIA</subfield>
+    <subfield code="3">Inhaltsverzeichnis</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">BV008885798</subfield>
+    <subfield code="b">DE-188</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">12349009</subfield>
+    <subfield code="b">DE-609</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">BV008885798</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">BV008885798</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">BV008885798</subfield>
+    <subfield code="b">DE-521</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">275177939</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="942" ind1=" " ind2=" ">
+    <subfield code="a">05</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="a">BV008885798</subfield>
+    <subfield code="9">990003348010402883</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="c">BV000016422</subfield>
+    <subfield code="8">990000715500402883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="a">BV008885798</subfield>
+    <subfield code="9">9950238725102882</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="c">BV000016422</subfield>
+    <subfield code="8">990000832210302882</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>1</zs:recordPosition></zs:record></zs:records><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:queryType>pqf</zs:queryType><zs:query>@attr 1=12 almafu_BV008885798</zs:query><zs:maximumRecords>1</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

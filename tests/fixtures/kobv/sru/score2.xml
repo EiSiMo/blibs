@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>7904</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>04161nmm a2200385uu 4500</leader>
+  <controlfield tag="001">kobvindex_ZLB16074919</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250601145014.0</controlfield>
+  <controlfield tag="007">co |||||||||||</controlfield>
+  <controlfield tag="007">co |||</controlfield>
+  <controlfield tag="008">160929s2016    ||||||||||||||||||||zxx||</controlfield>
+  <datafield tag="015" ind1=" " ind2=" ">
+    <subfield code="a">16,T08</subfield>
+  </datafield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">1105669505</subfield>
+    <subfield code="2">DE-101</subfield>
+  </datafield>
+  <datafield tag="024" ind1="1" ind2=" ">
+    <subfield code="a">028947959823</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-101)1105669505</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="e">rda</subfield>
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">zxx</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-DE</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVZLB16074919</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;16074919</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;16074919</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_ZLB16074919</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Emerson String Quartet - complete recordings on Deutsche Grammophon</subfield>
+    <subfield code="c">X</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">Limited edition</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Berlin</subfield>
+    <subfield code="b">Universal Music</subfield>
+    <subfield code="c">&#x2117; 2016</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="4">
+    <subfield code="a">Berlin</subfield>
+    <subfield code="b">Deutsche Grammophon GmbH</subfield>
+    <subfield code="c">[2016]</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">52 CD</subfield>
+    <subfield code="c">13 cm</subfield>
+    <subfield code="e">1 Booklet (139 Seiten)</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">performed music</subfield>
+    <subfield code="b">prm</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">audio</subfield>
+    <subfield code="b">s</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">audio disc</subfield>
+    <subfield code="b">sd</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">Schubert: Streichquartette D. 703, 804, 810, 887. Streichquintett D. 956. - Beethoven: Streichquartette Nr. 1-16. Gro&#xDF;e Fuge op. 133. - Bartok: Streichquartette Nr. 1-6. - Debussy: Streichquartett g-moll op. 10. - Ravel: Streichquartett F-Dur. - Tschaikowsky: Streichquartett Nr. 1. - Borodin: Streichquartett Nr. 2. - Haydn: Streichquartett Nr. 35, 38, 50-57, 63, 74, 76, 77, 81. - Smetana: Streichquartett Nr. 1. - Brahms: Streichquartette Nr. 1-3.  Klavierquintett op. 34. Klarinettenquintett op. 115. O Heiland, reiss die Himmel auf op. 74 Nr. 2. - Schumann: Streichquartett Nr. 3. Klavierquintett op. 22. Klavierquartett op. 47. - Mozart: Fl&#xF6;tenquartette Nr. 1-4. Streichquartette Nr. 14-19. Klarinettenquintett KV 581. - Prokofieff: Streichquartette Nr. 1 &amp; 2. Sonate f&#xFC;r 2 Violinen op. 56. - Barber: Adagio f&#xFC;r Streichquartett. - Harbison: Streichquartett Nr. 2. - Wernick: Streichquartett Nr. 4. - Schuller: Streichquartett Nr. 3. - Dvorak: Klavierquintett op. 81. Klavierquartett op. 87. Streichquartette Nr. 10, 11, 13, 14. Streichquintett op. 97. Zypressen f&#xFC;r Streichquartett. - Berg: Langsamer Satz (1905). 5 S&#xE4;tze op. 5. 6 Bagatellen op. 9. Rondo (1906). Satz f&#xFC;r Streichtrio op. posth. Streichtrio op. 20. Streichquartett op. 28. Lyrische Suite f&#xFC;r Streichquartett. - Ives: Streichquartette Nr. 1 &amp; 2. Dover Beach op. 3. - Meyer: Quintett f&#xFC;r Streichquartett &amp; Kontrabass. - Rorem: Streichquartett Nr. 4. - Schostakowitsch: Streichquartette Nr. 1-15. Adagio (Elegie). Allegretto (Polka). - Bach: Die Kunst der Fuge BWV 1080 f&#xFC;r Streichquartett. Pr&#xE4;ludien &amp; Fugen f&#xFC;r Streichquartett aus Das Wohltemperierte Klavier 1 &amp; 2 (in Arrangements von F&#xF6;rster &amp; Mozart). - Mendelssohn: Streichquartette Nr. 0-7. Streichoktett op. 20. - Grieg: Streichquartett op. 27. - Nielsen: At the Bier of a young artist. - Sibelius: Streichquartett op. 56 "Voces intimae". Andante festivo. - Janacek: Streichquartette Nr. 1 &amp; 2. - Martinu: 3 Madrigale f&#xFC;r Violine &amp; Viola. - Wellesz: Sonnets from the Portuguese op. 52. - Zeisl: Komm, s&#xFC;sser Tod. - Janacek / Burghauser: In Tears aus Verwachsene Pfade f&#xFC;r Streichquartett. - Wolf: Italienische Serenade G-Dur. - Puccini: Andante mesto aus Crisantemi. - Eugene Drucker &#xFC;ber Haydns "Die sieben letzten Worte". - Listening Guide: Eine Reise durch Mendelssohns Streichquartette</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">Diese Edition erscheint zur Feier von 40 Jahren Emerson String Quartet. Gegr&#xFC;ndet im Jahr 1976 treten die vier Musiker heute genauso wissbegierig, beseelt von jugendlichem Forschergeist auf, wie in ihren Anf&#xE4;ngen. Die au&#xDF;ergew&#xF6;hnliche Persistenz und Dynamik des Quartets, das im Laufe der Jahre mit SECHS GRAMMY AWARDS und zwei Gramophone Magazine Awards ausgezeichnet wurde, wird hier auf 52 CDs dokumentiert; enthalten sind komplette Zyklen der Streichquartette von Schostakowitsch, Beethoven und Bart&#xF3;k; au&#xDF;erdem Werke von Haydn, Tschaikowsky, Schubert u. v. m. Inklusive Bonus-CD mit Zugaben und Audio-Guides. (www.jpc.de)</subfield>
+  </datafield>
+  <datafield tag="583" ind1=" " ind2=" ">
+    <subfield code="a">Archivierung/Langzeitarchivierung gew&#xE4;hrleistet; $fPEBE; $5DE-109; $2pdager</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="0">(DE-609)00001302</subfield>
+    <subfield code="0">(DE-588)5048291-9</subfield>
+    <subfield code="a">Emerson String Quartet</subfield>
+    <subfield code="4">itr</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">16074919</subfield>
+    <subfield code="b">DE-609</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>2</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Streichquartett"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

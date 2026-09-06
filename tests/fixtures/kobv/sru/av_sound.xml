@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>1070</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>00823njm a2200277uuc4500</leader>
+  <controlfield tag="001">kobvindex_ZLB12845080</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250531133110.0</controlfield>
+  <controlfield tag="007">s| |||||||||||</controlfield>
+  <controlfield tag="007">so |||</controlfield>
+  <controlfield tag="008">981128s1998    ||||||||||||||||||||ger||</controlfield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVZLB12845080</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;12845080</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;12845080</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_ZLB12845080</subfield>
+  </datafield>
+  <datafield tag="093" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_ZLB12829029</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">New Rock &amp; Metal Hammer</subfield>
+    <subfield code="b">[Compact Disc]</subfield>
+    <subfield code="n">1998,11</subfield>
+    <subfield code="p">Off Road Tracks : Vol. 13 ; [Compact Disc]</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">1</subfield>
+  </datafield>
+  <datafield tag="260" ind1="3" ind2=" ">
+    <subfield code="c">1998</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">1 Compact Disc</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Aus: New Rock &amp; Metal Hammer Jg. 1998, H. 11</subfield>
+  </datafield>
+  <datafield tag="511" ind1="0" ind2=" ">
+    <subfield code="a">Interpr.: Drecksau. Rhythm Trip. Pyogenesis. ...</subfield>
+  </datafield>
+  <datafield tag="773" ind1="0" ind2="8">
+    <subfield code="w">(DE-602)ZLB12829029</subfield>
+    <subfield code="q">41998 211</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">12845080</subfield>
+    <subfield code="b">DE-609</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>41</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Compact Disc"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

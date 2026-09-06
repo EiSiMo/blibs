@@ -1,0 +1,172 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>371</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>06167nam a22005415i 4500</leader>
+  <controlfield tag="001">almahu_9948193042102882</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250205231750.0</controlfield>
+  <controlfield tag="007">cr nn 008mamaa</controlfield>
+  <controlfield tag="008">130402s1933    gw |    s    |||| 0|ger d</controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9783642520129</subfield>
+    <subfield code="9">978-3-642-52012-9</subfield>
+  </datafield>
+  <datafield tag="024" ind1="7" ind2=" ">
+    <subfield code="a">10.1007/978-3-642-52012-9</subfield>
+    <subfield code="2">doi</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-He213)978-3-642-52012-9</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9948193042102882</subfield>
+  </datafield>
+  <datafield tag="050" ind1=" " ind2="4">
+    <subfield code="a">QA150-272</subfield>
+  </datafield>
+  <datafield tag="072" ind1=" " ind2="7">
+    <subfield code="a">PBF</subfield>
+    <subfield code="2">bicssc</subfield>
+  </datafield>
+  <datafield tag="072" ind1=" " ind2="7">
+    <subfield code="a">MAT002000</subfield>
+    <subfield code="2">bisacsh</subfield>
+  </datafield>
+  <datafield tag="072" ind1=" " ind2="7">
+    <subfield code="a">PBF</subfield>
+    <subfield code="2">thema</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2="4">
+    <subfield code="a">512</subfield>
+    <subfield code="2">23</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9948193042102882</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almahu_9948193042102882</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Hilbert, David.</subfield>
+    <subfield code="e">author.</subfield>
+    <subfield code="4">aut</subfield>
+    <subfield code="4">http://id.loc.gov/vocabulary/relators/aut</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Algebra &#xB7; Invariantentheorie &#xB7; Geometrie</subfield>
+    <subfield code="h">[electronic resource] /</subfield>
+    <subfield code="c">von David Hilbert.</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">1st ed. 1933.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Berlin, Heidelberg :</subfield>
+    <subfield code="b">Springer Berlin Heidelberg :</subfield>
+    <subfield code="b">Imprint: Springer,</subfield>
+    <subfield code="c">1933.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">VIII, 454 S. 1 Abb.</subfield>
+    <subfield code="b">online resource.</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">computer</subfield>
+    <subfield code="b">c</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">online resource</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="2">rdacarrier</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="b">cr</subfield>
+  </datafield>
+  <datafield tag="347" ind1=" " ind2=" ">
+    <subfield code="a">text file</subfield>
+    <subfield code="b">PDF</subfield>
+    <subfield code="2">rda</subfield>
+  </datafield>
+  <datafield tag="505" ind1="0" ind2=" ">
+    <subfield code="a">1. &#xDC;ber die invarianten Eigenschaften spezieller bin&#xE4;rer Formen, insbesondere der Kugelfunktionen. [Inauguraldissertation. K&#xF6;nigsberg i. Pr. (1885).] -- 2. &#xDC;ber die notwendigen und hinreichenden kovarianten Bedingungen f&#xFC;r die Darstellbarkeit einer bin&#xE4;ren Form als vollst&#xE4;ndiger Potenz. [Mathem. Annalen Bd. 27, S. 158&#x2013;161 (1886).] -- 3. &#xDC;ber einen allgemeinen Gesichtspunkt f&#xFC;r invariantentheoretische Untersuchungen im bin&#xE4;ren Formengebiete. [Mathem. Annalen Bd. 28, S. 381&#x2013;446 (1887).] -- 4. &#xDC;ber eine Darstellungsweise der invarianten Gebilde im bin&#xE4;ren Formengebiete. [Mathem. Annalen Bd. 30, S. 15&#x2013;29 (1887).] -- 5. &#xDC;ber die Singularit&#xE4;ten der Diskriminantenfl&#xE4;che. [Mathem. Annalen Bd. 30, S. 437&#x2013;441 (1887).] -- 6. &#xDC;ber bin&#xE4;re Formenb&#xFC;schel mit besonderer Kombinanteneigenschaft. [Mathem. Annalen Bd. 30, S. 561&#x2013;570 (1887).] -- 7. &#xDC;ber bin&#xE4;re Formen mit vorgeschriebener Diskriminante. [Mathem. Annalen Bd. 31, S. 482&#x2013;492 (1888).] -- 8. &#xDC;ber die Diskriminante der im Endlichen abbrechenden hypergeometrischen Reihe. [Journ. f. reine und angew. Math. Bd. 103, S. 337&#x2013;345 (1888).] -- 9. Lettre adress&#xE9;e &#xE0; M. Hermite. [J. Math. pures appl. 4. Reihe, Bd. 4, S. 249&#x2013;256 (1888).] -- 10. &#xDC;ber die Darstellung definiter Formen als Summe von Formenquadraten. [Mathem. Annalen Bd. 32, S. 342&#x2013;350 (1888).] -- 11. &#xDC;ber die Endlichkeit des Invariantensystems f&#xFC;r bin&#xE4;re Grundformen. [Mathem. Annalen Bd. 33, S. 223&#x2013;226 (1889).] -- 12. &#xDC;ber B&#xFC;schel von bin&#xE4;ren Formen mit vorgeschriebener Funktionaldeterminante. [Mathem. Annalen Bd. 33, S. 227&#x2013;236 (1889).] -- 13. Zur Theorie der algebraischen Gebilde I. [G&#xF6;ttinger Nachrichten 1888, S. 450&#x2013;457.] -- 14. Zur Theorie der algebraischen Gebilde II. [G&#xF6;ttinger Nachrichten 1889, S. 25&#x2013;34.] -- 15. Zur Theorie der algebraischen Gebilde III. [G&#xF6;ttinger Nachrichten 1889, S. 423&#x2013;430.] -- 16. &#xDC;ber die Theorie der algebraischen Formen. [Mathem. Annalen Bd. 36, S. 473&#x2013;534 (1890).] -- 17. &#xDC;ber die diophantischen Gleichungen vom Geschlecht Null. (Zusammen mit A. Hurwitz). [Acta Math. Bd. 14, S. 217&#x2013;224 (1891).] -- 18. &#xDC;ber die Irreduzibilit&#xE4;t ganzer rationaler Funktionen mit ganzzahligen Koeffizienten. [Journ. f. reine und angew. Math. Bd. 110, S. 104&#x2013;129 (1892).] -- 19. &#xDC;ber die vollen Invariantensysteme. [Mathem. Annalen Bd. 42, S. 313&#x2013;373 (1893).] -- 20. &#xDC;ber tern&#xE4;re definite Formen. [Acta Math. Bd. 17, S. 169&#x2013;197 (1893).] -- 21. Ein Beitrag zur Theorie des Legendreschen Polynoms. [Acta Math. Bd. 18, S. 155&#x2013;159 (1894).] -- 22. Zur Theorie der aus n Haupteinheiten gebildeten komplexen Gr&#xF6;&#xDF;en. [G&#xF6;ttinger Nachrichten 1896, S. 179&#x2013;183.] -- 23. &#xDC;ber die Theorie der algebraischen Invarianten. [Math. papers read at the international Math. Congress Chicago 1893, S. 116 bis 124. New York: Macmillan &amp; Co. 1896.] -- 24. &#xDC;ber diophantische Gleichungen. [G&#xF6;ttinger Nachrichten 1897, S. 48&#x2013;54.] -- 25. &#xDC;ber die Invarianten eines Systems von beliebig vielen Grundformen. [Mathem. Abhandlungen Hermann Amandus Schwarz zu seinem f&#xFC;nfzigsten Doktorjubil&#xE4;um, S. 448&#x2013;451. Berlin: Julius Springer 1914.] -- 26. &#xDC;ber die Gleichung neunten Grades. [Mathem. Annalen Bd. 97, S. 243&#x2013;250 (1927).] -- Nachwort zu Hilberts algebraischen Arbeiten -- Zu Hilberts Grundlegung der Geometrie -- 27. &#xDC;ber die reellen Z&#xFC;ge algebraischer Kurven. [Mathem. Annalen Bd. 38, S. 115&#x2013;138 (1891).] -- 28. &#xDC;ber Fl&#xE4;chen von konstanter Gau&#xDF;scher Kr&#xFC;mmung. [Transactions of the American mathematical Society Bd. 2, S. 87&#x2013;99 (1901).] -- 29. &#xDC;ber die Gestalt einer Fl&#xE4;che vierter Ordnung. [G&#xF6;ttinger Nachrichten 1909, S. 308&#x2013;313.].</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">Dieser Buchtitel ist Teil des Digitalisierungsprojekts Springer Book Archives mit Publikationen, die seit den Anf&#xE4;ngen des Verlags von 1842 erschienen sind. Der Verlag stellt mit diesem Archiv Quellen f&#xFC;r die historische wie auch die disziplingeschichtliche Forschung zur Verf&#xFC;gung, die jeweils im historischen Kontext betrachtet werden m&#xFC;ssen. Dieser Titel erschien in der Zeit vor 1945 und wird daher in seiner zeittypischen politisch-ideologischen Ausrichtung vom Verlag nicht beworben.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Algebra.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Geometry.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Mathematics.</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="4">
+    <subfield code="a">Algebra.</subfield>
+    <subfield code="0">http://scigraph.springernature.com/things/product-market-codes/M11000</subfield>
+  </datafield>
+  <datafield tag="650" ind1="2" ind2="4">
+    <subfield code="a">Geometry.</subfield>
+    <subfield code="0">http://scigraph.springernature.com/things/product-market-codes/M21006</subfield>
+  </datafield>
+  <datafield tag="650" ind1="2" ind2="4">
+    <subfield code="a">Mathematics, general.</subfield>
+    <subfield code="0">http://scigraph.springernature.com/things/product-market-codes/M00009</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">SpringerLink &lt;Online service&gt;</subfield>
+  </datafield>
+  <datafield tag="773" ind1="0" ind2=" ">
+    <subfield code="t">Springer eBooks</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="i">Printed edition:</subfield>
+    <subfield code="z">ISBN 9783642519505</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="u">https://doi.org/10.1007/978-3-642-52012-9</subfield>
+  </datafield>
+  <datafield tag="912" ind1=" " ind2=" ">
+    <subfield code="a">ZDB-2-SNA</subfield>
+  </datafield>
+  <datafield tag="912" ind1=" " ind2=" ">
+    <subfield code="a">ZDB-2-BAD</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">cr</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9948193042102882</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="a">Life Science and Basic Disciplines (German Language) (Springer-11777)</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>2</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>Inauguraldissertation</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

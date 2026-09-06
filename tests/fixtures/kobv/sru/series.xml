@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>281408</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>01567cas a2200349uu 4500</leader>
+  <controlfield tag="001">kobvindex_ZLB13440816</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250531151649.0</controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">060203c        ||||||||||||||||||||ger||</controlfield>
+  <datafield tag="015" ind1=" " ind2=" ">
+    <subfield code="a">07,B26,0394</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-101)97839013X</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-DE</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVZLB13440816</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;13440816</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;13440816</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_ZLB13440816</subfield>
+  </datafield>
+  <datafield tag="110" ind1="2" ind2=" ">
+    <subfield code="0">(DE-609)12079237</subfield>
+    <subfield code="0">(DE-588)25101-X</subfield>
+    <subfield code="a">Bayerischer Kunstgewerbeverein</subfield>
+    <subfield code="4">oth</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Schriftenreihe des Bayerischen Kunstgewerbe-Vereins e.V.</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Schriftenreihe des Bayerischen Kunstgewerbe-Vereins</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Schriftenreihe des Bayerischen Kunstgewerbe-Vereins e.V., M&#xFC;nchen</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Schriftenreihe des Bayerischen Kunstgewerbe-Verein e.V.</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Schriftenreihe des Bayerischen Kunstgewerbe-Verein e.C.</subfield>
+  </datafield>
+  <datafield tag="247" ind1="0" ind2="0">
+    <subfield code="a">Hauptsacht. teils: Schriftenreihe des Bayerischen Kunstgewerbe-Vereins. - Hauptsacht. teils: Schriftenreihe des Bayerischen Kunstgewerbe-Vereins e.V., M&#xFC;nchen. - Hauptsacht. 35.2004 und 38.2006: Schriftenreihe des Bayerischen Kunstgewerbe-Verein e.V.. - Hauptsacht. 36.2004: Schriftenreihe des Bayerischen Kunstgewerbe-Verein e.C.</subfield>
+  </datafield>
+  <datafield tag="260" ind1="3" ind2=" ">
+    <subfield code="a">M&#xFC;nchen</subfield>
+    <subfield code="a">M&#xFC;nchen</subfield>
+    <subfield code="b">BKV</subfield>
+    <subfield code="b">Dt. Kunstverl.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="c">30 cm</subfield>
+  </datafield>
+  <datafield tag="362" ind1="1" ind2=" ">
+    <subfield code="a">1.1992 -</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Ersch. unregelm&#xE4;&#xDF;ig</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">2419510-8           Einzelne Bd. zugl. Bd. von&#x9C;Bayerischer Kunstgewerbe-Verein: BKV-Preis ... f&#xFC;r junges Kunsthandwerk</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">13440816</subfield>
+    <subfield code="b">DE-609</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>1</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Schriftenreihe"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

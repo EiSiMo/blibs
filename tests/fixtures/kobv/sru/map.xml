@@ -1,0 +1,135 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>69083</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>01776cem a2200433 ca4500</leader>
+  <controlfield tag="001">gbv_132271311</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250429074046.0</controlfield>
+  <controlfield tag="007">au |u|||</controlfield>
+  <controlfield tag="008">940209m19579999xx |||||| |     | ||ger c</controlfield>
+  <datafield tag="034" ind1="1" ind2=" ">
+    <subfield code="a">a</subfield>
+    <subfield code="b">1:50000</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-627)132271311</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-576)913227131X</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)GBV132271311</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-627</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="c">DE-627</subfield>
+    <subfield code="e">rakwb</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-DDDE</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;132271311</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;132271311</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">gbv_132271311</subfield>
+  </datafield>
+  <datafield tag="245" ind1="0" ind2="0">
+    <subfield code="a">Topographische Karte</subfield>
+    <subfield code="b">[Deutsche Demokratische Republik]</subfield>
+    <subfield code="c">hergestellt und herausgegeben: Ministerium f&#xFC;r Nationale Verteidigung, Milit&#xE4;rtopographischer Dienst</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Abweichender Titel</subfield>
+    <subfield code="a">Topographische Karte DDR, BRD</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Abweichender Titel</subfield>
+    <subfield code="a">Topographische Karte DDR, VR Polen</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="a">Topographische Karte DDR, BRD</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="a">Topographische Karte DDR, VR Polen</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">[Ausgabe f&#xFC;r den Staat]</subfield>
+  </datafield>
+  <datafield tag="255" ind1=" " ind2=" ">
+    <subfield code="a">1:50 000</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">[Berlin]</subfield>
+    <subfield code="c">1957-1990</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">Karten</subfield>
+    <subfield code="b">farbig</subfield>
+    <subfield code="c">Je 39 x 36 oder kleiner</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">kartografisches Bild</subfield>
+    <subfield code="b">cri</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">ohne Hilfsmittel zu benutzen</subfield>
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">Blatt</subfield>
+    <subfield code="b">nb</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Teilw. hergest. Ministerium des Innern, Verwaltung Vermessungs- und Kartenwesen</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Kartenwerk</subfield>
+    <subfield code="0">(DE-588)4272005-9</subfield>
+    <subfield code="0">(DE-627)104496118</subfield>
+    <subfield code="0">(DE-576)210686286</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Deutschland</subfield>
+    <subfield code="g">DDR</subfield>
+    <subfield code="b">Milit&#xE4;rtopographischer Dienst</subfield>
+    <subfield code="e">KartografIn</subfield>
+    <subfield code="0">(DE-588)2120640-5</subfield>
+    <subfield code="0">(DE-627)101652186</subfield>
+    <subfield code="0">(DE-576)193974649</subfield>
+    <subfield code="4">ctg</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Deutschland</subfield>
+    <subfield code="g">DDR</subfield>
+    <subfield code="b">Verwaltung Vermessungs- und Kartenwesen</subfield>
+    <subfield code="e">Herausgebendes Organ</subfield>
+    <subfield code="0">(DE-588)2029208-9</subfield>
+    <subfield code="0">(DE-627)102323429</subfield>
+    <subfield code="0">(DE-576)191810347</subfield>
+    <subfield code="4">isb</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">132271311</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="935" ind1=" " ind2=" ">
+    <subfield code="c">kart</subfield>
+  </datafield>
+  <datafield tag="951" ind1=" " ind2=" ">
+    <subfield code="a">MC</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>3</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Topographische Karte"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

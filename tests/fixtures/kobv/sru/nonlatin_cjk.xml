@@ -1,0 +1,288 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>12733</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>01303cas-a2200289z--4500</leader>
+  <controlfield tag="001">almafu_9958130249502883</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="008">230124uuuuuuuuuuuuuu-p-o----u|----|chi-d</controlfield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(TW-Airiti)10092137</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(CKB)111076342900800</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(EXLCZ)99111076342900800</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-578;9958130249502883</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-578;9958130249502883</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almafu_9958130249502883</subfield>
+  </datafield>
+  <datafield tag="210" ind1=" " ind2=" ">
+    <subfield code="a">ZHONGGUO SHI YAN XUE YE XUE ZA ZHI</subfield>
+  </datafield>
+  <datafield tag="210" ind1=" " ind2=" ">
+    <subfield code="a">JOURNAL OF EXPERIMENTAL HEMATOLOGY</subfield>
+  </datafield>
+  <datafield tag="245" ind1="0" ind2="0">
+    <subfield code="a">&#x4E2D;&#x570B;&#x5BE6;&#x9A57;&#x8840;&#x6DB2;&#x5B78;&#x96DC;&#x8A8C;</subfield>
+    <subfield code="6">880-01</subfield>
+  </datafield>
+  <datafield tag="880" ind1="0" ind2="0">
+    <subfield code="a">Chung Kuo Shih Yen Hsieh I Hsueh Tsa Chih</subfield>
+    <subfield code="6">245-01/zh-Latn</subfield>
+  </datafield>
+  <datafield tag="880" ind1="0" ind2="0">
+    <subfield code="a">&#x4E2D;&#x56FD;&#x5B9E;&#x9A8C;&#x8840;&#x6DB2;&#x5B66;&#x6742;&#x5FD7;</subfield>
+    <subfield code="6">245-01/Hans</subfield>
+  </datafield>
+  <datafield tag="246" ind1=" " ind2=" ">
+    <subfield code="a">Zhongguo shi yan xue ye xue za zhi / Zhongguo bing li sheng li xue hui = Journal of experimental hematology / Chinese Association of Pathophysiology [Zhongguo Shi Yan Xue Ye Xue Za Zhi] NLMUID</subfield>
+  </datafield>
+  <datafield tag="246" ind1=" " ind2=" ">
+    <subfield code="a">Zhongguo shi yan xue ye xue za zhi / Zhongguo bing li sheng li xue hui = Journal of experimental hematology / Chinese Association of Pathophysiology [Zhongguo Shi Yan Xue Ye Xue Za Zhi]</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">&#x4E2D;&#x570B;&#x5927;&#x9678;</subfield>
+    <subfield code="b">&#x4E2D;&#x570B;&#x5BE6;&#x9A57;&#x8840;&#x6DB2;&#x5B78;&#x96DC;&#x8A8C;&#x793E;</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="x">ISSN 1009-2137</subfield>
+  </datafield>
+  <datafield tag="880" ind1=" " ind2=" ">
+    <subfield code="a">Journal of Experimental Hematology</subfield>
+  </datafield>
+  <datafield tag="906" ind1=" " ind2=" ">
+    <subfield code="a">JOURNAL</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9958130249502883</subfield>
+    <subfield code="b">DE-578</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>4</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>03008cam a2200673 c 4500</leader>
+  <controlfield tag="001">gbv_815486464</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20220718165424.0</controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">150115s2013    cc |||||      00| ||chi c</controlfield>
+  <datafield tag="010" ind1=" " ind2=" ">
+    <subfield code="a">2014433515</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9787539844787</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-627)815486464</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)GBV815486464</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)863681459</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-627</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="c">DE-627</subfield>
+    <subfield code="e">rakwb</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">chi</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XB-CN</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B11;815486464</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B11;815486464</subfield>
+  </datafield>
+  <datafield tag="050" ind1=" " ind2="0">
+    <subfield code="a">N7345</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B11;815486464</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B11;815486464</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">gbv_815486464</subfield>
+  </datafield>
+  <datafield tag="110" ind1="2" ind2=" ">
+    <subfield code="6">880-01</subfield>
+    <subfield code="a">Zhongguo-Meishuguan</subfield>
+    <subfield code="0">(DE-588)10009271-8</subfield>
+    <subfield code="0">(DE-627)319995712</subfield>
+    <subfield code="0">(DE-576)198201575</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="6">880-02</subfield>
+    <subfield code="a">Zhong guo xian dai mei shu zhi lu</subfield>
+    <subfield code="b">yu shi dai tong xing ; Zhongguo mei shu guan jian guan 50 zhou nian cang pin da zhan zuo pin ji = Chinese art from the 20th century</subfield>
+    <subfield code="c">zhu bian Fan Di'an</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Nebent.</subfield>
+    <subfield code="a">Colophon title also in pinyin: Zhongguo xiandai meishu zhi lu, yu shidai tongxing: Zhongguo meishuguan jianguan 50 zhounian cangpin dazhan zuopinji</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="1">
+    <subfield code="6">880-02</subfield>
+    <subfield code="a">Chinese art from the 20th century</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="a">Chinese art from the 20th century</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="a">Zhongguo xiandai meishu zhi lu, yu shidai tongxing: Zhongguo meishuguan jianguan 50 zhounian cangpin dazhan zuopinji</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="6">880-03</subfield>
+    <subfield code="a">Yu shi dai tong xing, Zhongguo mei shu guan jian guan 50 zhou nian cang pin da zhan zuo pin ji</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="6">880-04</subfield>
+    <subfield code="a">Di 1 ban</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="6">880-01</subfield>
+    <subfield code="a">He fei</subfield>
+    <subfield code="b">An hui mei shu chu ban she</subfield>
+    <subfield code="c">2013</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">749 S.</subfield>
+    <subfield code="b">chiefly illustrations, chiefly color</subfield>
+    <subfield code="c">21 cm</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">Text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">ohne Hilfsmittel zu benutzen</subfield>
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">Band</subfield>
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Catalog of exhibition held May 18-July 8, 2013 at Zhongguo mei shu guan</subfield>
+  </datafield>
+  <datafield tag="610" ind1="1" ind2="0">
+    <subfield code="a">Zhongguo mei shu guan</subfield>
+    <subfield code="v">Exhibitions</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Art</subfield>
+    <subfield code="z">China</subfield>
+    <subfield code="z">Beijing</subfield>
+    <subfield code="v">Exhibitions</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Art, Chinese</subfield>
+    <subfield code="y">20th century</subfield>
+    <subfield code="v">Exhibitions</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="6">880-07</subfield>
+    <subfield code="a">Fan, Di'an</subfield>
+    <subfield code="d">1955-</subfield>
+    <subfield code="0">(DE-588)142249513</subfield>
+    <subfield code="0">(DE-627)634604139</subfield>
+    <subfield code="0">(DE-576)329719939</subfield>
+    <subfield code="4">oth</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="880" ind1="2" ind2=" ">
+    <subfield code="6">110-01/Hans</subfield>
+    <subfield code="a">&#x4E2D;&#x56FD;&#x7F8E;&#x672F;&#x9986;</subfield>
+    <subfield code="g">&#x5317;&#x4EAC;</subfield>
+    <subfield code="0">(DE-588)10009271-8</subfield>
+    <subfield code="0">(DE-627)319995712</subfield>
+    <subfield code="0">(DE-576)198201575</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="880" ind1="1" ind2="0">
+    <subfield code="6">245-02/Hans</subfield>
+    <subfield code="a">&#x4E2D;&#x56FD;&#x73B0;&#x4EE3;&#x7F8E;&#x672F;&#x4E4B;&#x8DEF;</subfield>
+    <subfield code="b">&#x4E0E;&#x65F6;&#x4EE3;&#x540C;&#x884C; ; &#x4E2D;&#x56FD;&#x7F8E;&#x672F;&#x9986;&#x5EFA;&#x9986; 50 &#x5468;&#x5E74;&#x85CF;&#x54C1;&#x5927;&#x5C55;&#x4F5C;&#x54C1;&#x96C6; = Chinese art from the 20th century</subfield>
+    <subfield code="c">&#x4E3B;&#x7F16;&#x8303;&#x8FEA;&#x5B89;</subfield>
+  </datafield>
+  <datafield tag="880" ind1="3" ind2="1">
+    <subfield code="6">246-02/Hans</subfield>
+    <subfield code="a">Chinese art from the 20th century</subfield>
+  </datafield>
+  <datafield tag="880" ind1="3" ind2="3">
+    <subfield code="6">246-03/Hans</subfield>
+    <subfield code="a">&#x4E0E;&#x65F6;&#x4EE3;&#x540C;&#x884C;, &#x4E2D;&#x56FD;&#x7F8E;&#x672F;&#x9986;&#x5EFA;&#x9986; 50 &#x5468;&#x5E74;&#x85CF;&#x54C1;&#x5927;&#x5C55;&#x4F5C;&#x54C1;&#x96C6;</subfield>
+  </datafield>
+  <datafield tag="880" ind1=" " ind2=" ">
+    <subfield code="6">250-04/Hans</subfield>
+    <subfield code="a">&#x7B2C; 1 &#x7248;</subfield>
+  </datafield>
+  <datafield tag="880" ind1=" " ind2="1">
+    <subfield code="6">264-01/Hans</subfield>
+    <subfield code="a">&#x5408;&#x80A5;</subfield>
+    <subfield code="b">&#x5B89;&#x5FBD;&#x7F8E;&#x672F;&#x51FA;&#x7248;&#x793E;</subfield>
+    <subfield code="c">2013</subfield>
+  </datafield>
+  <datafield tag="880" ind1="1" ind2=" ">
+    <subfield code="6">700-07/Hans</subfield>
+    <subfield code="a">&#x8303;, &#x8FEA;&#x5B89;</subfield>
+    <subfield code="4">oth</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Fan, Ti-an</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Fan Di an</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Fan-Di-an</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Fan, Di an</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Di'an, Fan</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x7BC4;, &#x8FEA;&#x5B89;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x8303;, &#x8FEA;&#x5B89;</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">815486464</subfield>
+    <subfield code="b">DE-B11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">815486464</subfield>
+    <subfield code="b">DE-B11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="951" ind1=" " ind2=" ">
+    <subfield code="a">BO</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>9</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Zhongguo"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

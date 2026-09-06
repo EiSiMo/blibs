@@ -1,0 +1,148 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>187995</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>09027nam a22003855i 4500</leader>
+  <controlfield tag="001">almahu_9950038349602882</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="006">m     o  d        </controlfield>
+  <controlfield tag="007">cr uuu---uuuuu</controlfield>
+  <controlfield tag="008">s2002    gw      o           ger d</controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9783161629242</subfield>
+  </datafield>
+  <datafield tag="024" ind1="7" ind2=" ">
+    <subfield code="a">10.1628/978-3-16-162924-2</subfield>
+    <subfield code="2">doi</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">53730</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">Preselect.media GmbH</subfield>
+  </datafield>
+  <datafield tag="041" ind1="0" ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950038349602882</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950038349602882</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almahu_9950038349602882</subfield>
+  </datafield>
+  <datafield tag="093" ind1=" " ind2=" ">
+    <subfield code="b">a</subfield>
+  </datafield>
+  <datafield tag="245" ind1="0" ind2="0">
+    <subfield code="a">Festschrift fu&#x308;r Ekkehard Schumann zum 70. Geburtstag</subfield>
+    <subfield code="h">[Elektronische Ressource] :</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">1. Aufl.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Tu&#x308;bingen</subfield>
+    <subfield code="b">Mohr Siebeck</subfield>
+    <subfield code="c">2002</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">1 Online-Ressource (IX, 627 Seiten)</subfield>
+  </datafield>
+  <datafield tag="588" ind1=" " ind2=" ">
+    <subfield code="a">Druckversion</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">PublicationDate: 20231231</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">This Festschrift is a combined effort made by colleagues, friends and contemporaries of Prof. Dr. Dr. h.c. Schumann to honor him on his 70th birthday. From 1967 to 2000, Ekkehard Schumann held the chair in procedural law and civil law at the Faculty of Law at the University of Regensburg. In his scholarly works, he dealt mainly with the law of civil procedure, and he started to work on the European law of civil procedure very early on. This is why most of the articles in this volume focus on national and international procedural law.</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">Mit dieser Festschrift ehren Kollegen, Freunde und Weggefa&#x308;hrten Ekkehard Schumann, der von 1967 bis 2000 den Lehrstuhl fu&#x308;r Proze&#xDF;recht und Bu&#x308;rgerliches Recht an der Juristischen Fakulta&#x308;t der Universita&#x308;t Regensburg innehatte. Den Schwerpunkt der Festschrift bilden Beitra&#x308;ge zum nationalen und internationalen Verfahrensrecht.</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">This Festschrift is a combined effort made by colleagues, friends and contemporaries of Prof. Dr. Dr. h.c. Schumann to honor him on his 70th birthday. From 1967 to 2000, Ekkehard Schumann held the chair in procedural law and civil law at the Faculty of Law at the University of Regensburg. In his scholarly works, he dealt mainly with the law of civil procedure, and he started to work on the European law of civil procedure very early on. This is why most of the articles in this volume focus on national and international procedural law.Survey of contentsVorwort - Ekkehard Becker-Eberhard: Probleme des Laufs der Verja&#x308;hrungsfrist bei der Anwalts- und Steuerberaterhaftung - Christian Berger: Beweisaufnahme vor dem Europa&#x308;ischen Gerichtshof - Kostas E. Beys: Einstweilige Verfu&#x308;gungen an der Grenze der akademischen Freiheit - Wolfgang Brehm: Rechtsfortbildungszweck des Zivilprozesses - Wolf-Ru&#x308;diger Bub und Jens Petersen: Konfusion und Insichproze&#xDF; - Hans W. Fasching: Strafurteil und Zivilproze&#xDF; - Hans Friedhelm Gaul: Rechtswegerscho&#x308;pfung im Sinne des &#xA7; 90 Abs. 2 Satz 1 BVerfGG und Wiederaufnahme des Verfahrens in der Zivilgerichtsbarkeit - Walter Gerhardt: Nichtvermo&#x308;gensrechtliche Streitigkeiten- eine Besonderheit im Zivilproze&#xDF;? - Peter Gottwald: Schlie&#xDF;t sich die Abseitsfalle? Rechtliches Geho&#x308;r, Treu und Glauben im Proze&#xDF; und Urteilsanerkennung - Wolfgang Grunsky: U&#x308;berlegungen zur Konkurrenz mehrerer Klageabweisungsgru&#x308;nde - Ulrich Haas/Martin J. Beckmann: Justizgewa&#x308;hrungsanspruch und Zeugenschutzprogramm - Ludwig Ha&#x308;semeyer: Rechtskultur in einer materiell wie formell mehrschichtigen Rechtsordnung? - Wolfram Henckel: Einwirkung des Insolvenzverfahrens auf schwebende Prozesse - Peter Huber: Die isolierte Vollstreckungsstandschaft - Othmar Jauernig: Au&#xDF;erordentliche Rechtsbehelfe - K. D. Kerameus: Development of Enforcement Proceedings in a Comparative Perspective - Harald Koch: Anerkennungsfa&#x308;higkeit ausla&#x308;ndischer Proze&#xDF;vergleiche - Walter F. Lindacher: Zur Mitwirkung der Parteien bei der Ermittlung ausla&#x308;ndischen Rechts - Hans-Joachim Musielak: Rechtskraftprobleme bei Nachforderungsklagen - Hanns Pru&#x308;tting: Die Strukturen des Zivilprozesses unter Reformdruck und europa&#x308;ische Konvergenz? - Bruno Rimmelspacher: Zugangsvoraussetzungen zum Rechtsmittelgericht - Herbert Roth: Der gespaltene Gerichtsstand - Eberhard Schilken: Zur Rechtsnatur der Ermittlung ausla&#x308;ndischen Rechts nach &#xA7; 293 ZPO - Peter Schlosser: IZPO auf dem Wege zum Urteil mit vereinbartem Inhalt? - Karsten Schmidt: Zivilproze&#xDF; und Europakartellrecht - Ulrich Spellenberg: Der Anwendungsbereich der EheGVO (Bru&#x308;ssel 11) in Statussachen - Andreas Spickhoff: Nichtige U&#x308;berweisungsbeschlu&#x308;sse und Drittschuldnerschutz - Astrid Stadler: Musterverbandsklagen nach ku&#x308;nftigem deutschen Recht - Rolf Stu&#x308;rner: Zur Struktur des europa&#x308;ischen Zivilprozesses - Max Vollkommer: Zur Einfu&#x308;hrung der Geho&#x308;rsru&#x308;ge in den Zivilproze&#xDF; - Gerhard Wagner: Rechtswahlfreiheit im Schiedsverfahren: Ein Probierstein fu&#x308;r die juristische Methodenlehre - Gerhard Walter: Lis alibi pendens und forum non conveniens: Von der Konfrontation u&#x308;ber die Koordination zur Kooperation - Manfred Wolf: Die Befreiung des Verja&#x308;hrungsrechts vom Streitgegenstandsdenken - Albrecht Zeuner: U&#x308;berlegungen zum Begriff des Rechtsverha&#x308;ltnisses i. S. von &#xA7; 256 ZPO - Verzeichnis der Schriften von Ekkehard Schumann.</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">Mit dieser Festschrift wird Ekkehard Schumann aus Anla&#xDF; seines 70. Geburtstages von seinen Kollegen, Freunden und Weggefa&#x308;hrten geehrt. Ekkehard Schumann hatte von 1967 bis 2000 den Lehrstuhl fu&#x308;r Proze&#xDF;recht und Bu&#x308;rgerliches Recht an der Juristischen Fakulta&#x308;t der Universita&#x308;t Regensburg inne. Sein wissenschaftliches Werk galt vor allem dem Zivilproze&#xDF;recht, schon fru&#x308;h auch dem Europa&#x308;ischen Zivilproze&#xDF;recht. Deshalb bilden Beitra&#x308;ge zum nationalen und internationalen Verfahrensrecht den Schwerpunkt der Festschrift.Inhalts+uuml;bersichtVorwort - Ekkehard Becker-Eberhard: Probleme des Laufs der Verja&#x308;hrungsfrist bei der Anwalts- und Steuerberaterhaftung - Christian Berger: Beweisaufnahme vor dem Europa&#x308;ischen Gerichtshof - Kostas E. Beys: Einstweilige Verfu&#x308;gungen an der Grenze der akademischen Freiheit - Wolfgang Brehm: Rechtsfortbildungszweck des Zivilprozesses - Wolf-Ru&#x308;diger Bub und Jens Petersen: Konfusion und Insichproze&#xDF; - Hans W. Fasching: Strafurteil und Zivilproze&#xDF; - Hans Friedhelm Gaul: Rechtswegerscho&#x308;pfung im Sinne des &#xA7; 90 Abs. 2 Satz 1 BVerfGG und Wiederaufnahme des Verfahrens in der Zivilgerichtsbarkeit - Walter Gerhardt: Nichtvermo&#x308;gensrechtliche Streitigkeiten- eine Besonderheit im Zivilproze&#xDF;? - Peter Gottwald: Schlie&#xDF;t sich die Abseitsfalle? Rechtliches Geho&#x308;r, Treu und Glauben im Proze&#xDF; und Urteilsanerkennung - Wolfgang Grunsky: U&#x308;berlegungen zur Konkurrenz mehrerer Klageabweisungsgru&#x308;nde - Ulrich Haas/Martin J. Beckmann: Justizgewa&#x308;hrungsanspruch und Zeugenschutzprogramm - Ludwig Ha&#x308;semeyer: Rechtskultur in einer materiell wie formell mehrschichtigen Rechtsordnung? - Wolfram Henckel: Einwirkung des Insolvenzverfahrens auf schwebende Prozesse - Peter Huber: Die isolierte Vollstreckungsstandschaft - Othmar Jauernig: Au&#xDF;erordentliche Rechtsbehelfe - K. D. Kerameus: Development of Enforcement Proceedings in a Comparative Perspective - Harald Koch: Anerkennungsfa&#x308;higkeit ausla&#x308;ndischer Proze&#xDF;vergleiche - Walter F. Lindacher: Zur Mitwirkung der Parteien bei der Ermittlung ausla&#x308;ndischen Rechts - Hans-Joachim Musielak: Rechtskraftprobleme bei Nachforderungsklagen - Hanns Pru&#x308;tting: Die Strukturen des Zivilprozesses unter Reformdruck und europa&#x308;ische Konvergenz? - Bruno Rimmelspacher: Zugangsvoraussetzungen zum Rechtsmittelgericht - Herbert Roth: Der gespaltene Gerichtsstand - Eberhard Schilken: Zur Rechtsnatur der Ermittlung ausla&#x308;ndischen Rechts nach &#xA7; 293 ZPO - Peter Schlosser: IZPO auf dem Wege zum Urteil mit vereinbartem Inhalt? - Karsten Schmidt: Zivilproze&#xDF; und Europakartellrecht - Ulrich Spellenberg: Der Anwendungsbereich der EheGVO (Bru&#x308;ssel 11) in Statussachen - Andreas Spickhoff: Nichtige U&#x308;berweisungsbeschlu&#x308;sse und Drittschuldnerschutz - Astrid Stadler: Musterverbandsklagen nach ku&#x308;nftigem deutschen Recht - Rolf Stu&#x308;rner: Zur Struktur des europa&#x308;ischen Zivilprozesses - Max Vollkommer: Zur Einfu&#x308;hrung der Geho&#x308;rsru&#x308;ge in den Zivilproze&#xDF; - Gerhard Wagner: Rechtswahlfreiheit im Schiedsverfahren: Ein Probierstein fu&#x308;r die juristische Methodenlehre - Gerhard Walter: Lis alibi pendens und forum non conveniens: Von der Konfrontation u&#x308;ber die Koordination zur Kooperation - Manfred Wolf: Die Befreiung des Verja&#x308;hrungsrechts vom Streitgegenstandsdenken - Albrecht Zeuner: U&#x308;berlegungen zum Begriff des Rechtsverha&#x308;ltnisses i. S. von &#xA7; 256 ZPO - Verzeichnis der Schriften von Ekkehard Schumann.</subfield>
+  </datafield>
+  <datafield tag="653" ind1="0" ind2="0">
+    <subfield code="a">Verfahrensrecht</subfield>
+    <subfield code="a">Festschrift</subfield>
+    <subfield code="a">Schumann, Ekkehard</subfield>
+    <subfield code="a">Festschriften</subfield>
+    <subfield code="a">Bu&#x308;rgerliches Recht</subfield>
+    <subfield code="a">Internationales Privatrecht</subfield>
+    <subfield code="a">Zivilverfahrensrecht, Insolvenzrecht</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Gottwald, Peter</subfield>
+    <subfield code="e">Hrsg.</subfield>
+    <subfield code="4">edt</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Roth, Herbert</subfield>
+    <subfield code="e">Hrsg.</subfield>
+    <subfield code="4">edt</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="3">Mohr Siebeck</subfield>
+    <subfield code="u">https://www.mohrsiebeck.com/10.1628/978-3-16-162924-2</subfield>
+    <subfield code="u">https://www.mohrsiebeck.com/9783161629242</subfield>
+    <subfield code="q">pdf</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9950038349602882</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>22</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>010082200a220019300 4500</leader>
+  <controlfield tag="001">kobvindex_LDAz01080</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="008">200209b        zzz           00    </controlfield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVLDAz01080</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B685;z01080</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B685;z01080</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_LDAz01080</subfield>
+  </datafield>
+  <datafield tag="110" ind1="1" ind2="0">
+    <subfield code="a">Historischer Verein f&#xFC;r Steiermark</subfield>
+  </datafield>
+  <datafield tag="240" ind1="1" ind2="0">
+    <subfield code="a">Zeitschrift des Historischen Vereins f&#xFC;r Steiermark</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Zeitschrift des Historischen Vereins f&#xFC;r Steiermark /</subfield>
+    <subfield code="c">hrsg. vom Historischen Verein f&#xFC;r Steiermark</subfield>
+  </datafield>
+  <datafield tag="260" ind1="1" ind2="0">
+    <subfield code="a">Graz :</subfield>
+    <subfield code="b">Leuschner &amp; Lubensky</subfield>
+  </datafield>
+  <datafield tag="505" ind1="1" ind2=" ">
+    <subfield code="a">6.1908, 3. Festschrift anl&#xE4;blich des sechzigj&#xE4;hrigen Regierungsjubil&#xE4;ums Sr. k. u k. Apostolischen Majest&#xE4;t. - 7.1909. Jubil&#xE4;umsfestschrift zur Erinnerung an das Jahr 1809. - 8.1909. Luschin-Festschrift. - Teil 1.  - Teil 2.  - 21.1925. Festgabe zum 75-j&#xE4;hrigen Bestehen des Vereins. - 22.1925. Festschrift zum 80. Geburtstage von Johann Loserth. - 26.1931. Luschin-Festschrift</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">z01080</subfield>
+    <subfield code="b">DE-B685</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>41</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>Festschrift</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

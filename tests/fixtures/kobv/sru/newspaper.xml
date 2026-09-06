@@ -1,0 +1,358 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>3144</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>38813cam a2200326   4500</leader>
+<!-- Directory offset 324: Bad value for data length and/or length starting (9\x1Ekobvindex_) -->
+<!-- Base address not at end of directory, base 326, end 325 -->
+  <controlfield tag="001">kobvindex_SLB42822</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20071110</controlfield>
+  <controlfield tag="007">t|</controlfield>
+  <controlfield tag="008">071110s||||||||||||||||||||||||||||||||||</controlfield>
+  <datafield tag="022" ind1=" " ind2=" ">
+    <subfield code="a">0863-7075</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">1145835-5 (ZDB-Nr.)</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="c">ZDB</subfield>
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">DE</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVSLB42822</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-186;42822</subfield>
+  </datafield>
+  <datafield tag="080" ind1=" " ind2=" ">
+    <subfield code="a">Br 1080</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="2">kab</subfield>
+    <subfield code="a">Br</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-186;42822</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_SLB42822</subfield>
+  </datafield>
+  <datafield tag="210" ind1=" " ind2=" ">
+    <subfield code="a">MAZ</subfield>
+  </datafield>
+  <datafield tag="245" ind1=" " ind2=" ">
+    <subfield code="a">M&#xE4;rkische Allgemeine [Potsdamer Tageszeitung : PDM]</subfield>
+    <subfield code="b">Zeitung f&#xFC;r das Land Brandenburg ; Potsdamer Tageszeitung</subfield>
+    <subfield code="n">50.1995,Februar</subfield>
+    <subfield code="n">PDM</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Landkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Stadtkurier</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Potsdamer Stadt- und Landkurier</subfield>
+    <subfield code="a">Potsdamer Tageszeitung</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+    <subfield code="a">Sachtitel des Lokalteils zeitweise</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Potsdam</subfield>
+    <subfield code="b">M&#xE4;rkische Verl. u. Dr.-Ges.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Zusatz zeitweise: Potsdamer Stadtkurier ; Potsdamer Zeitung. - Enth. teilw.: Potsdamer Stadtkurier, Potsdamer Landkurier, Potsdamer Stadt- und Landkurier. - Beil.: M&#xE4;rkische Woche (anfangs). - Beil.: Die M&#xE4;rkische. - Enth.: Nr. 303 = Ausg. zum Jahreswechsel</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">erscheint t&#xE4;glich; zeitw. ungez&#xE4;hlte Beil.:</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+    <subfield code="a">Mit 12 weiteren Regionalausgaben</subfield>
+  </datafield>
+  <datafield tag="773" ind1=" " ind2=" ">
+    <subfield code="q">049</subfield>
+  </datafield>
+<!-- Directory offset 288: Data out of bounds 74129 >= 38813 -->
+</record></zs:recordData><zs:recordPosition>1</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Tageszeitung"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

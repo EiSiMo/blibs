@@ -1,0 +1,1598 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>764</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>04865cam a2201069 c 4500</leader>
+  <controlfield tag="001">gbv_660841622</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20260614154015.0</controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">110525s2011    sz |||||      00| ||ger c</controlfield>
+  <datafield tag="015" ind1=" " ind2=" ">
+    <subfield code="a">11,N21</subfield>
+    <subfield code="2">dnb</subfield>
+  </datafield>
+  <datafield tag="015" ind1=" " ind2=" ">
+    <subfield code="a">11,N21</subfield>
+    <subfield code="2">dnb</subfield>
+  </datafield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">1011797631</subfield>
+    <subfield code="2">DE-101</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9783293004320</subfield>
+    <subfield code="q">Pp. : ca. EUR 19.90 (DE), ca. EUR 20.50 (AT), ca. sfr 30.90 (freier Pr.)</subfield>
+    <subfield code="9">978-3-293-00432-0</subfield>
+  </datafield>
+  <datafield tag="024" ind1="3" ind2=" ">
+    <subfield code="a">9783293004320</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-627)660841622</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-576)348379242</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)DNB1011797631</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)745354460</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)745354460</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-627</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="c">DE-627</subfield>
+    <subfield code="e">rakwb</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+    <subfield code="h">ara</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-CH</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;660841622</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">890</subfield>
+    <subfield code="q">BSZ</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">B</subfield>
+    <subfield code="q">BSZ</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2="4">
+    <subfield code="a">890</subfield>
+    <subfield code="q">DNB</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2="4">
+    <subfield code="a">890</subfield>
+    <subfield code="a">B</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">EN 3050</subfield>
+    <subfield code="q">BVB</subfield>
+    <subfield code="2">rvk</subfield>
+    <subfield code="0">(DE-625)rvk/25332:11776</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">EN 3528</subfield>
+    <subfield code="q">BVB</subfield>
+    <subfield code="2">rvk</subfield>
+    <subfield code="0">(DE-625)rvk/25445:11776</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">18.74</subfield>
+    <subfield code="2">bkl</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">17.97</subfield>
+    <subfield code="2">bkl</subfield>
+  </datafield>
+  <datafield tag="090" ind1=" " ind2=" ">
+    <subfield code="a">a</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;660841622</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">gbv_660841622</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Ma&#x1E25;f&#x16B;&#x1E93;, Na&#x1E7;&#x12B;b</subfield>
+    <subfield code="d">1911-2006</subfield>
+    <subfield code="0">(DE-588)118576259</subfield>
+    <subfield code="0">(DE-627)123049989</subfield>
+    <subfield code="0">(DE-576)16209941X</subfield>
+    <subfield code="4">aut</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="240" ind1="1" ind2="4">
+    <subfield code="a">al- Q&#x101;hira al-&#x1E7;ad&#x12B;da &lt;dt.&gt;</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="4">
+    <subfield code="a">Das junge Kairo</subfield>
+    <subfield code="b">Roman</subfield>
+    <subfield code="c">Nagib Machfus. Aus dem Arab. von Hartmut F&#xE4;hndrich</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="a">Al- Q&#x101;hira al-&#x1E7;ad&#x12B;da</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">al-Q&#xE2;hira al-Jad&#xEE;da &lt;dt.&gt;</subfield>
+    <subfield code="f">Einheitssacht. im Buch</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">Dt. Erstausg.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Z&#xFC;rich</subfield>
+    <subfield code="b">Unionsverlag</subfield>
+    <subfield code="c">2011</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">253 S.</subfield>
+    <subfield code="c">21 cm</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">Text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">ohne Hilfsmittel zu benutzen</subfield>
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">Band</subfield>
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="583" ind1="1" ind2=" ">
+    <subfield code="a">Archivierung pr&#xFC;fen</subfield>
+    <subfield code="c">20240324</subfield>
+    <subfield code="f">DE-4165</subfield>
+    <subfield code="z">1</subfield>
+    <subfield code="2">pdager</subfield>
+  </datafield>
+  <datafield tag="583" ind1="1" ind2=" ">
+    <subfield code="a">Archivierung pr&#xFC;fen</subfield>
+    <subfield code="c">20260307</subfield>
+    <subfield code="f">DE-640</subfield>
+    <subfield code="z">3</subfield>
+    <subfield code="2">pdager</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Fiktionale Darstellung</subfield>
+    <subfield code="0">(DE-588)1071854844</subfield>
+    <subfield code="0">(DE-627)82648378X</subfield>
+    <subfield code="0">(DE-576)43337439X</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="D">g</subfield>
+    <subfield code="0">(DE-588)4029236-8</subfield>
+    <subfield code="0">(DE-627)106275070</subfield>
+    <subfield code="0">(DE-576)208981721</subfield>
+    <subfield code="a">Kairo</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4058167-6</subfield>
+    <subfield code="0">(DE-627)106148141</subfield>
+    <subfield code="0">(DE-576)209125225</subfield>
+    <subfield code="a">Student</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="2">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4002764-8</subfield>
+    <subfield code="0">(DE-627)10459893X</subfield>
+    <subfield code="0">(DE-576)208848592</subfield>
+    <subfield code="a">Stellensuche</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="3">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4164923-0</subfield>
+    <subfield code="0">(DE-627)104442433</subfield>
+    <subfield code="0">(DE-576)209891904</subfield>
+    <subfield code="a">Kompromiss</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="4">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4122258-1</subfield>
+    <subfield code="0">(DE-627)105763780</subfield>
+    <subfield code="0">(DE-576)209549912</subfield>
+    <subfield code="a">Lebenskrise</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="5">
+    <subfield code="A">z</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="a">Geschichte 1931</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2=" ">
+    <subfield code="5">DE-101</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">F&#xE4;hndrich, Hartmut</subfield>
+    <subfield code="d">1944-</subfield>
+    <subfield code="e">&#xDC;bers.</subfield>
+    <subfield code="0">(DE-588)110317033</subfield>
+    <subfield code="0">(DE-627)472296213</subfield>
+    <subfield code="0">(DE-576)16090059X</subfield>
+    <subfield code="4">trl</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2="2">
+    <subfield code="a">Ma&#x1E25;f&#x16B;&#x1E93;, Na&#x1E7;&#x12B;b</subfield>
+    <subfield code="d">1911-2006</subfield>
+    <subfield code="t">al- Q&#x101;hira al-&#x1E7;ad&#x12B;da &lt;dt.&gt;</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2="2">
+    <subfield code="a">Ma&#x1E25;f&#x16B;&#x1E93;, Na&#x1E7;&#x12B;b</subfield>
+    <subfield code="d">1911-2006</subfield>
+    <subfield code="t">Al-Q&#x101;hira al-&#x1E7;ad&#x12B;da &lt;dt.&gt;</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="2">
+    <subfield code="u">http://www.unionsverlag.com/info/title.asp?title_id=2621</subfield>
+    <subfield code="x">Verlag</subfield>
+    <subfield code="y">Inhaltsbeschreibung</subfield>
+    <subfield code="7">1</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Machf&#x16B;s, Nag&#x12B;b</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Machfuz, Nagib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfoez, Nagieb</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfouz, Naguib Bey</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfouz, Nassib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfus, Nadjib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfus, Nagib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfuz, Naguib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfuz, Najib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfuz, Nayib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfuz, Necib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Nagib Machfuz</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Na&#x1F5;ib Ma&#x1E25;f&#x16B;&#x1E93;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Na&#x1E7;&#x12B;b Ma&#x1E25;f&#x16B;&#x1E93; &#x2BF;Abd-al-&#x2BF;Az&#x12B;z A&#x1E25;mad al-B&#x101;&#x161;&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Na&#x1E7;&#x12B;b Ma&#x1E25;f&#x16B;&#x1E93; Ibn-&#x2BF;Abd-al-&#x2BF;Az&#x12B;z A&#x1E25;mad al-B&#x101;&#x161;&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Na&#x1E7;&#x12B;b Ma&#x1E25;f&#x16B;&#x1E93; Ibn-Ibr&#x101;h&#x12B;m &#x2BF;Abd-al-&#x2BF;Az&#x12B;z al-B&#x101;&#x161;&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Na&#x1E7;&#x12B;b Ma&#x1E25;f&#x16B;&#x1E93; Ibr&#x101;h&#x12B;m &#x2BF;Abd-al-&#x2BF;Az&#x12B;z al-B&#x101;&#x161;&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfouz, Najib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Makhfuz, Nagib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfuz, Naghib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfouz, Naguib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mahfuz, Nagib</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x645;&#x62D;&#x641;&#x648;&#x638; &#x60C; &#x646;&#x62C;&#x64A;&#x628;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x645;&#x62D;&#x641;&#x648;&#x638;, &#x646;&#x62C;&#x64A;&#x628;</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">660841622</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="935" ind1=" " ind2=" ">
+    <subfield code="i">sf</subfield>
+  </datafield>
+  <datafield tag="935" ind1=" " ind2=" ">
+    <subfield code="i">Blocktest</subfield>
+  </datafield>
+  <datafield tag="936" ind1="r" ind2="v">
+    <subfield code="a">EN 3050</subfield>
+    <subfield code="b">Prim&#xE4;rliteratur</subfield>
+    <subfield code="k">Allgemeine und vergleichende Sprach- und Literaturwissenschaft. Indogermanistik. Au&#xDF;ereurop&#xE4;ische Sprachen und Literaturen</subfield>
+    <subfield code="k">Arabische Sprache und Literatur</subfield>
+    <subfield code="k">Arabische Literatur</subfield>
+    <subfield code="k">Einzelne Epochen und Autoren</subfield>
+    <subfield code="k">Einzelne Autoren und Anonyma</subfield>
+    <subfield code="k">Einzelne Autoren und Anonyme (bis ca. 1250)</subfield>
+    <subfield code="k">Qu&#x1E6D;&#x101;m&#x12B;, &#x2BF;Umair Ibn-&#x160;iyaim al-</subfield>
+    <subfield code="k">Prim&#xE4;rliteratur</subfield>
+    <subfield code="0">(DE-627)1441102434</subfield>
+    <subfield code="0">(DE-625)rvk/25332:11776</subfield>
+    <subfield code="0">(DE-576)37110243X</subfield>
+  </datafield>
+  <datafield tag="936" ind1="r" ind2="v">
+    <subfield code="a">EN 3528</subfield>
+    <subfield code="b">Prim&#xE4;rliteratur</subfield>
+    <subfield code="k">Allgemeine und vergleichende Sprach- und Literaturwissenschaft. Indogermanistik. Au&#xDF;ereurop&#xE4;ische Sprachen und Literaturen</subfield>
+    <subfield code="k">Arabische Sprache und Literatur</subfield>
+    <subfield code="k">Arabische Literatur</subfield>
+    <subfield code="k">Einzelne Epochen und Autoren</subfield>
+    <subfield code="k">Einzelne Autoren und Anonyma</subfield>
+    <subfield code="k">Moderne arabische Literatur ab 1900</subfield>
+    <subfield code="k">Ma&#x1E25;f&#x16B;&#x1E93;, Na&#x1E7;&#x12B;b</subfield>
+    <subfield code="k">Prim&#xE4;rliteratur</subfield>
+    <subfield code="0">(DE-627)1403240329</subfield>
+    <subfield code="0">(DE-625)rvk/25445:11776</subfield>
+    <subfield code="0">(DE-576)333240324</subfield>
+  </datafield>
+  <datafield tag="936" ind1="b" ind2="k">
+    <subfield code="a">18.74</subfield>
+    <subfield code="j">Arabische Sprache und Literatur</subfield>
+    <subfield code="0">(DE-627)106415646</subfield>
+  </datafield>
+  <datafield tag="936" ind1="b" ind2="k">
+    <subfield code="a">17.97</subfield>
+    <subfield code="j">Texte eines einzelnen Autors</subfield>
+    <subfield code="0">(DE-627)181571714</subfield>
+  </datafield>
+  <datafield tag="951" ind1=" " ind2=" ">
+    <subfield code="a">BO</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>3</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>06475cam a2201453 c 4500</leader>
+  <controlfield tag="001">gbv_1603494723</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20260610003718.0</controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">850101s1975    xx |||||      00| ||tur c</controlfield>
+  <datafield tag="015" ind1=" " ind2=" ">
+    <subfield code="a">76,A58,0337</subfield>
+    <subfield code="2">dnb</subfield>
+  </datafield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">760418284</subfield>
+    <subfield code="2">DE-101</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">3700101198</subfield>
+    <subfield code="9">3-7001-0119-8</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-627)1603494723</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-603)030035813</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-576)004707788</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)BSZ004707788</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)263381065</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)310670943</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)263381065</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)2523612</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-627</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="c">DE-627</subfield>
+    <subfield code="e">rakwb</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">tur</subfield>
+    <subfield code="a">eng</subfield>
+    <subfield code="a">tam</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-AT-9</subfield>
+    <subfield code="c">XA-AT</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;1603494723</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;1603494723</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B4;1603494723</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B11;1603494723</subfield>
+  </datafield>
+  <datafield tag="050" ind1=" " ind2="0">
+    <subfield code="a">AS142</subfield>
+  </datafield>
+  <datafield tag="050" ind1=" " ind2="0">
+    <subfield code="a">DT143</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">083/.1</subfield>
+    <subfield code="q">OCLC</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">083/.1 s</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">962/.16/03</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">083.1</subfield>
+    <subfield code="q">LoC</subfield>
+    <subfield code="2">DDC19oclc</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">962.1603</subfield>
+    <subfield code="q">LoC</subfield>
+    <subfield code="2">DDC19oclc</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">14a</subfield>
+    <subfield code="a">15a</subfield>
+    <subfield code="a">07a</subfield>
+    <subfield code="a">01x</subfield>
+    <subfield code="2">sdnb</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">6,23</subfield>
+    <subfield code="2">ssgn</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">LO 91250</subfield>
+    <subfield code="2">rvk</subfield>
+    <subfield code="0">(DE-625)rvk/105606:</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">AX 20100</subfield>
+    <subfield code="2">rvk</subfield>
+    <subfield code="0">(DE-625)rvk/9113:10614</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">15.91</subfield>
+    <subfield code="2">bkl</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;1603494723</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;1603494723</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B4;1603494723</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B11;1603494723</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">gbv_1603494723</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Tietze, Andreas</subfield>
+    <subfield code="d">1914-2003</subfield>
+    <subfield code="0">(DE-588)119544806</subfield>
+    <subfield code="0">(DE-627)08036117X</subfield>
+    <subfield code="0">(DE-576)163316422</subfield>
+    <subfield code="4">aut</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="240" ind1="1" ind2="0">
+    <subfield code="a">&#x1E24;&#x101;l&#x101;t al-Q&#x101;hira min al-&#x2BF;&#x101;d&#x101;t a&#x1E93;-&#x1E93;&#x101;hira</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Mustafa Ali's description of Cairo of 1599</subfield>
+    <subfield code="b">text, transliteration, translation, notes</subfield>
+    <subfield code="c">Andreas Tietze</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Nebent.</subfield>
+    <subfield code="a">The conditions of Cairo concerning her actual customs</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="a">The Conditions of Cairo concerning her actual customs</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="a">&#x1E24;&#x101;l&#x101;t al-Q&#x101;hira min al-&#x2BF;&#x101;d&#x101;t a&#x1E93;-&#x1E93;&#x101;hira</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="3">
+    <subfield code="a">The conditions of Cairo concerning her actual customs</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Wien</subfield>
+    <subfield code="b">Verl. der &#xD6;sterr. Akad. der Wiss.</subfield>
+    <subfield code="c">1975</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">177, LXXXIX S.</subfield>
+    <subfield code="b">Ill.</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">Text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">ohne Hilfsmittel zu benutzen</subfield>
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">Band</subfield>
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Denkschriften / &#xD6;sterreichische Akademie der Wissenschaften, Philosophisch-Historische Klasse</subfield>
+    <subfield code="v">120</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Forschungen zur islamischen Philologie und Kulturgeschichte</subfield>
+    <subfield code="v">5</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Einheitssacht. d. kommentierten Werkes: Halat al-Qahira min al-adat az-zahira. - Text t&#xFC;rk. und engl. - Enth. ausserdem: The Conditions of Cairo concerning her actual customs / Ali &lt;of Gallipoli&gt;</subfield>
+  </datafield>
+  <datafield tag="583" ind1="1" ind2=" ">
+    <subfield code="a">Archivierung/Langzeitarchivierung gew&#xE4;hrleistet</subfield>
+    <subfield code="f">SSG</subfield>
+    <subfield code="x">XA-DE-BW</subfield>
+    <subfield code="2">pdager</subfield>
+    <subfield code="5">DE-21</subfield>
+  </datafield>
+  <datafield tag="583" ind1="1" ind2=" ">
+    <subfield code="a">Archivierung pr&#xFC;fen</subfield>
+    <subfield code="c">20240324</subfield>
+    <subfield code="f">DE-4165</subfield>
+    <subfield code="z">2</subfield>
+    <subfield code="2">pdager</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="4">
+    <subfield code="a">Jahrhundert, 16. / Geistes- und Kulturleben</subfield>
+  </datafield>
+  <datafield tag="651" ind1=" " ind2="4">
+    <subfield code="a">&#xC4;gypten / Neuere Geschichte</subfield>
+  </datafield>
+  <datafield tag="651" ind1=" " ind2="4">
+    <subfield code="a">&#xC4;gypten / Kultur, K&#xFC;nste</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2="0">
+    <subfield code="a">Cairo (Egypt)</subfield>
+    <subfield code="a">Description and travel</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2="0">
+    <subfield code="a">Egypt</subfield>
+    <subfield code="a">History</subfield>
+    <subfield code="a">1517-1882</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2="0">
+    <subfield code="a">&#xC2;l&#xEE;, Mustafa bin Ahmet</subfield>
+    <subfield code="a">1541-1599</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Quelle</subfield>
+    <subfield code="0">(DE-588)4135952-5</subfield>
+    <subfield code="0">(DE-627)105661236</subfield>
+    <subfield code="0">(DE-576)209665084</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="D">g</subfield>
+    <subfield code="0">(DE-588)4029236-8</subfield>
+    <subfield code="0">(DE-627)106275070</subfield>
+    <subfield code="0">(DE-576)208981721</subfield>
+    <subfield code="a">Kairo</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="A">z</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="a">Geschichte 1599</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2=" ">
+    <subfield code="5">(DE-627)</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="0">
+    <subfield code="D">g</subfield>
+    <subfield code="0">(DE-588)4075720-1</subfield>
+    <subfield code="0">(DE-627)10471350X</subfield>
+    <subfield code="0">(DE-576)209199148</subfield>
+    <subfield code="a">Osmanisches Reich</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="1">
+    <subfield code="D">g</subfield>
+    <subfield code="0">(DE-588)4029236-8</subfield>
+    <subfield code="0">(DE-627)106275070</subfield>
+    <subfield code="0">(DE-576)208981721</subfield>
+    <subfield code="a">Kairo</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="2">
+    <subfield code="A">z</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="a">Geschichte 1599</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2=" ">
+    <subfield code="5">(DE-627)</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">&#x2BF;&#x100;l&#x12B;, Mu&#x1E63;&#x1E6D;af&#x101; Ibn-A&#x1E25;med</subfield>
+    <subfield code="c">Gelibolulu</subfield>
+    <subfield code="0">(DE-588)1145586597</subfield>
+    <subfield code="0">(DE-627)1006798951</subfield>
+    <subfield code="0">(DE-576)16440645X</subfield>
+    <subfield code="4">oth</subfield>
+  </datafield>
+  <datafield tag="700" ind1="0" ind2=" ">
+    <subfield code="a">Mustafa &#xC2;li</subfield>
+    <subfield code="c">Gelibolulu</subfield>
+    <subfield code="d">1541-1600</subfield>
+    <subfield code="0">(DE-588)118927442</subfield>
+    <subfield code="0">(DE-627)079704867</subfield>
+    <subfield code="0">(DE-576)210420359</subfield>
+    <subfield code="4">oth</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2="2">
+    <subfield code="a">Tietze, Andreas</subfield>
+    <subfield code="d">1914-2003</subfield>
+    <subfield code="t">&#x1E24;&#x101;l&#x101;t al-Q&#x101;hira min al-&#x2BF;&#x101;d&#x101;t a&#x1E93;-&#x1E93;&#x101;hira</subfield>
+  </datafield>
+  <datafield tag="787" ind1="0" ind2="8">
+    <subfield code="i">Rezensiert in</subfield>
+    <subfield code="a">Schmidt, Jan, 1976 -</subfield>
+    <subfield code="t">Andreas Tietze (ed. and tr.): Mu&#x1E63;&#x1E6D;af&#x101; &#x201B;&#x100;l&#x12B;&#x2019;s Description of Cairo of 1599</subfield>
+    <subfield code="d">1988</subfield>
+    <subfield code="w">(DE-627)1821435214</subfield>
+  </datafield>
+  <datafield tag="810" ind1="2" ind2=" ">
+    <subfield code="a">&#xD6;sterreichische Akademie der Wissenschaften</subfield>
+    <subfield code="b">Philosophisch-Historische Klasse</subfield>
+    <subfield code="t">Denkschriften</subfield>
+    <subfield code="v">120</subfield>
+    <subfield code="9">120</subfield>
+    <subfield code="w">(DE-627)130187100</subfield>
+    <subfield code="w">(DE-576)015730867</subfield>
+    <subfield code="w">(DE-600)528272-X</subfield>
+    <subfield code="x">0029-8824</subfield>
+    <subfield code="7">am</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Forschungen zur islamischen Philologie und Kulturgeschichte</subfield>
+    <subfield code="v">5</subfield>
+    <subfield code="9">5</subfield>
+    <subfield code="w">(DE-627)130219819</subfield>
+    <subfield code="w">(DE-576)002132311</subfield>
+    <subfield code="w">(DE-600)537837-0</subfield>
+    <subfield code="7">am</subfield>
+  </datafield>
+  <datafield tag="889" ind1=" " ind2=" ">
+    <subfield code="w">(DE-627)039604780</subfield>
+  </datafield>
+  <datafield tag="889" ind1=" " ind2=" ">
+    <subfield code="w">(DE-627)1924867303</subfield>
+  </datafield>
+  <datafield tag="912" ind1=" " ind2=" ">
+    <subfield code="a">SSG-OPC-vor</subfield>
+  </datafield>
+  <datafield tag="912" ind1=" " ind2=" ">
+    <subfield code="a">SSG-OPC-ang</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101; &#x2BF;&#x100;l&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Gelibolulu, Mu&#x1E63;&#x1E6D;af&#x101; &#x2BF;Al&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;&#x100;l&#x12B;, Mu&#x1E63;&#x1E6D;af&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101;, &#x2BF;Al&#x12B; Gelibolulu</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101; Ibn-A&#x1E25;med</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;&#x100;l&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101; &#x2BF;&#x100;l&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101; Ibn-A&#x1E25;med</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;tafa Ibn-A&#x1E25;mad Ibn-&#x2BF;Abd-al-Maul&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101; Ibn-A&#x1E25;mad Ibn-&#x2BF;Abdalmaul&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101; Ibn-A&#x1E25;mad &#x2BF;&#x100;l&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101; Ibn-A&#x1E25;med &#x2BF;&#x100;l&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;Ali, Mustafa</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;Al&#x12B;, Mu&#x1E63;&#x1E6D;af&#x101; Ibn-A&#x1E25;mad</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;&#x100;l&#x12B;, Mu&#x1E63;&#x1E6D;af&#x101; Ibn-A&#x1E25;med</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Gelibolulu Mustafa &#xC2;li</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Gelibolulu Mu&#x1E63;&#x1E6D;af&#x101; &#x2BF;&#x100;l&#x12B; Efendi</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#xC2;li, Mustafa bin Ahmed</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;&#x100;l&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mustafa bin Ahmed &#xC2;li</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#xC2;li, Mustafa bin Ahmet</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Ali</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;&#x100;l&#x12B;, Mu&#x1E63;&#x1E6D;af&#x101; Ibn A&#x1E25;mad</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;&#x100;l&#x12B;, Mu&#x1E63;taf&#x101; Ibn A&#x1E25;met</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x2BF;&#x100;l&#x12B;, Mu&#x1E63;taf&#x101; Ibn A&#x1E25;med</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Gelibolulu Ali Bey, Mustafa</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x100;li, Mustafa Ibn Ahmet</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Ali, Mustafa</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E63;&#x1E6D;af&#x101; Ibn A&#x1E25;med &#x2BF;&#x100;li</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">1603494723</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">1603494723</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">1603494723</subfield>
+    <subfield code="b">DE-B4</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">1603494723</subfield>
+    <subfield code="b">DE-B11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="935" ind1=" " ind2=" ">
+    <subfield code="i">mdedup</subfield>
+  </datafield>
+  <datafield tag="936" ind1="r" ind2="v">
+    <subfield code="a">LO 91250</subfield>
+    <subfield code="b">Kairo</subfield>
+    <subfield code="k">Kunstgeschichte</subfield>
+    <subfield code="k">Kunst nach L&#xE4;ndern bzw. Kontinenten</subfield>
+    <subfield code="k">Afrika</subfield>
+    <subfield code="k">Nordafrika</subfield>
+    <subfield code="k">Kunstgeschichte &#xC4;gyptens (ohne Altertum)</subfield>
+    <subfield code="k">Orte</subfield>
+    <subfield code="k">Kairo</subfield>
+    <subfield code="0">(DE-627)1271257637</subfield>
+    <subfield code="0">(DE-625)rvk/105606:</subfield>
+    <subfield code="0">(DE-576)201257637</subfield>
+  </datafield>
+  <datafield tag="936" ind1="r" ind2="v">
+    <subfield code="a">AX 20100</subfield>
+    <subfield code="b">Wien</subfield>
+    <subfield code="k">Allgemeines</subfield>
+    <subfield code="k">Akademieserien, Periodika wissenschaftlicher Gesellschaften mit Akademiecharakter</subfield>
+    <subfield code="k">&#xDC;brige L&#xE4;nder</subfield>
+    <subfield code="k">Europa</subfield>
+    <subfield code="k">Mitteleuropa</subfield>
+    <subfield code="k">&#xD6;sterreich</subfield>
+    <subfield code="k">Wien</subfield>
+    <subfield code="0">(DE-627)1271491370</subfield>
+    <subfield code="0">(DE-625)rvk/9113:10614</subfield>
+    <subfield code="0">(DE-576)201491370</subfield>
+  </datafield>
+  <datafield tag="936" ind1="b" ind2="k">
+    <subfield code="a">15.91</subfield>
+    <subfield code="j">Nordafrika</subfield>
+    <subfield code="x">Geschichte</subfield>
+    <subfield code="0">(DE-627)181570653</subfield>
+  </datafield>
+  <datafield tag="951" ind1=" " ind2=" ">
+    <subfield code="a">BO</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>5</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>03494nam#a2200757#i#4500</leader>
+  <controlfield tag="001">almafu_BV026062583</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20130923        </controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">110326|1992####xx######r#####|||#|#ara#u</controlfield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">917418306</subfield>
+    <subfield code="2">OCoLC</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">BV026062583</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)BVBBV026062583</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-604)BV026062583</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="c">DE-604</subfield>
+    <subfield code="e">rakwb</subfield>
+    <subfield code="d">DE-188</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2="7">
+    <subfield code="a">ara</subfield>
+    <subfield code="2">ISO 639-2</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-188;BV026062583</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">MI 12270</subfield>
+    <subfield code="0">(DE-625)122926:12072</subfield>
+    <subfield code="2">rvk</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-188;BV026062583</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almafu_BV026062583</subfield>
+  </datafield>
+  <datafield tag="245" ind1="0" ind2="0">
+    <subfield code="6">880-01</subfield>
+    <subfield code="a">Mi&#x1E63;r baina &#x2BE;d-daula &#x2BE;d-d&#x12B;n&#x12B;ya wa-&#x2BE;l-madan&#x12B;ya</subfield>
+    <subfield code="b">al-mun&#x101;&#x1E93;ara &#x161;-&#x161;ah&#x12B;ra allat&#x12B; &#x2BF;uq&#x12B;mat f&#x12B; Ma&#x2BF;ra&#x1E0D; al-Q&#x101;hira ad-Duwal&#x12B; lil-Kit&#x101;b ...</subfield>
+    <subfield code="c">Al-mun&#x101;&#x1E93;ir&#x16B;n Mu&#x1E25;ammad al-&#x120;az&#x101;l&#x12B; .... . Ad&#x101;ra al-mun&#x101;&#x1E93;ara Sam&#x12B;r Sar&#x1E25;&#x101;n</subfield>
+  </datafield>
+  <datafield tag="880" ind1="0" ind2="0">
+    <subfield code="6">245-01/Arab/r</subfield>
+    <subfield code="a">&#x645;&#x635;&#x631; &#x628;&#x64A;&#x646; &#x627;&#x644;&#x62F;&#x648;&#x644;&#x629; &#x627;&#x644;&#x62F;&#x64A;&#x646;&#x64A;&#x629; &#x648;&#x627;&#x644;&#x645;&#x62F;&#x646;&#x64A;&#x629;</subfield>
+    <subfield code="b">&#x627;&#x644;&#x645;&#x646;&#x627;&#x638;&#x631;&#x629; &#x627;&#x644;&#x634;&#x647;&#x64A;&#x631;&#x629; &#x627;&#x644;&#x62A;&#x64A; &#x627;&#x642;&#x64A;&#x645;&#x62A; &#x641;&#x64A; &#x645;&#x639;&#x631;&#x636; &#x627;&#x644;&#x642;&#x627;&#x647;&#x631;&#x629; &#x627;&#x644;&#x62F;&#x648;&#x644;&#x64A; &#x644;&#x644;&#x643;&#x62A;&#x627;&#x628; ...</subfield>
+    <subfield code="c">&#x627;&#x644;&#x645;&#x62A;&#x646;&#x627;&#x638;&#x631;&#x648;&#x646; &#x645;&#x62D;&#x645;&#x62F; &#x627;&#x644;&#x63A;&#x632;&#x627;&#x644;&#x64A; ... . &#x623;&#x62F;&#x627;&#x631; &#x627;&#x644;&#x645;&#x646;&#x627;&#x638;&#x631;&#x629; &#x633;&#x645;&#x64A;&#x631; &#x633;&#x631;&#x62D;&#x627;&#x646;</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="0">
+    <subfield code="6">880-07</subfield>
+    <subfield code="a">Mu&#x1E25;ammad al-&#x120;az&#x101;l&#x12B; Sam&#x12B;r Sar&#x1E25;&#x101;n</subfield>
+  </datafield>
+  <datafield tag="880" ind1="3" ind2="0">
+    <subfield code="6">246-07/Arab/r</subfield>
+    <subfield code="a">&#x627;&#x644;&#x63A;&#x632;&#x627;&#x644;&#x64A;</subfield>
+  </datafield>
+  <datafield tag="880" ind1="3" ind2="0">
+    <subfield code="6">246-07/Arab/r</subfield>
+    <subfield code="a">&#x648; &#x627;&#x644;&#x645;&#x62F;&#x646;&#x64A;&#x629; &#x623;&#x642;&#x64A;&#x645;&#x62A;</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="0">
+    <subfield code="a">Ma&#x1E63;r bayna al-dawlah al-d&#x12B;n&#x12B;yah wa-al-madan&#x12B;yah al-mun&#x101;&#x1E93;arah al-shah&#x12B;rah allat&#x12B; uq&#x12B;mat f&#x12B; Ma&#x2BF;ra&#x1E0D; al-Q&#x101;hira al-Duwal&#x12B; li-al-Kit&#x101;b al-daula al-d&#x12B;n&#x12B;ya wa-al-madan&#x12B;ya al-daula ad-Daul&#x12B; al-Dawl&#x12B; al-Daul&#x12B;</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="6">880-04</subfield>
+    <subfield code="a">A&#x1E6D;-&#x1E6C;ab&#x2BF;a 2</subfield>
+  </datafield>
+  <datafield tag="880" ind1=" " ind2=" ">
+    <subfield code="6">250-04/Arab/r</subfield>
+    <subfield code="a">&#x627;&#x644;&#x637;&#x628;&#x639;&#x629; &#x662;</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="6">880-05</subfield>
+    <subfield code="a">Al-Q&#x101;hira</subfield>
+    <subfield code="b">Ad-D&#x101;r al-Mi&#x1E63;r&#x12B;ya li-&#x2BE;n-Na&#x161;r wa-&#x2BE;t-Tauz&#x12B;&#x2BF;</subfield>
+    <subfield code="c">1413 [1992]</subfield>
+  </datafield>
+  <datafield tag="880" ind1=" " ind2="1">
+    <subfield code="6">264-05/Arab/r</subfield>
+    <subfield code="a">&#x627;&#x644;&#x642;&#x627;&#x647;&#x631;&#x629;</subfield>
+    <subfield code="b">&#x627;&#x644;&#x62F;&#x627;&#x631; &#x627;&#x644;&#x645;&#x635;&#x631;&#x64A;&#x629; &#x644;&#x644;&#x646;&#x634;&#x631; &#x648;&#x627;&#x644;&#x62A;&#x648;&#x632;&#x64A;&#x639;</subfield>
+    <subfield code="c">&#x661;&#x664;&#x661;&#x663; [&#x661;&#x669;&#x669;&#x662;]</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="6">880-06</subfield>
+    <subfield code="a">81, [6] S.</subfield>
+    <subfield code="b">Ill.</subfield>
+  </datafield>
+  <datafield tag="880" ind1=" " ind2=" ">
+    <subfield code="6">300-06/Arab/r</subfield>
+    <subfield code="a">&#x668;&#x661;, [&#x666;] &#x635;.</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="546" ind1=" " ind2=" ">
+    <subfield code="b">In arab. Schr., arab.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Islam</subfield>
+    <subfield code="0">(DE-588)4027743-4</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Politik</subfield>
+    <subfield code="0">(DE-588)4046514-7</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="651" ind1=" " ind2="7">
+    <subfield code="a">&#xC4;gypten</subfield>
+    <subfield code="0">(DE-588)4000556-2</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="g">&#xC4;gypten</subfield>
+    <subfield code="0">(DE-588)4000556-2</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="s">Islam</subfield>
+    <subfield code="0">(DE-588)4027743-4</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="2">
+    <subfield code="s">Politik</subfield>
+    <subfield code="0">(DE-588)4046514-7</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">&#x120;az&#x101;l&#x12B;, Mu&#x1E25;ammad al-</subfield>
+    <subfield code="d">1917-1996</subfield>
+    <subfield code="6">880-02</subfield>
+    <subfield code="0">(DE-588)119313359</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="880" ind1="1" ind2=" ">
+    <subfield code="6">700-02/Arab/r</subfield>
+    <subfield code="a">&lt;&lt;&#x627;&#x644;&gt;&gt; &#x63A;&#x632;&#x627;&#x644;&#x64A;, &#x645;&#x62D;&#x645;&#x62F;</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Sar&#x1E25;&#x101;n, Sam&#x12B;r</subfield>
+    <subfield code="6">880-03</subfield>
+    <subfield code="0">(DE-588)10323733X</subfield>
+  </datafield>
+  <datafield tag="880" ind1="1" ind2=" ">
+    <subfield code="6">700-03/Arab/r</subfield>
+    <subfield code="a">&#x633;&#x631;&#x62D;&#x627;&#x646;, &#x633;&#x645;&#x64A;&#x631;</subfield>
+  </datafield>
+  <datafield tag="852" ind1="7" ind2=" ">
+    <subfield code="b">930</subfield>
+    <subfield code="c">NB/EG</subfield>
+    <subfield code="h">MI 12270 G289</subfield>
+    <subfield code="2">rvk</subfield>
+    <subfield code="8">22860729960002883</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E25;ammad al-&#x120;az&#x101;l&#x12B;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x120;azz&#x101;l&#x12B;, Mu&#x1E25;ammad &#x98;al-&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Ghazzali, Muhammad &#x98;al-&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E25;ammad al-&#x120;azz&#x101;l&#x12B; A&#x1E25;mad as-Saqq&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E25;ammad al-&#x120;az&#x101;l&#x12B; Ibn-A&#x1E25;mad as-Saqq&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Saqq&#x101;, Mu&#x1E25;ammad al-&#x120;az&#x101;l&#x12B; &#x98;as-&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Saqq&#x101;, Mu&#x1E25;ammad al-&#x120;azz&#x101;l&#x12B; &#x98;as-&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Mu&#x1E25;ammad al-&#x120;az&#x101;l&#x12B; as-Saqq&#x101;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Ghaz&#x101;l&#x12B;, Mu&#x1E25;ammad &#x98;al-&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Alghazali, M.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x120;az&#x101;l&#x12B;, Mu&#x1E25;ammad &#x98;al-&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x120;&#xE4;zaliy, Muh&#xE4;mm&#xE4;d</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x120;&#xE4;zzali, Muh&#xE4;mm&#xE4;d</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">&#x63A;&#x6D5;&#x632;&#x632;&#x627;&#x644;&#x649;, &#x645;&#x6C7;&#x6BE;&#x6D5;&#x645;&#x645;&#x6D5;&#x62F;</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">BV026062583</subfield>
+    <subfield code="b">DE-188</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="940" ind1="f" ind2=" ">
+    <subfield code="a">ara</subfield>
+  </datafield>
+  <datafield tag="942" ind1=" " ind2=" ">
+    <subfield code="a">05</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="a">BV026062583</subfield>
+    <subfield code="9">990041969880402883</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>19</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>03715caa a2200637 c 4500</leader>
+  <controlfield tag="001">gbv_102743228X</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20181216114342.0</controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">180723s1800    ua |||||      00| ||fre c</controlfield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-627)102743228X</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)GBV102743228X</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-627</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="c">DE-627</subfield>
+    <subfield code="e">rda</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">fre</subfield>
+    <subfield code="a">ara</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XC-EG</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;102743228X</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">44.73</subfield>
+    <subfield code="2">bkl</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;102743228X</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">gbv_102743228X</subfield>
+  </datafield>
+  <datafield tag="093" ind1=" " ind2=" ">
+    <subfield code="a">gbv_145551407</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Desgenettes, Ren&#xE9; Nicolas Dufriche</subfield>
+    <subfield code="d">1762-1837</subfield>
+    <subfield code="e">VerfasserIn</subfield>
+    <subfield code="0">(DE-588)100105270</subfield>
+    <subfield code="0">(DE-627)138977003</subfield>
+    <subfield code="0">(DE-576)288625420</subfield>
+    <subfield code="4">aut</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Avis Sur La Petite Verole R&#xE9;gnante,</subfield>
+    <subfield code="b">Adress&#xE9; Au Divan Du Kaire, = Ha&#x1E0F;&#x101; tanb&#x12B;h f&#x12B;m&#x101; ya&#x1E2B;u&#x1E63;&#x1E63; d&#x101;&#x2BE; al-&#x1E7;udar&#x12B; al-mutasalli&#x1E6D; al-&#x101;n wa-&#x1E0F;alik bi-&#x161;ar&#x1E25; muwa&#x1E7;&#x1E7;ah ill&#xE1; arb&#x101;b ad-d&#x12B;w&#x101;n bi-Mi&#x1E63;r al-Q&#x101;hira min qibal as-sitw&#x12B;n Di&#x1E7;ini&#x1E6D; ra&#x2BE;&#x12B;s al-a&#x1E6D;ib&#x101; f&#x12B; 'l-&#x1E7;ai&#x161; al-farans&#x101;w&#x12B; bi-&#x1E7;ihat a&#x161;-&#x160;arq f&#x12B; 20 min &#x161;ahr &#x161;a&#x2BF;b&#x101;n sanat 1214 hi&#x1E7;r&#x12B;ya</subfield>
+    <subfield code="c">Par le C.en Desgenettes, Premier M&#xE9;decin de l'Arm&#xE9;e d'Orient</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="1">
+    <subfield code="a">Ha&#x1E0F;&#x101; tanb&#x12B;h f&#x12B;m&#x101; ya&#x1E2B;u&#x1E63;&#x1E63; d&#x101;&#x2BE; al-&#x1E7;udar&#x12B; al-mutasalli&#x1E6D; al-&#x101;n wa-&#x1E0F;alik bi-&#x161;ar&#x1E25; muwa&#x1E7;&#x1E7;ah ill&#xE1; arb&#x101;b ad-d&#x12B;w&#x101;n bi-Mi&#x1E63;r al-Q&#x101;hira min qibal as-sitw&#x12B;n Di&#x1E7;ini&#x1E6D; ra&#x2BE;&#x12B;s al-a&#x1E6D;ib&#x101; f&#x12B; 'l-&#x1E7;ai&#x161; al-farans&#x101;w&#x12B; bi-&#x1E7;ihat a&#x161;-&#x160;arq f&#x12B; 20 min &#x161;ahr &#x161;a&#x2BF;b&#x101;n sanat 1214 hi&#x1E7;r&#x12B;ya</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Au Kaire</subfield>
+    <subfield code="b">De L'Imprimerie Nationale</subfield>
+    <subfield code="c">Le 27 Niv&#xF4;se An VIII. [17. Januar 1800]</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">43 Seiten, 1 ungez&#xE4;hlte Seite</subfield>
+    <subfield code="c">4&#xB0;</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">Text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">ohne Hilfsmittel zu benutzen</subfield>
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">Band</subfield>
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Seite [44]: "Note. La Traduction arabe a &#xE9;t&#xE9; faite par Don Rapha&#xEB;l, membre de l'Institut d'Egypte."</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Vorlageform der franz&#xF6;sischen Ver&#xF6;ffentlichungsangabe: Au Kaire, De L'Imprimerie Nationale. Le 27 Niv&#xF4;se An VIII. [17. Januar 1800]</subfield>
+  </datafield>
+  <datafield tag="510" ind1="3" ind2=" ">
+    <subfield code="a">BnF Cat. g&#xE9;n&#xE9;ral FRBNF30330955</subfield>
+  </datafield>
+  <datafield tag="546" ind1=" " ind2=" ">
+    <subfield code="a">Parallel in franz&#xF6;sisch und in arabisch</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="D">g</subfield>
+    <subfield code="0">(DE-588)4029236-8</subfield>
+    <subfield code="0">(DE-627)106275070</subfield>
+    <subfield code="0">(DE-576)208981721</subfield>
+    <subfield code="a">Kairo</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="D">g</subfield>
+    <subfield code="0">(DE-588)4000556-2</subfield>
+    <subfield code="0">(DE-627)104758139</subfield>
+    <subfield code="0">(DE-576)208838619</subfield>
+    <subfield code="a">&#xC4;gypten</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="2">
+    <subfield code="D">g</subfield>
+    <subfield code="0">(DE-588)4000695-5</subfield>
+    <subfield code="0">(DE-627)10437036X</subfield>
+    <subfield code="0">(DE-576)208839046</subfield>
+    <subfield code="a">Afrika</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="3">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4020235-5</subfield>
+    <subfield code="0">(DE-627)104270683</subfield>
+    <subfield code="0">(DE-576)208932488</subfield>
+    <subfield code="a">Geomedizin</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="4">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4038243-6</subfield>
+    <subfield code="0">(DE-627)104584963</subfield>
+    <subfield code="0">(DE-576)209029218</subfield>
+    <subfield code="a">Medizin</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2=" ">
+    <subfield code="5">(DE-627)</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Monachis, Rapha&#xEB;l</subfield>
+    <subfield code="d">1759-1831</subfield>
+    <subfield code="e">&#xDC;bersetzerIn</subfield>
+    <subfield code="4">trl</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Imprimerie Nationale</subfield>
+    <subfield code="g">Kairo</subfield>
+    <subfield code="e">DruckerIn</subfield>
+    <subfield code="0">(DE-588)1087252474</subfield>
+    <subfield code="0">(DE-627)85158070X</subfield>
+    <subfield code="0">(DE-576)458499986</subfield>
+    <subfield code="4">prt</subfield>
+  </datafield>
+  <datafield tag="751" ind1=" " ind2=" ">
+    <subfield code="a">Kairo</subfield>
+    <subfield code="0">(DE-588)4029236-8</subfield>
+    <subfield code="0">(DE-627)106275070</subfield>
+    <subfield code="0">(DE-576)208981721</subfield>
+    <subfield code="4">pup$4mfp</subfield>
+  </datafield>
+  <datafield tag="773" ind1="0" ind2="8">
+    <subfield code="i">Enthalten in</subfield>
+    <subfield code="a">Desgenettes, Ren&#xE9; Nicolas Dufriche, 1762 - 1837</subfield>
+    <subfield code="t">Opuscules</subfield>
+    <subfield code="d">Au Kaire : De L'Imprimerie Nationale, 1799</subfield>
+    <subfield code="g">(1800), 5</subfield>
+    <subfield code="h">2 ungez&#xE4;hlte Bl&#xE4;tter, 7, 4, 4, 15, 43, 25, 13, 16 Seiten, 4 ungez&#xE4;hlte Seiten</subfield>
+    <subfield code="w">(DE-627)145551407</subfield>
+    <subfield code="7">nnam</subfield>
+  </datafield>
+  <datafield tag="773" ind1="1" ind2="8">
+    <subfield code="g">year:1800</subfield>
+    <subfield code="g">number:5</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="2">
+    <subfield code="u">http://catalogue.bnf.fr/ark:/12148/cb303309558</subfield>
+    <subfield code="x">Verlag</subfield>
+    <subfield code="y">Titelaufnahme der BnF</subfield>
+    <subfield code="7">1</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Genettes, Ren&#xE9; N. &#x98;des&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Desgenettes, C.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Desgenettes, Nicolas Ren&#xE9; Dufriche</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Desgenettes, Ren&#xE9;-Nicolas-Dufriche</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Dufriche Desgenettes, Ren&#xE9; Nicolas</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Desgenettes, Ren&#xE9; Nicolas Dufriche &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Desgenettes, R.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Desgenettes, Ren&#xE9; N.</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">102743228X</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="935" ind1=" " ind2=" ">
+    <subfield code="e">BnF Cat. g&#xE9;n&#xE9;ral FRBNF30330955</subfield>
+  </datafield>
+  <datafield tag="936" ind1="b" ind2="k">
+    <subfield code="a">44.73</subfield>
+    <subfield code="j">Geomedizin</subfield>
+    <subfield code="q">ARK</subfield>
+    <subfield code="0">(DE-627)10640900X</subfield>
+  </datafield>
+  <datafield tag="951" ind1=" " ind2=" ">
+    <subfield code="a">AR</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>20</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>03703cam a2200721 c 4500</leader>
+  <controlfield tag="001">gbv_014140950</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20251219030800.0</controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">860203s1973    ua ||||| c    00| ||eng c</controlfield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-627)014140950</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)GBV014140950</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-627</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="c">DE-627</subfield>
+    <subfield code="e">rda</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">eng</subfield>
+    <subfield code="a">ara</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XC-EG</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;014140950</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">016.281/7</subfield>
+    <subfield code="q">OCLC</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">6,23</subfield>
+    <subfield code="2">ssgn</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">18.72</subfield>
+    <subfield code="2">bkl</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">17.00</subfield>
+    <subfield code="2">bkl</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">18.74</subfield>
+    <subfield code="2">bkl</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">11.57</subfield>
+    <subfield code="2">bkl</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;014140950</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">gbv_014140950</subfield>
+  </datafield>
+  <datafield tag="110" ind1="2" ind2=" ">
+    <subfield code="a">Kan&#x12B;sat as-Saiyida al-&#x2BF;A&#x1E0F;r&#x101;'</subfield>
+    <subfield code="g">al-Q&#x101;hira</subfield>
+    <subfield code="b">Maktaba</subfield>
+    <subfield code="e">VerfasserIn</subfield>
+    <subfield code="0">(DE-588)5051414-3</subfield>
+    <subfield code="0">(DE-627)709470029</subfield>
+    <subfield code="0">(DE-576)193773511</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Catalogue of the Coptic and Christian Arabic Mss. preserved in the Library of the Church of the All-Holy Virgin Mary known as Qasr&#xEE;at ar-R&#xEE;&#x1E25;&#xE2;n at Old Cairo</subfield>
+    <subfield code="b">= Fah&#x101;ris al-ma&#x1E2B;&#x1E6D;&#x16B;&#x1E6D;&#x101;t al-qib&#x1E6D;&#x131;&#x304;ya wa'l-&#x2BF;arab&#x131;&#x304;ya al-mas&#x131;&#x304;&#x1E25;&#x131;&#x304;ya al-ma&#x1E25;f&#x16B;&#x1E93;a bi Maktabat Kan&#x131;&#x304;sat as-Saiyida al-&#x2BF;A&#x1E0F;r&#x101;&#x2BE; al-ma&#x2BF;r&#x16B;fa bi-Qa&#x1E63;r&#x131;&#x304;yat ar-Rai&#x1E25;&#x101;n bi-Mi&#x1E63;r al-Qad&#x131;&#x304;ma bi'l-Q&#x101;hira</subfield>
+    <subfield code="c">Antoine Khater, O.H.E. KHS-Burmester</subfield>
+  </datafield>
+  <datafield tag="246" ind1="3" ind2="1">
+    <subfield code="a">Fah&#x101;ris al-ma&#x1E2B;&#x1E6D;&#x16B;&#x1E6D;&#x101;t al-qib&#x1E6D;&#x131;&#x304;ya wa'l-&#x2BF;arab&#x131;&#x304;ya al-mas&#x131;&#x304;&#x1E25;&#x131;&#x304;ya al-ma&#x1E25;f&#x16B;&#x1E93;a bi Maktabat Kan&#x131;&#x304;sat as-Saiyida al-&#x2BF;A&#x1E0F;r&#x101;&#x2BE; al-ma&#x2BF;r&#x16B;fa bi-Qa&#x1E63;r&#x131;&#x304;yat ar-Rai&#x1E25;&#x101;n bi-Mi&#x1E63;r al-Qad&#x131;&#x304;ma bi'l-Q&#x101;hira</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Le Caire</subfield>
+    <subfield code="b">Soci&#xE9;t&#xE9; d'arch&#xE9;ologie Copte</subfield>
+    <subfield code="c">1973</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">Verschiedene Paginierungen</subfield>
+    <subfield code="b">Illustrationen</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">Text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">ohne Hilfsmittel zu benutzen</subfield>
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">Band</subfield>
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Biblioth&#xE8;que de manuscrits</subfield>
+    <subfield code="v">2</subfield>
+  </datafield>
+  <datafield tag="546" ind1=" " ind2=" ">
+    <subfield code="a">Text &#xFC;berwiegend englisch, teilweise arabisch. - Teilweise in arabischer Schrift</subfield>
+  </datafield>
+  <datafield tag="583" ind1="1" ind2=" ">
+    <subfield code="a">Archivierung pr&#xFC;fen</subfield>
+    <subfield code="c">20240324</subfield>
+    <subfield code="f">DE-4165</subfield>
+    <subfield code="z">1</subfield>
+    <subfield code="2">pdager</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Katalog</subfield>
+    <subfield code="0">(DE-588)4163417-2</subfield>
+    <subfield code="0">(DE-627)105454966</subfield>
+    <subfield code="0">(DE-576)209880899</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="D">g</subfield>
+    <subfield code="0">(DE-588)4225633-1</subfield>
+    <subfield code="0">(DE-627)104977779</subfield>
+    <subfield code="0">(DE-576)210307781</subfield>
+    <subfield code="a">Kairo-al-Fustat</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4030702-5</subfield>
+    <subfield code="0">(DE-627)104731745</subfield>
+    <subfield code="0">(DE-576)208988742</subfield>
+    <subfield code="a">Kirche</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="2">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4073723-8</subfield>
+    <subfield code="0">(DE-627)106091697</subfield>
+    <subfield code="0">(DE-576)209191333</subfield>
+    <subfield code="a">Kopten</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="3">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4120227-2</subfield>
+    <subfield code="0">(DE-627)105777986</subfield>
+    <subfield code="0">(DE-576)209533323</subfield>
+    <subfield code="a">Koptisch</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="4">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4241223-7</subfield>
+    <subfield code="0">(DE-627)104858397</subfield>
+    <subfield code="0">(DE-576)210436336</subfield>
+    <subfield code="a">Arabisch</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="5">
+    <subfield code="D">s</subfield>
+    <subfield code="0">(DE-588)4023287-6</subfield>
+    <subfield code="0">(DE-627)10457187X</subfield>
+    <subfield code="0">(DE-576)208948376</subfield>
+    <subfield code="a">Handschrift</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2=" ">
+    <subfield code="5">(DE-627)</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Khater, Antoine</subfield>
+    <subfield code="e">ZusammenstellendeR</subfield>
+    <subfield code="0">(DE-588)1157982581</subfield>
+    <subfield code="0">(DE-627)1021718394</subfield>
+    <subfield code="0">(DE-576)503495395</subfield>
+    <subfield code="4">com</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Khs-Burmester, O. H. E.</subfield>
+    <subfield code="d">1897-1977</subfield>
+    <subfield code="e">ZusammenstellendeR</subfield>
+    <subfield code="0">(DE-588)1048576604</subfield>
+    <subfield code="0">(DE-627)78066941X</subfield>
+    <subfield code="0">(DE-576)167801651</subfield>
+    <subfield code="4">com</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Biblioth&#xE8;que de manuscrits</subfield>
+    <subfield code="v">2</subfield>
+    <subfield code="9">2</subfield>
+    <subfield code="w">(DE-627)214060411</subfield>
+    <subfield code="w">(DE-576)921406041X</subfield>
+    <subfield code="w">(DE-600)1328883-0</subfield>
+    <subfield code="7">am</subfield>
+  </datafield>
+  <datafield tag="912" ind1=" " ind2=" ">
+    <subfield code="a">SSG-OLC-pha</subfield>
+  </datafield>
+  <datafield tag="912" ind1=" " ind2=" ">
+    <subfield code="a">SSG-OPC-vor</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Burmester, O. H. E. Khs-</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Burmester, Oswald H.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Burmester, Oswald Hugh Ewart Khs-</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">B&#x16B;rmistar, Uzwald</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Burmester, O. H. E.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Khs-Burmester, Oswald Hugh Ewart</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Burmester, Oswald Hugh Ewart</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">H&#x101;&#x1E6D;ir, Antw&#x101;n</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">H&#x331;&#x101;&#x1E6D;ir, Antu&#x2BF;&#x101;n</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">014140950</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="936" ind1="b" ind2="k">
+    <subfield code="a">18.72</subfield>
+    <subfield code="j">&#xC4;gyptische Sprache und Literatur</subfield>
+    <subfield code="0">(DE-627)106423193</subfield>
+  </datafield>
+  <datafield tag="936" ind1="b" ind2="k">
+    <subfield code="a">17.00</subfield>
+    <subfield code="j">Sprach- und Literaturwissenschaft: Allgemeines</subfield>
+    <subfield code="0">(DE-627)106404695</subfield>
+  </datafield>
+  <datafield tag="936" ind1="b" ind2="k">
+    <subfield code="a">18.74</subfield>
+    <subfield code="j">Arabische Sprache und Literatur</subfield>
+    <subfield code="q">DA-3</subfield>
+    <subfield code="0">(DE-627)106415646</subfield>
+  </datafield>
+  <datafield tag="936" ind1="b" ind2="k">
+    <subfield code="a">11.57</subfield>
+    <subfield code="j">Ostchristentum</subfield>
+    <subfield code="q">DA-3</subfield>
+    <subfield code="0">(DE-627)106405144</subfield>
+  </datafield>
+  <datafield tag="951" ind1=" " ind2=" ">
+    <subfield code="a">BO</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>21</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="al-Qahira"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

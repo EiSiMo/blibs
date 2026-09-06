@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>18940</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>01515nam a2200433Ia 4500</leader>
+  <controlfield tag="001">almatuudk_9923141915802884</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20260224114922.0</controlfield>
+  <controlfield tag="006">m    g   d        </controlfield>
+  <controlfield tag="007">cr bn |||a|bb|</controlfield>
+  <controlfield tag="008">860115s1680    enk     o     00| | eng d</controlfield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(CKB)4330000000359797</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(EEBO)2240852804</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(EXLCZ)994330000000359797</subfield>
+  </datafield>
+  <datafield tag="037" ind1=" " ind2=" ">
+    <subfield code="a">CL0037000011</subfield>
+    <subfield code="b">ProQuest Information and Learning. 300 N. Zeeb Rd., Ann Arbor, MI 48106</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">EAA</subfield>
+    <subfield code="c">EAA</subfield>
+    <subfield code="d">m/c</subfield>
+    <subfield code="d">WaOLN</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B170;9923141915802884</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B170;9923141915802884</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almatuudk_9923141915802884</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Shadwell, Thomas,</subfield>
+    <subfield code="d">1642?-1692.</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="4">
+    <subfield code="a">The woman-captain :</subfield>
+    <subfield code="b">a comedy acted by His Royal Highnesses servants /</subfield>
+    <subfield code="c">written by Tho. Shadwell.</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">London :</subfield>
+    <subfield code="b">Printed for Samuel Carr ...,</subfield>
+    <subfield code="c">1680.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">[7], 72, [1] p.</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">computer</subfield>
+    <subfield code="b">c</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">online resource</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">First ed. Cf. NUC pre-1956.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Reproduction of original in Huntington Library.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Epilogue, spoken by Mrs. Berry, who acted the Woman-captain: p. [1] at end.</subfield>
+  </datafield>
+  <datafield tag="510" ind1="4" ind2=" ">
+    <subfield code="a">Wing</subfield>
+    <subfield code="c">S2887</subfield>
+  </datafield>
+  <datafield tag="510" ind1="4" ind2=" ">
+    <subfield code="a">Arber's Term cat.</subfield>
+    <subfield code="c">I 370</subfield>
+  </datafield>
+  <datafield tag="510" ind1="4" ind2=" ">
+    <subfield code="a">Woodward and McManaway</subfield>
+    <subfield code="c">1106</subfield>
+  </datafield>
+  <datafield tag="510" ind1="4" ind2=" ">
+    <subfield code="a">Halliwell's Old English plays</subfield>
+    <subfield code="c">275</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">eebo-0113</subfield>
+  </datafield>
+  <datafield tag="740" ind1="0" ind2=" ">
+    <subfield code="a">Woman captain.</subfield>
+  </datafield>
+  <datafield tag="906" ind1=" " ind2=" ">
+    <subfield code="a">BOOK</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">cr</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9923141915802884</subfield>
+    <subfield code="b">DE-B170</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>2</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.date="1680"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

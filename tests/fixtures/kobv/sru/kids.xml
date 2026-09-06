@@ -1,0 +1,260 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>13946</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>03039nmm a2200613uu 4500</leader>
+  <controlfield tag="001">kobvindex_ZLB08256255</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20260823231102.0</controlfield>
+  <controlfield tag="007">co</controlfield>
+  <controlfield tag="008">130619s2012    ||||||||||||||||||||ger||</controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9783936577891</subfield>
+    <subfield code="9">978-3-936577-89-1</subfield>
+  </datafield>
+  <datafield tag="024" ind1="3" ind2=" ">
+    <subfield code="a">4260133778108</subfield>
+  </datafield>
+  <datafield tag="024" ind1="3" ind2=" ">
+    <subfield code="a">9783936577891</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-DE</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVZLB08256255</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;08256255</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;08256255</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_ZLB08256255</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Sonjas Abenteuer</subfield>
+    <subfield code="b">Bilderbuch mit Bilderbuch-DVD ; inkl. p&#xE4;dagogischem Material ; empfohlen ab 3 Jahren ; [Medienkombination]]</subfield>
+    <subfield code="c">Text &amp; Illustrationen von Larysa Golik. Sprecherin: Kirstin Hesse</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">2. Aufl.</subfield>
+  </datafield>
+  <datafield tag="260" ind1="3" ind2=" ">
+    <subfield code="a">Kempen</subfield>
+    <subfield code="b">BVK Buch-Verl. Kempen</subfield>
+    <subfield code="c">2012</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">1 Buch ([40]  Seiten ), 1 DVD-ROM</subfield>
+    <subfield code="e">1 Beil.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">&#xFC;berw. Ill.</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Bilderbuch-Kino : [Medienkombination]</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Systemvoraussetzungen: PC; DVD-Laufwerk</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Die DVD-ROM enth.: Bilderbuch als Film, vorgelesen von bekannten Sprechern. Hinweise zum Einsatz des Bilderbuchkinos f&#xFC;r Eltern, den Kindergarten, die Grundschule. &#xDC;ber 20 vollst&#xE4;ndig ausgearbeitete Angebote f&#xFC;r den Einsatz in der Kita, abgestimmt auf die Bildungsbereiche. &#xDC;ber 20 vollst&#xE4;ndig ausgearbeitete und differenzierte Arbeitsbl&#xE4;tter zum Inhalt des Buches f&#xFC;r Kinder der 1. und 2. Klasse. Inkl. kreativer Angebote f&#xFC;r die Kinovorstellung, farbige Memory-Karten, Masken oder Stabpuppen f&#xFC;r ein szenisches Spiel u. v. m.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">FSK-Vermerk: Lehrprogramm gem&#xE4;&#xDF; &#xA7; 14 JuSchG</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">Die kleine Spinne Sonja verl&#xE4;sst ihr Netz, um Wald und Wiese zu erkunden und Abenteuer zu erleben. Buch und DVD f&#xFC;r den Einsatz in Kindergarten und Grundschule</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Wald</subfield>
+    <subfield code="0">(DE-609)00003636</subfield>
+    <subfield code="0">(DE-588)4064354-2</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Abenteuer</subfield>
+    <subfield code="0">(DE-609)00050231</subfield>
+    <subfield code="0">(DE-588)4141014-2</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Teich</subfield>
+    <subfield code="0">(DE-609)00115816</subfield>
+    <subfield code="0">(DE-588)4134177-6</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Spinnen</subfield>
+    <subfield code="0">(DE-609)00103005</subfield>
+    <subfield code="0">(DE-588)4132662-3</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Schnecken</subfield>
+    <subfield code="0">(DE-609)00975546</subfield>
+    <subfield code="0">(DE-588)4179833-8</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Bilderbuch</subfield>
+    <subfield code="0">(DE-609)00003160</subfield>
+    <subfield code="2">local</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">DVD-Video (f&#xFC;r Kinder)</subfield>
+    <subfield code="0">(DE-609)00820891</subfield>
+    <subfield code="2">local</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Bilderbuch</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="0">(DE-588)4064354-2</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Wald</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="0">(DE-588)4134177-6</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Teich</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="2">
+    <subfield code="0">(DE-588)4132662-3</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Spinnen</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="3">
+    <subfield code="0">(DE-588)4179833-8</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Schnecken</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="4">
+    <subfield code="0">(DE-588)4141014-2</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Abenteuer</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="5">
+    <subfield code="A">s</subfield>
+    <subfield code="a">Bilderbuch</subfield>
+    <subfield code="5">DE-101</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="0">
+    <subfield code="0">(DE-588)4064354-2</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Wald</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="1">
+    <subfield code="0">(DE-588)4134177-6</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Teich</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="2">
+    <subfield code="0">(DE-588)4132662-3</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Spinnen</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="3">
+    <subfield code="0">(DE-588)4179833-8</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Schnecken</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="4">
+    <subfield code="0">(DE-588)4141014-2</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Abenteuer</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="5">
+    <subfield code="A">s</subfield>
+    <subfield code="a">DVD-Video (f&#xFC;r Kinder)</subfield>
+    <subfield code="5">DE-101</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="0">(DE-588)129620793</subfield>
+    <subfield code="0">(DE-609)12413769</subfield>
+    <subfield code="a">Golik, Larysa</subfield>
+    <subfield code="4">oth</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="0">(DE-588)142505463</subfield>
+    <subfield code="0">(DE-609)03096929</subfield>
+    <subfield code="a">Hesse, Kirstin</subfield>
+    <subfield code="4">oth</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Bilderbuch-Kino</subfield>
+    <subfield code="w">(DE-609)08256252</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">08256255</subfield>
+    <subfield code="b">DE-609</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>48</zs:recordPosition></zs:record><zs:record><zs:recordSchema>info:srw/schema/1/diagnostics-v1.1</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><diagnostic xmlns="http://www.loc.gov/zing/srw/diagnostic/">
+ <uri>info:srw/diagnostic/1/63</uri>
+ <details>xmlParseMemory failed</details>
+ <message>System error in retrieving records</message>
+</diagnostic></zs:recordData><zs:recordPosition>49</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>00897cam a22002291i 4500</leader>
+  <controlfield tag="001">kobvindex_VBRD-schursalnatoih23lanmed20eidi129</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="007">t|</controlfield>
+  <controlfield tag="008">991231s1998    nyuuun              ger</controlfield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVVBRD-schursalnatoih23lanmed20eidi129</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1848;D-schursalnatoih23lanmed20eidi129</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">BILD::SCH</subfield>
+    <subfield code="2">kab</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1848;D-schursalnatoih23lanmed20eidi129</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_VBRD-schursalnatoih23lanmed20eidi129</subfield>
+  </datafield>
+  <datafield tag="100" ind1="0" ind2=" ">
+    <subfield code="a">Scheffler, Ursel</subfield>
+  </datafield>
+  <datafield tag="245" ind1="0" ind2="0">
+    <subfield code="a">Alle nannten ihn Tomate :</subfield>
+    <subfield code="b">eine Diareihe nach dem Bilderbuch von Ursel Scheffler und Jutta Timm : 20 Dias 1 Bilderbuch und didaktisch-methodische Hinweise).</subfield>
+    <subfield code="c">Ursel Scheffler</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Landshut</subfield>
+    <subfield code="b">media nova</subfield>
+    <subfield code="c">1998</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Bilderbuchkino</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">D-schursalnatoih23lanmed20eidi129</subfield>
+    <subfield code="b">DE-1848</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="969" ind1="#" ind2="#">
+    <subfield code="a">DE-1848</subfield>
+    <subfield code="6">D-08160000007324</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>50</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Bilderbuch"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>744</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>01617nam a2200433uu 4500</leader>
+  <controlfield tag="001">kobvindex_ZLB12565059</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250531115450.0</controlfield>
+  <controlfield tag="007">he ||||||||||</controlfield>
+  <controlfield tag="008">980409s1997    ||||||||||||||||||||ger||</controlfield>
+  <datafield tag="015" ind1=" " ind2=" ">
+    <subfield code="a">97,A49,0047</subfield>
+  </datafield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">95.044425.1</subfield>
+    <subfield code="2">DE-101</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">3896082892</subfield>
+    <subfield code="9">3-89608-289-2</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-101)950444251</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVZLB12565059</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;12565059</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;12565059</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_ZLB12565059</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="4">
+    <subfield code="a">Das Bild der DDR in der franz&#xF6;sischen Presse</subfield>
+    <subfield code="b">(1968 - 1973) ; [Mikrofiche]</subfield>
+    <subfield code="c">von Ulrike von Keussler</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">Mikrofiche-Ausg.</subfield>
+  </datafield>
+  <datafield tag="260" ind1="3" ind2=" ">
+    <subfield code="a">Marburg</subfield>
+    <subfield code="b">Tectum Verl.</subfield>
+    <subfield code="c">1997</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">2 Mikrofiches</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Edition Wissenschaft : [Mikrofiche]</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Das Manuskript hat 128 S.</subfield>
+  </datafield>
+  <datafield tag="610" ind1="1" ind2="7">
+    <subfield code="a">Frankreich</subfield>
+    <subfield code="0">(DE-609)00960125</subfield>
+    <subfield code="0">(DE-588)4018145-5</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="648" ind1=" " ind2="7">
+    <subfield code="a">Geschichte 1968-1973</subfield>
+    <subfield code="0">(DE-609)00612924</subfield>
+    <subfield code="2">local</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Presse</subfield>
+    <subfield code="0">(DE-609)00100949</subfield>
+    <subfield code="0">(DE-588)4047150-0</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Berichterstattung</subfield>
+    <subfield code="0">(DE-609)00104658</subfield>
+    <subfield code="0">(DE-588)4005709-4</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Deutschlandbild</subfield>
+    <subfield code="g">DDR</subfield>
+    <subfield code="0">(DE-609)00607004</subfield>
+    <subfield code="0">(DE-588)4128437-9</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="0">(DE-588)4018145-5</subfield>
+    <subfield code="D">g</subfield>
+    <subfield code="a">Frankreich</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="0">(DE-588)4047150-0</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Presse</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="2">
+    <subfield code="0">(DE-588)4005709-4</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Berichterstattung</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="3">
+    <subfield code="0">(DE-588)4128437-9</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Deutschlandbild &lt;DDR&gt;</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="4">
+    <subfield code="A">s</subfield>
+    <subfield code="a">Geschichte 1968-1973</subfield>
+    <subfield code="5">DE-101</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="0">(DE-609)12180235</subfield>
+    <subfield code="a">Keussler, Ulrike von</subfield>
+    <subfield code="4">oth</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Edition Wissenschaft</subfield>
+    <subfield code="n">11</subfield>
+    <subfield code="p">Reihe Romanistik</subfield>
+    <subfield code="w">(DE-609)13396968</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">12565059</subfield>
+    <subfield code="b">DE-609</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>3</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Mikrofiche"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

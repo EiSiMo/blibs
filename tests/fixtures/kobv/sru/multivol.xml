@@ -1,0 +1,219 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>44449</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>04407cam a2200805 c 4500</leader>
+  <controlfield tag="001">almatuudk_9922218477402884</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20240525094506.0</controlfield>
+  <controlfield tag="006">m     o  d        </controlfield>
+  <controlfield tag="007">cr nnunnnannuu</controlfield>
+  <controlfield tag="008">240525t19961997gw      o     ||| 0 ger d</controlfield>
+  <datafield tag="024" ind1="7" ind2=" ">
+    <subfield code="a">10.3726/b12555</subfield>
+    <subfield code="2">doi</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(CKB)4340000000238877</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(oapen)https://directory.doabooks.org/handle/20.500.12854/28246</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(PH02)9783954790814</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(oapen)doab28246</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(oapen)28246</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(EXLCZ)994340000000238877</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">PH02</subfield>
+    <subfield code="b">eng</subfield>
+    <subfield code="c">PH02</subfield>
+  </datafield>
+  <datafield tag="041" ind1="0" ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-83;9922218477402884</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B170;9922218477402884</subfield>
+  </datafield>
+  <datafield tag="072" ind1=" " ind2="7">
+    <subfield code="a">9568</subfield>
+    <subfield code="2">wsb</subfield>
+  </datafield>
+  <datafield tag="072" ind1=" " ind2="7">
+    <subfield code="a">FOR</subfield>
+    <subfield code="x">024000</subfield>
+    <subfield code="2">bisacsh</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-83;9922218477402884</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B170;9922218477402884</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almatuudk_9922218477402884</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Sologub, Fe&#x308;dor</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Sobranie soc&#x30C;inenij. Gesammelte Werke</subfield>
+    <subfield code="b">Teil 2: Rasskazy (1909-1921)</subfield>
+    <subfield code="c">Fe&#x308;dor Sologub, Ulrich Steltner</subfield>
+  </datafield>
+  <datafield tag="246" ind1=" " ind2=" ">
+    <subfield code="a">Sobranie so&#xC4;&#x8D;inenij. Gesammelte Werke</subfield>
+  </datafield>
+  <datafield tag="246" ind1=" " ind2=" ">
+    <subfield code="a">Sobranie so&#x10D;inenij. Gesammelte Werke</subfield>
+  </datafield>
+  <datafield tag="246" ind1=" " ind2=" ">
+    <subfield code="a">Sobranie so&#x10D;inenij. Gesammelte Werke. Teil 2</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">1st, New ed.</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Frankfurt a.M.</subfield>
+    <subfield code="b">PH02</subfield>
+    <subfield code="c">1996</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="c">1996, c1997</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">1 online resource (442 p.)</subfield>
+    <subfield code="b">, EPDF</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">computer</subfield>
+    <subfield code="b">c</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">online resource</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="490" ind1="0" ind2=" ">
+    <subfield code="a">Slavistische Beitra&#x308;ge</subfield>
+    <subfield code="v">343</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Peter Lang GmbH, Internationaler Verlag der Wissenschaften</subfield>
+  </datafield>
+  <datafield tag="505" ind1="0" ind2=" ">
+    <subfield code="a">&#x411;&#x435;&#x43B;&#x430;&#x44F; &#x431;&#x435;&#x440;&#x435;&#x437;&#x43A;&#x430; - &#x421;&#x43E;&#x43D; &#x443;&#x442;&#x435;&#x448;&#x430;&#x44E;&#x449;&#x438;&#x438;&#x306; - &#x418;&#x432;&#x430;&#x43D; &#x418;&#x432;&#x430;&#x43D;&#x43E;&#x432;&#x438;&#x447; &#x432;&#x43E;&#x441;&#x43A;&#x440;&#x435;&#x441; - &#x41F;&#x443;&#x442;&#x44C; &#x432; &#x42D;&#x43C;&#x43C;&#x430;&#x443;&#x441; - &#x421;&#x442;&#x430;&#x440;&#x44B;&#x438;&#x306; &#x434;&#x43E;&#x43C; - &#x417;&#x43E;&#x43B;&#x43E;&#x442;&#x430;&#x44F; &#x43B;&#x435;&#x441;&#x442;&#x43D;&#x438;&#x446;&#x430; - &#x41A;&#x440;&#x430;&#x441;&#x43D;&#x43E;&#x433;&#x443;&#x431;&#x430;&#x44F; &#x433;&#x43E;&#x441;&#x442;&#x44C;&#x44F; - &#x41D;&#x430;&#x438;&#x432;&#x43D;&#x44B;&#x435; &#x432;&#x441;&#x442;&#x440;&#x435;&#x447;&#x438; - &#x411;&#x43B;&#x430;&#x433;&#x43E;&#x43F;&#x43E;&#x43B;&#x443;&#x447;&#x43D;&#x44B;&#x438;&#x306; &#x418;&#x443;&#x434;&#x430; - &#x41E;&#x434;&#x43D;&#x43E; &#x441;&#x43B;&#x43E;&#x432;&#x43E; - &#x41F;&#x443;&#x442;&#x44C; &#x432; &#x414;&#x430;&#x43C;&#x430;&#x441;&#x43A; - &#x417;&#x435;&#x43C;&#x43D;&#x43E;&#x438;&#x306; &#x440;&#x430;&#x438;&#x306; - &#x41F;&#x43E;&#x43C;&#x43D;&#x438;&#x448;&#x44C; &#x438; &#x43D;&#x435; &#x437;&#x430;&#x431;&#x443;&#x434;&#x435;&#x448;&#x44C; - &#x41B;&#x43E;&#x44D;&#x43D;&#x433;&#x440;&#x438;&#x43D; - &#x41F;&#x43E;&#x446;&#x435;&#x43B;&#x443;&#x438;&#x306; &#x43D; &#x435;&#x440;&#x43E;&#x436;&#x434;&#x435;&#x43D;&#x43D;&#x43E;&#x433;&#x43E; - &#x422;&#x443;&#x440;&#x430;&#x43D;&#x434;&#x438;&#x43D;&#x430; - &#x417;&#x432;&#x435;&#x440;&#x438;&#x43D;&#x44B;&#x438;&#x306; &#x431;&#x44B;&#x442; - &#x410;&#x43B;&#x430;&#x44F; &#x43B;&#x435;&#x43D;&#x442;&#x430; - &#x41C;&#x435;&#x447;&#x442;&#x430; &#x43D;&#x430; &#x43A;&#x430;&#x43C;&#x43D;&#x44F;&#x445; - &#x421;&#x43C;&#x443;&#x442;&#x43D;&#x44B;&#x438;&#x306; &#x434;&#x435;&#x43D;&#x44C; - &#x421;&#x435;&#x440;&#x433;&#x435;&#x438;&#x306; &#x422;&#x443;&#x440;&#x433;&#x435;&#x43D;&#x435;&#x432; &#x438; &#x428;&#x430;&#x440;&#x438;&#x43A; - &#x414;&#x430;&#x43C;&#x430; &#x432;  y&#x437;&#x430;&#x445; - C&#x434;&#x430;&#x432;&#x448;&#x438;&#x435;&#x441;&#x44F; - &#x412;&#x435;&#x43D;&#x447;&#x430;&#x43D;&#x43D;&#x430;&#x44F; - &#x416;&#x435;&#x43D;&#x430; &#x443;&#x43C;&#x43D;&#x43E;&#x433;&#x43E; &#x447;&#x435;&#x43B;&#x43E;&#x432;&#x435;&#x43A;&#x430; - &#x411;&#x430;&#x440;&#x44B;&#x448;&#x43D;&#x44F; &#x41B;&#x438;&#x437;&#x430; - &#x41F;&#x440;&#x430;&#x432;&#x434;&#x430; &#x441;&#x435;&#x440;&#x434;&#x446;&#x430; - &#x41E; &#x431;&#x440;&#x443;&#x447;&#x430;&#x43B;&#x44C;&#x43D;&#x43E;&#x435; - &#x422;&#x430;&#x43D;&#x438;&#x43D; &#x420;&#x438;&#x447;&#x430;&#x440;&#x434; - &#x422;&#x440;&#x438; &#x43B;&#x430;&#x43C;&#x43F;&#x430;&#x434;&#x44B; - &#x421;&#x435;&#x440;&#x434;&#x446;&#x435; &#x441;&#x435;&#x440;&#x434;&#x446;&#x443; - &#x421;&#x43D;&#x438;&#x43C;&#x438; &#x442;&#x440;&#x430;&#x443;&#x440; - &#x412;&#x438;&#x437;&#x438;&#x442; - &#x41D;&#x435;&#x437;&#x430;&#x43C;&#x435;&#x440;&#x437;&#x430;&#x44E;&#x449;&#x438;&#x438;&#x306; &#x43C;&#x430;&#x43B;&#x44C;&#x447;&#x438;&#x43A; - &#x414;&#x435;&#x434; &#x438; &#x432;&#x43D;&#x443;&#x43A; - &#x422;&#x438;&#x445;&#x438;&#x438;&#x306; &#x437;&#x43D;&#x43E;&#x438;&#x306; - &#x421;&#x432;&#x435;&#x442; &#x432;&#x435;&#x447;&#x435;&#x440;&#x43D;&#x438;&#x438;&#x306; - &#x41A;&#x440;&#x430;&#x441;&#x430;&#x432;&#x438;&#x446;&#x430; &#x438; &#x43E;&#x441;&#x43F;&#x430; - &#x412;&#x43E;&#x437;&#x432;&#x440;&#x430;&#x449;&#x435;&#x43D;&#x438;&#x435; - &#x41D;&#x430;&#x434;&#x435;&#x436;&#x434;&#x430; &#x432;&#x43E;&#x441;&#x43A;&#x440;&#x435;&#x441;&#x435;&#x43D;&#x438;&#x44F; - &#x41D;&#x435;&#x443;&#x442;&#x43E;&#x43C;&#x438;&#x43C;&#x43E;&#x441;&#x442;&#x44C; - &#x414;&#x435;&#x43D;&#x44C; &#x432;&#x441;&#x442;&#x440;&#x435;&#x447; - &#x41E;&#x448;&#x438;&#x431;&#x43A;&#x430; &#x413;&#x43E;&#x444;&#x43B;&#x438;&#x444;&#x435;&#x440;&#x430;&#x43D;&#x442;&#x430; - &#x41E;&#x442;&#x440;&#x430;&#x432;&#x430; - &#x421;&#x430;&#x43C;&#x44B;&#x438;&#x306; &#x441;&#x438;&#x43B;&#x44C;&#x43D;&#x44B;&#x438;&#x306; - &#x41A;&#x440;&#x443;&#x442;&#x438;&#x43B;&#x44C;&#x434;&#x430; &#x438; &#x441;&#x435;&#x43C;&#x44C; &#x434;&#x440;&#x443;&#x433;&#x438;&#x445; - &#x41C;&#x44B;&#x448;&#x435;&#x43B;&#x43E;&#x432;&#x43A;&#x430; - &#x421;&#x43A;&#x430;&#x437;&#x43A;&#x430; &#x433;&#x440;&#x43E;&#x431;&#x43E;&#x432;&#x449;&#x438;&#x43A;&#x43E;&#x432;&#x43E;&#x438;&#x306; &#x434;&#x43E;&#x447;&#x435;&#x440;&#x438; - &#x413;&#x43E;&#x43B;&#x43E;&#x441; &#x43A;&#x440;&#x43E;&#x432;&#x438; - &#x41F;&#x440;&#x430;&#x447;&#x43A;&#x430; &#x441; &#x434;&#x43B;&#x438;&#x43D;&#x43D;&#x43E;&#x44E; &#x43A;&#x43E;&#x441;&#x43E; &#x44E; - &#x421;&#x43E;&#x43B;&#x43D;&#x44B;&#x448;&#x43A;&#x43E; - &#x421;&#x430;&#x43C;&#x44B;&#x438;&#x306; &#x442;&#x435;&#x43C;&#x43D;&#x44B;&#x438;&#x306; &#x434;&#x435;&#x43D;&#x44C; - &#x421;&#x43E;&#x447;&#x442;&#x435;&#x43D;&#x43D;&#x44B;&#x435; &#x434;&#x43D;&#x438; - &#x41A;&#x43E;&#x43B;&#x435;&#x431;&#x430;&#x43D;&#x438;&#x435; &#x441;&#x442;&#x435;&#x43D; - C&#x430;&#x43C;&#x43E;&#x441;&#x43E;&#x436;&#x436;&#x435;&#x43D;&#x438;&#x441; &#x437;&#x43B;&#x430;</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">In der Reihe Slavistische Beitra&#x308;ge werden vor allem slavistische Dissertationen des deutschsprachigen Raums sowie vereinzelt auch amerikanische, englische und russische publiziert. Daru&#x308;ber hinaus stellt die Reihe ein Forum fu&#x308;r Sammelba&#x308;nde und Monographien etablierter Wissenschafter/innen dar.</subfield>
+  </datafield>
+  <datafield tag="546" ind1=" " ind2=" ">
+    <subfield code="a">German</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Literature &amp; literary studies</subfield>
+    <subfield code="2">bicssc</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">1909</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">1921</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">C&#x434;&#x430;&#x432;&#x448;&#x438;&#x435;&#x441;&#x44F;</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Gesammelte</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Rasskazy</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Sobranie</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">so&#x10D;inenij</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Sologub</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Teil</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Werke</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">&#x414;&#x435;&#x434; &#x438; &#x432;&#x43D;&#x443;&#x43A;</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">&#x41E;&#x442;&#x440;&#x430;&#x432;&#x430;</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">&#x421;&#x432;&#x435;&#x442; &#x432;&#x435;&#x447;&#x435;&#x440;&#x43D;&#x438;&#x439;</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">&#x421;&#x43E;&#x43D; &#x443;&#x442;&#x435;&#x448;&#x430;&#x44E;&#x449;&#x438;&#x439;</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Steltner, Ulrich</subfield>
+    <subfield code="e">editor</subfield>
+    <subfield code="4">edt</subfield>
+  </datafield>
+  <datafield tag="720" ind1="1" ind2=" ">
+    <subfield code="a">Sologub, Fe&#x308;dor</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="720" ind1="1" ind2=" ">
+    <subfield code="a">Steltner, Ulrich</subfield>
+    <subfield code="4">edt</subfield>
+  </datafield>
+  <datafield tag="720" ind1="1" ind2=" ">
+    <subfield code="a">Steltner, Ulrich</subfield>
+    <subfield code="4">oth</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="z">ISBN 3-95479-081-5</subfield>
+  </datafield>
+  <datafield tag="793" ind1="0" ind2=" ">
+    <subfield code="a">DOAB Library.</subfield>
+  </datafield>
+  <datafield tag="906" ind1=" " ind2=" ">
+    <subfield code="a">BOOK</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">cr</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9922218477402884</subfield>
+    <subfield code="b">DE-83</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9922218477402884</subfield>
+    <subfield code="b">DE-B170</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>4</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Gesammelte Werke"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

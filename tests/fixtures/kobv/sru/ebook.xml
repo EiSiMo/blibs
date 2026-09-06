@@ -1,0 +1,202 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>19698</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>02581cai a2200673 c 4500</leader>
+  <controlfield tag="001">b3kat_BV035602531</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20241202162230  </controlfield>
+  <controlfield tag="007">cr|uuu---uuuuu</controlfield>
+  <controlfield tag="008">070223c20059999gw ||  |o|||| 0   ||eng d</controlfield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">983270384</subfield>
+    <subfield code="2">DE-101</subfield>
+  </datafield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">2271907-6</subfield>
+    <subfield code="2">DE-600</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)1368671431</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)ZDB2271907-6</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-604</subfield>
+    <subfield code="b">ger</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">eng</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="a">gw</subfield>
+    <subfield code="c">XA-DE</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-634;BV035602531</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-517;525091890</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">050</subfield>
+    <subfield code="2">22sdnb</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2="4">
+    <subfield code="a">050</subfield>
+    <subfield code="q">DE-600</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-634;BV035602531</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-517;525091890</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">b3kat_BV035602531</subfield>
+  </datafield>
+  <datafield tag="110" ind1="2" ind2=" ">
+    <subfield code="a">Springer-Verlag</subfield>
+    <subfield code="e">Verfasser</subfield>
+    <subfield code="0">(DE-588)2121514-5</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Springer ebook collection</subfield>
+    <subfield code="p">Chemistry &amp; materials science</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Springer ebook collection / Chemistry &amp; materials science</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Springer ebook collection / Chemistry &amp; material science</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">SpringerLink / Chemistry &amp; materials science</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Springer ebook collection in chemistry &amp; material science</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Chemistry &amp; materials science ebook collection</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Chemistry &amp; material science ebook collection</subfield>
+  </datafield>
+  <datafield tag="264" ind1="3" ind2="1">
+    <subfield code="a">Heidelberg</subfield>
+    <subfield code="b">Springer-Verl.</subfield>
+    <subfield code="c">2005-</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">Online-Ressource</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="b">c</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">cr</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="362" ind1="0" ind2=" ">
+    <subfield code="a">2005 -</subfield>
+  </datafield>
+  <datafield tag="363" ind1="0" ind2="1">
+    <subfield code="i">2005</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Nebent.: Springer ebook collection in chemistry &amp; material science</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Nebent.: Chemistry &amp; materials science ebook collection</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Nebent.: Chemistry &amp; material science ebook collection</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">Volltexte englischsprachiger B&#xFC;cher zu "Chemistry &amp; Materials Science". Das Archiv umfasst den Zeitraum 1893 - 2004; ab 2005ff.</subfield>
+  </datafield>
+  <datafield tag="650" ind1="0" ind2="7">
+    <subfield code="a">Werkstoffkunde</subfield>
+    <subfield code="0">(DE-588)4079184-1</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="650" ind1="0" ind2="7">
+    <subfield code="a">Chemie</subfield>
+    <subfield code="0">(DE-588)4009816-3</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="0">(DE-588)4011119-2</subfield>
+    <subfield code="a">Datenbank</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="a">Werkstoffkunde</subfield>
+    <subfield code="0">(DE-588)4079184-1</subfield>
+    <subfield code="D">s</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2=" ">
+    <subfield code="5">DE-604</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="0">
+    <subfield code="a">Chemie</subfield>
+    <subfield code="0">(DE-588)4009816-3</subfield>
+    <subfield code="D">s</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2=" ">
+    <subfield code="5">ZDB</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="u">http://link.springer.com/</subfield>
+    <subfield code="x">Verlag</subfield>
+    <subfield code="3">Volltext</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="u">https://dbis.ur.de/resources/6943</subfield>
+    <subfield code="x">DBIS</subfield>
+    <subfield code="3">Volltext</subfield>
+  </datafield>
+  <datafield tag="912" ind1=" " ind2=" ">
+    <subfield code="a">ZDB-2-CMS</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Datenbank</subfield>
+    <subfield code="0">(DE-588)4011119-2</subfield>
+    <subfield code="0">(DE-627)106354256</subfield>
+    <subfield code="0">(DE-576)208891943</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="u">http://link.springer.com/</subfield>
+    <subfield code="x">Verlag</subfield>
+    <subfield code="7">1</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="u">https://dbis.ur.de/resources/6943</subfield>
+    <subfield code="x">DBIS</subfield>
+    <subfield code="7">1</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">BV035602531</subfield>
+    <subfield code="b">DE-634</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">525091890</subfield>
+    <subfield code="b">DE-517</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="943" ind1="1" ind2=" ">
+    <subfield code="a">oai:aleph.bib-bvb.de:BVB01-017657555</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>3</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Springer eBook Collection"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

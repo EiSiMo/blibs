@@ -1,0 +1,676 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>230</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>07020 am a22009493u 4500</leader>
+  <controlfield tag="001">almahu_9950092449202882</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20251116172725.0</controlfield>
+  <controlfield tag="006">m     o  d |      </controlfield>
+  <controlfield tag="007">cr#cnu||||||||</controlfield>
+  <controlfield tag="008">180205t20172017gw      ob    001 0 eng d</controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9783828867529</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">3828867529</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9783828867512</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">3828867510</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(CKB)3790000000544886</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(MiAaPQ)EBC5215553</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(MiAaPQ)EBC6016942</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(ScCtBLL)a66e1d4d-64d4-4818-a5a4-5351915e6940</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(EXLCZ)993790000000544886</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">MiAaPQ</subfield>
+    <subfield code="b">eng</subfield>
+    <subfield code="e">rda</subfield>
+    <subfield code="e">pn</subfield>
+    <subfield code="c">MiAaPQ</subfield>
+    <subfield code="d">MiAaPQ</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950092449202882</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950092449202882</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950092449202882</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-578;9959170414702883</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-188;9959170414702883</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-83;9921923029802884</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B170;9921923029802884</subfield>
+  </datafield>
+  <datafield tag="050" ind1=" " ind2="4">
+    <subfield code="a">PN1995.9.H364</subfield>
+    <subfield code="b">.H377 2017</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">791.4372</subfield>
+    <subfield code="2">23</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950092449202882</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950092449202882</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950092449202882</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-578;9959170414702883</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-188;9959170414702883</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-83;9921923029802884</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B170;9921923029802884</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almahu_9950092449202882</subfield>
+  </datafield>
+  <datafield tag="245" ind1="0" ind2="0">
+    <subfield code="a">"Harry - yer a wizard" :</subfield>
+    <subfield code="b">exploring J.K. Rowling's Harry Potter Universe. /</subfield>
+    <subfield code="c">Marion Gymnich, Hanne Birk, Denise Burkhard (Eds.).</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Baden-Baden, Germany :</subfield>
+    <subfield code="b">Tectum Verlag,</subfield>
+    <subfield code="c">2017.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="4">
+    <subfield code="c">&#xA9;2017</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">1 online resource (261 pages).</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">text</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">computer</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">online resource</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Wissenschaftliche Beitra&#x308;ge aus dem Tectum-Verlag. Reihe Anglistik,</subfield>
+    <subfield code="x">1861-6859 ;</subfield>
+    <subfield code="v">Band 6</subfield>
+  </datafield>
+  <datafield tag="504" ind1=" " ind2=" ">
+    <subfield code="a">Includes bibliographical references at the end of each chapters and index.</subfield>
+  </datafield>
+  <datafield tag="505" ind1="0" ind2=" ">
+    <subfield code="a">'Happy birthday, Harry!' : celebrating the success of the Harry Potter phenomenon / Hanne Birk, Denise Burkhard, Marion Gymnich -- The 'Harry Potter phenomenon' : forms of world building in the novels, the translations, the film series and fandom / Marion Gymnich and Klaus Scheunemann -- Part I. The Harry Potter series and its sources. The black dog and the boggart : fantastic beasts in Joanne K. Rowling's Harry Potter and the prisoner of Azkaban and where to find them / Laura Hartmann -- J.K. Rowling's Harry Potter : a revival of the Arthurian legend? / Franziska Becker -- Darkness, danger and death : exploring Gothic places in Harry Potter and the chamber of secrets / Denise Burkhard and Julia Stibane -- Parallels between Celtic druidism on the British Isles and in Ireland and the magical world of the Harry Potter novels / Jule Lenzen -- Double, double toil and (gender) trouble : the Gaunt family / Svenja Renzel -- 'I read about it in Hogwarts : a history' : the reception and function of history in the world of Harry Potter / Naemi Winter -- 'The last enemy that shall be destroyed is death' : Christian elements in Harry Potter? / Vera Bub -- Part II. Themes and structures in the Harry Potter series. Conspiracy, persecution and terror : Harry Potter in a post-9/11 world / Miche&#x300;le Ciba -- Of muggles and men : identifying racism in the Harry Potter series / Carsten Kullmann -- 'Can someone just explain what that skull thing was?' : the workings of capital in the wizarding world / Sarah Hofmann -- Is Harry Potter a criminal? : some thoughts on magical criminal law / Anne Schneider -- Secrets and forbidden places in Harry Potter and the philosopher's stone / Denise Burkhard -- Part III. Beyond the Harry Potter series. Haunted by Voldemort or suffering from PTSD : analysing Harry Potter's psychological struggles in adulthood in Harry Potter and the cursed child / Anne Mahler -- Queerbaiting in the Harry Potter series and in Harry Potter and the cursed child? / Marthe-Siobha&#x301;n Hecke -- Native Americans in J.K. Rowling's 'History of magic in North America' on Pottermore / Aleksandra Szczodrowski -- The dark arts : violence, incest, and rape in Harry Potter fan fictions / Franziska Go&#x308;bel -- The ever-expanding Potterverse : Harry Potter and the cursed child - Fantastic beasts and where to find them - Pottermore / Marion Gymnich, Denise Burkhard and Hanne Birk.</subfield>
+  </datafield>
+  <datafield tag="506" ind1="0" ind2=" ">
+    <subfield code="a">Open Access</subfield>
+    <subfield code="f">Unrestricted online access</subfield>
+    <subfield code="2">star</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">J.K. Rowling's Harry Potter series (1997-2007) has turned into a global phenomenon and her "Potterverse" is still expanding. The contributions in this volume provide a range of inter- and transdisciplinary approaches to various dimensions of this multifaceted universe. The introductory article focuses on different forms of world building in the novels, the translations, the film series and the fandom.   Part I examines various potential sources for Rowling's series in folklore, the Arthurian legend and Gothic literature. Further articles focus on parallels between the "Harry Potter" series and Celtic Druidism, the impact Victorian notions of gender roles have had on the representation of the Gaunt family, the reception of (medieval and Early Modern) history in the series and the influence of Christian concepts on the world view expressed in the novels.</subfield>
+  </datafield>
+  <datafield tag="540" ind1=" " ind2=" ">
+    <subfield code="f">CC BY-NC-ND</subfield>
+  </datafield>
+  <datafield tag="588" ind1=" " ind2=" ">
+    <subfield code="a">Description based on online resource; title from PDF title page (EBC, viewed February 5, 2018).</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="0">
+    <subfield code="a">Rowling, J. K.</subfield>
+    <subfield code="x">Criticism and interpretation</subfield>
+    <subfield code="v">Congresses.</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="0">
+    <subfield code="a">Potter, Harry</subfield>
+    <subfield code="c">(Fictitious character)</subfield>
+    <subfield code="v">Congresses.</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="7">
+    <subfield code="a">Potter, Harry</subfield>
+    <subfield code="c">(Fictitious character)</subfield>
+    <subfield code="2">fast</subfield>
+    <subfield code="0">(OCoLC)fst01073565</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="7">
+    <subfield code="a">Rowling, J. K.</subfield>
+    <subfield code="2">fast</subfield>
+    <subfield code="0">(OCoLC)fst00401675</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Harry Potter films</subfield>
+    <subfield code="x">Miscellanea</subfield>
+    <subfield code="v">Juvenile literature.</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Conference papers and proceedings.</subfield>
+    <subfield code="2">fast</subfield>
+    <subfield code="0">(OCoLC)fst01423772</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Criticism, interpretation, etc.</subfield>
+    <subfield code="2">fast</subfield>
+    <subfield code="0">(OCoLC)fst01411635</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Conference papers and proceedings.</subfield>
+    <subfield code="2">lcgft</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Gymnich, Marion,</subfield>
+    <subfield code="e">editor.</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Birk, Hanne,</subfield>
+    <subfield code="e">editor.</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Burkhard, Denise,</subfield>
+    <subfield code="e">editor.</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="z">ISBN 9783828840355</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="z">ISBN 3828840353</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Wissenschaftliche Beitra&#x308;ge aus dem Tectum Verlag.</subfield>
+    <subfield code="p">Reihe Anglistik ;</subfield>
+    <subfield code="v">Band 6.</subfield>
+  </datafield>
+  <datafield tag="906" ind1=" " ind2=" ">
+    <subfield code="a">BOOK</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">cr</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Conference papers and proceedings.</subfield>
+    <subfield code="2">fast</subfield>
+    <subfield code="0">(OCoLC)fst01423772</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Criticism, interpretation, etc.</subfield>
+    <subfield code="2">fast</subfield>
+    <subfield code="0">(OCoLC)fst01411635</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Conference papers and proceedings.</subfield>
+    <subfield code="2">lcgft</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Conference papers and proceedings.</subfield>
+    <subfield code="2">fast</subfield>
+    <subfield code="0">(OCoLC)fst01423772</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Criticism, interpretation, etc.</subfield>
+    <subfield code="2">fast</subfield>
+    <subfield code="0">(OCoLC)fst01411635</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Conference papers and proceedings.</subfield>
+    <subfield code="2">lcgft</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9950092449202882</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9950092449202882</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9950092449202882</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9959170414702883</subfield>
+    <subfield code="b">DE-578</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9959170414702883</subfield>
+    <subfield code="b">DE-188</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9921923029802884</subfield>
+    <subfield code="b">DE-83</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9921923029802884</subfield>
+    <subfield code="b">DE-B170</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>1</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>05268nam a2200577Ia 4500</leader>
+  <controlfield tag="001">almahu_9950168055502882</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="006">m     o  d        </controlfield>
+  <controlfield tag="007">cr cn|||||||||</controlfield>
+  <controlfield tag="008">230825r20092023enk     o     001 0 eng  </controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9798216005360</subfield>
+    <subfield code="q">(online)</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="z">9780313361975</subfield>
+    <subfield code="q">(hardback)</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="z">9780313361982</subfield>
+    <subfield code="q">(PDF)</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="z">9798216136361</subfield>
+    <subfield code="q">(epub)</subfield>
+  </datafield>
+  <datafield tag="024" ind1="7" ind2=" ">
+    <subfield code="a">10.5040/9798216005360</subfield>
+    <subfield code="2">doi</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)876613597</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(UkLoBP)BP9798216005360BC</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">UkLoBP</subfield>
+    <subfield code="b">eng</subfield>
+    <subfield code="e">rda</subfield>
+    <subfield code="c">UkLoBP</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950168055502882</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-517;1895287707</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950168055502882</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-517;1895287707</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almahu_9950168055502882</subfield>
+  </datafield>
+  <datafield tag="245" ind1="0" ind2="0">
+    <subfield code="a">Reading Harry Potter Again :</subfield>
+    <subfield code="b">New Critical Essays /</subfield>
+    <subfield code="c">edited by Giselle Liza Anatol.</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">1st ed.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Westport, CT :</subfield>
+    <subfield code="b">Praeger,</subfield>
+    <subfield code="c">2009.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="2">
+    <subfield code="a">London :</subfield>
+    <subfield code="b">Bloomsbury Publishing (UK),</subfield>
+    <subfield code="c">2023.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">1 online resource (256 pages)</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">computer</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">online resource</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="347" ind1=" " ind2=" ">
+    <subfield code="a">text file</subfield>
+    <subfield code="2">rdaft</subfield>
+    <subfield code="b">HTML</subfield>
+  </datafield>
+  <datafield tag="505" ind1="0" ind2=" ">
+    <subfield code="a">Acknowledgments Introduction Giselle Liza Anatol 1. Harry the Teenager: Muggle Themes in a Magical Adolescence Lisa Damour I. Religion and Morality 2. The Lightning Bolt Scar as a Lightning Rod: J.K. Rowling's Harry Potter Series and the Rhetoric of the Extreme Right Rebecca L. Stephens 3. The Potterverse and the Pulpits: Beyond Apologia and Bannings Peggy Lin Duthie 4. Causation, Prophetic Visions, and the Free Will Question in Harry Potter Patricia Donaher and James M. Okapal 5. Harry Potter and Narratives of Destiny Lisa Hopkins 6. The Good, the Bad, and the Ugly: Lies in Harry Potter Chantel M. Lavoie II. The Politics of Harry Potter: Issues of Gender, Race, and Class 7. Happily Ever After: Harry Potter and the Quest for the Domestic Ximena Gallardo C. and C. Jason Smith 8. The Replication of Victorian Racial Ideology in Harry Potter Giselle Liza Anatol 9. A Marxist Inquiry into J.K. Rowling's Harry Potter Series Shama Rangwala 10. Secret Domination or Civic Duty: The Source and Purpose of Magical Power in Harry Potter Margaret J. Oakes III. The Socio-Cultural Impact of the Harry Potter Series 11. Hermione and the House-Elves Revisited: J.K. Rowling, Antislavery Campaigning, and the Politics of Potter Brycchan Carey 12. (Dis)Order and the Phoenix: Love and Political Resistance in Harry Potter Tracy L. Bealer 13. Militant Literacy: Hermione Granger, Rita Skeeter, Dolores Umbridge, and the (Mis)use of Text Leslee Friedman 14. Doubling, Transfiguration, and Haunting: The Art of Adapting Harry Potter for Film Michael K. Johnson Selected Bibliography Index About the Editor and Contributors</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">Reading Harry Potter Again: New Critical Essays extends the discussion of the Harry Potter books by covering the entire series in one new and comprehensive volume.  As was argued in Reading Harry Potter: Critical Essays (Praeger, 2003), interpreting the underlying messages and themes of the Harry Potter series is vital for understanding the ways in which we perceive and interact with each other in contemporary society. The novels and corresponding film adaptations have broken records with their astonishing sales and widespread acclaim. They have also generated a plethora of writing-by critics, academics, and fans. J.K. Rowling's Harry Potter books could easily be called this generation's most formative narratives, and thus certainly warrant critical attention.  This new volume of essays covers the entire seven-book sequence. Contributors consider myriad themes from a variety of perspectives. Areas addressed include religion, morality, race, magic, and other themes popular in discussing the books. With this book in hand, fans of the series-indeed anyone interested in the Harry Potter phenomenon-will better appreciate and understand Rowling's work and the impact of her stories on our culture and on our times.</subfield>
+  </datafield>
+  <datafield tag="532" ind1="0" ind2=" ">
+    <subfield code="a">Compliant with Level AA of the Web Content Accessibility Guidelines. Content is displayed as HTML full text which can easily be resized or read with assistive technology, with mark-up that allows screen readers and keyboard-only users to navigate easily</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="0">
+    <subfield code="a">Rowling, J. K.</subfield>
+    <subfield code="x">Criticism and interpretation.</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="0">
+    <subfield code="a">Rowling, J. K.</subfield>
+    <subfield code="x">Characters</subfield>
+    <subfield code="x">Harry Potter.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Literary Studies.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Fantasy fiction, English</subfield>
+    <subfield code="x">History and criticism.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Children's stories, English</subfield>
+    <subfield code="x">History and criticism.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Children</subfield>
+    <subfield code="x">Books and reading</subfield>
+    <subfield code="z">English-speaking countries.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="7">
+    <subfield code="a">Literary studies: fiction, novelists &amp; prose writers</subfield>
+    <subfield code="2">bicssc.</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Anatol, Giselle Liza,</subfield>
+    <subfield code="e">editor.</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="u">https://doi.org/10.5040/9798216005360?locatt=label:secondary_bloomsburyCollections</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">cr</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="u">https://doi.org/10.5040/9798216005360?locatt=label:secondary_bloomsburyCollections</subfield>
+    <subfield code="m">X:BLOOM</subfield>
+    <subfield code="x">Resolving-System</subfield>
+    <subfield code="z">lizenzpflichtig</subfield>
+    <subfield code="7">1</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9950168055502882</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">1895287707</subfield>
+    <subfield code="b">DE-517</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="952" ind1=" " ind2=" ">
+    <subfield code="a">Bloomsbury Collections</subfield>
+    <subfield code="c">Praeger Literary Studies 2009 - 2023</subfield>
+  </datafield>
+  <datafield tag="975" ind1=" " ind2=" ">
+    <subfield code="a">Praeger Literary Studies 2009 - 2023</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>2</zs:recordPosition></zs:record><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>05924cam#a2200673#i#4500</leader>
+  <controlfield tag="001">almahu_BV048243266</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20230228        </controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">220525|2022####xxu#####rb####|||#|#eng#u</controlfield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">1335402749</subfield>
+    <subfield code="2">OCoLC</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">978-1-4968-3932-9</subfield>
+    <subfield code="c">pbk</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">978-1-4968-3931-2</subfield>
+    <subfield code="c">hbk</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">BV048243266</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)BVBBV048243266</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-604)BV048243266</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="c">DE-604</subfield>
+    <subfield code="e">rda</subfield>
+    <subfield code="a">DE-384</subfield>
+    <subfield code="d">DE-11</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2="7">
+    <subfield code="a">eng</subfield>
+    <subfield code="2">ISO 639-2</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="a">xxu</subfield>
+    <subfield code="c">US</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;BV048243266</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;1795037245</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">HN 7625</subfield>
+    <subfield code="0">(DE-625)51541:11852</subfield>
+    <subfield code="2">rvk</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">823/.914</subfield>
+    <subfield code="q">LOC</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;BV048243266</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;1795037245</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almahu_BV048243266</subfield>
+  </datafield>
+  <datafield tag="245" ind1="0" ind2="0">
+    <subfield code="a">Open at the close :</subfield>
+    <subfield code="b">literary essays on Harry Potter /</subfield>
+    <subfield code="c">edited by Cecilia Konchar Farr.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Jackson :</subfield>
+    <subfield code="b">University Press of Mississippi,</subfield>
+    <subfield code="c">2022.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">xxix, 238 Seiten :</subfield>
+    <subfield code="b">Illustrationen.</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="520" ind1="3" ind2=" ">
+    <subfield code="a">"Contributions by Lauren R. Carmacci, Keridiana Chez, Kate Glassman, John Granger, Marie Schilling Grogan, Beatrice Groves, Tolonda Henderson, Nusaiba Imady, Cecilia Konchar Farr, Juliana Valad&#xE3;o Lopes, Amy Mars, Christina Phillips-Mattson, Patrick McCauley, Jennifer M. Reeher, Jonathan A. Rose, and Emily Strand Despite their decades-long, phenomenal success, the Harry Potter novels have attracted relatively little attention from literary critics and scholars. While popular books, articles, blogs, and fan sites for general readers proliferate, and while philosophers, historians, theologians, sociologists, psychologists, and even business professors have taken on book-length studies and edited essay collections about Harry Potter, literature scholars, outside of the children's books community, have paid few serious visits to the Potterverse. Could it be that scholars are still reluctant to recognize popular novels, especially those with genre labels "children's literature" or "fantasy," as worthy subjects for academic study? This book challenges that oversight, assembling and foregrounding some of the best literary critical work by scholars trying to move the needle on these novels to reflect their importance to twenty-first-century literate culture. In Open at the Close, contributors consciously address Harry Potter primarily as a literary phenomenon rather than a cultural one. They interrogate the novels on many levels, from multiple perspectives, and with various conclusions, but they come together around the overarching question: What is it about these books? At their heart, what is it that makes the Harry Potter novels so exceptionally compelling, so irresistible to their readers, and so relevant in our time?"--</subfield>
+  </datafield>
+  <datafield tag="505" ind1="0" ind2=" ">
+    <subfield code="a">Introduction / Cecilia Konchar Farr -- Section 1: Horcruxes. Ascendio: a close and distant reading of progressive complexity in the Harry Potter series / Cecilia Konchar Farr and Amy Mars -- Said Hermione earnestly: Harry Potter's prose, and why it doesn't matter / Emily Strand -- Say the magic word: spellwork and the legacy of nonsense / Christina Phillips-Mattson -- Magical medicine: healers, healing spells, and medical humanities / Jennifer M. Reeher -- Rowling's paratextual gifts: thresholds to community in Harry Potter and the Deathly Hallows / Marie Schilling Grogan -- Communities of interpretation in Jane Austen and Harry Potter / Beatrice Groves -- The Russian formalist heart of the Harry Potter series / John Granger -- Section 2: Hallows. Reading Harry with the risk of trust and a hopeful search for meaning / Patrick McCauley -- "Always dependably, solidly present": the preemincence of Minerva McGonagall / Kate Glassman -- "Loony, loopy Lupin": (sexual) nonnormativity, transgression, and the werewolf / Jonathan A. Rose -- Sorry, not sorry: the limits of empathy for nonhuman creatures / Keridiana Chez -- "All was well"?: the sociopolitical struggles of house-elves, goblins, and centaurs / Juliana Valad&#xE3;o Lopes -- The face of evil: physiognomy in Potter / Lauren R. Camacci -- Slytherin safety: the rhetoric of antiassimilation in the wizarding world / Nusaiba Imady -- Harry Potter and the management of trauma / Tolonda Henderson -- A coda: she-who-must-not-be-named / Tolonda Henderson</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="4">
+    <subfield code="a">Children's literature / Criticism and interpretation</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="4">
+    <subfield code="a">Harry Potter series (Rowling, J. K.)</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="4">
+    <subfield code="a">Children's literature</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="4">
+    <subfield code="a">Rowling, J. K. / Harry Potter series / Criticism and interpretation</subfield>
+  </datafield>
+  <datafield tag="600" ind1="1" ind2="7">
+    <subfield code="a">Rowling, J. K.</subfield>
+    <subfield code="d">1965-</subfield>
+    <subfield code="t">Harry Potter.</subfield>
+    <subfield code="0">(DE-588)4629916-6</subfield>
+    <subfield code="2">gnd</subfield>
+    <subfield code="9">rswk-swf</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Aufsatzsammlung</subfield>
+    <subfield code="0">(DE-588)4143413-4</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="4">
+    <subfield code="a">Criticism, interpretation, etc</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="p">Rowling, J. K.</subfield>
+    <subfield code="d">1965-</subfield>
+    <subfield code="t">Harry Potter</subfield>
+    <subfield code="0">(DE-588)4629916-6</subfield>
+    <subfield code="2">gnd</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="i">Erscheint auch als</subfield>
+    <subfield code="n">Online-Ausgabe, EPUB</subfield>
+    <subfield code="z">ISBN 978-1-4968-3934-3</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="i">Erscheint auch als</subfield>
+    <subfield code="n">Online-Ausgabe, EPUB</subfield>
+    <subfield code="z">ISBN 978-1-4968-3933-6</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="i">Erscheint auch als</subfield>
+    <subfield code="n">Online-Ausgabe, PDF</subfield>
+    <subfield code="z">ISBN 978-1-4968-3936-7</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="i">Erscheint auch als</subfield>
+    <subfield code="n">Online-Ausgabe, PDF</subfield>
+    <subfield code="z">ISBN 978-1-4968-3935-0</subfield>
+  </datafield>
+  <datafield tag="700" ind1="1" ind2=" ">
+    <subfield code="a">Farr, Cecilia Konchar,</subfield>
+    <subfield code="d">1958-</subfield>
+    <subfield code="4">edt</subfield>
+    <subfield code="0">(DE-588)173849466</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">http://bvbr.bib-bvb.de:8991/F?func=service&amp;doc_library=BVB01&amp;local_base=BVB01&amp;doc_number=033623707&amp;sequence=000001&amp;line_number=0001&amp;func_code=DB_RECORDS&amp;service_type=MEDIA</subfield>
+  </datafield>
+  <datafield tag="852" ind1="7" ind2=" ">
+    <subfield code="b">FR131</subfield>
+    <subfield code="c">360</subfield>
+    <subfield code="h">HN 7625 F239</subfield>
+    <subfield code="2">rvk</subfield>
+    <subfield code="8">22758120310002882</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Aufsatzsammlung</subfield>
+    <subfield code="0">(DE-588)4143413-4</subfield>
+    <subfield code="0">(DE-627)105605727</subfield>
+    <subfield code="0">(DE-576)209726091</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Konchar Farr, Cecilia</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">BV048243266</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">1795037245</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="940" ind1=" " ind2=" ">
+    <subfield code="a">RDA-Aufnahme</subfield>
+  </datafield>
+  <datafield tag="942" ind1=" " ind2=" ">
+    <subfield code="a">05</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="a">BV048243266</subfield>
+    <subfield code="9">9949348064002882</subfield>
+  </datafield>
+  <datafield tag="968" ind1=" " ind2=" ">
+    <subfield code="a">HN 7625</subfield>
+  </datafield>
+  <datafield tag="967" ind1="0" ind2="0">
+    <subfield code="p">Rowling, J. K.</subfield>
+    <subfield code="d">1965-</subfield>
+    <subfield code="t">Harry Potter</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>3</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>4</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:queryType>pqf</zs:queryType><zs:query>@and @attr 1=4 "Harry Potter" @attr 1=1044 DE-11</zs:query><zs:maximumRecords>3</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

@@ -1,0 +1,186 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>26327</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>11760nam a2200673 i 4500</leader>
+  <controlfield tag="001">almahu_9949987788702882</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250426131246.0</controlfield>
+  <controlfield tag="006">m     o  d |      </controlfield>
+  <controlfield tag="007">cr cnu||||||||</controlfield>
+  <controlfield tag="008">250426s2025    ne      o     000 0 eng d</controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9780443273759</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">0443273758</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(MiAaPQ)EBC31982214</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(Au-PeEL)EBL31982214</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(CKB)38186481400041</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)1513422154</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(EXLCZ)9938186481400041</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">MiAaPQ</subfield>
+    <subfield code="b">eng</subfield>
+    <subfield code="e">rda</subfield>
+    <subfield code="e">pn</subfield>
+    <subfield code="c">MiAaPQ</subfield>
+    <subfield code="d">MiAaPQ</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9949987788702882</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-83;9923261953802884</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-188;9961893200102883</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-578;9961893200102883</subfield>
+  </datafield>
+  <datafield tag="050" ind1=" " ind2="4">
+    <subfield code="a">Q325.5</subfield>
+    <subfield code="b">.H376 2025</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2=" ">
+    <subfield code="a">006.31</subfield>
+    <subfield code="2">23</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9949987788702882</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-83;9923261953802884</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-188;9961893200102883</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-578;9961893200102883</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almahu_9949987788702882</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Sadasivuni, Kishor Kumar,</subfield>
+    <subfield code="e">author.</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Harnessing Automation and Machine Learning for Resource Recovery and Value Creation :</subfield>
+    <subfield code="b">From Waste to Value /</subfield>
+    <subfield code="c">Kishor Kumar Sadasivuni [and three others].</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">First edition.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Amsterdam, Netherlands :</subfield>
+    <subfield code="b">Elsevier Inc.,</subfield>
+    <subfield code="c">[2025]</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="4">
+    <subfield code="c">&#xA9;2025</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">1 online resource (672 pages)</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">computer</subfield>
+    <subfield code="b">c</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">online resource</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="505" ind1="0" ind2=" ">
+    <subfield code="a">Front Cover -- HARNESSING AUTOMATION AND MACHINE LEARNING FOR RESOURCE RECOVERY AND VALUE CREATION -- Copyright -- Contents -- List of Contributors -- About the editors -- Foreword -- Preface -- Acknowledgments -- Introduction -- 1 Introduction to innovative technologies for waste-to-energy conversion using automation and machine learning -- Introduction -- Fundamentals of waste-to-energy conversion -- Types of waste material -- Traditional methods of waste disposal -- Landfilling -- Introduction to waste-to-energy technologies (principles) -- Benefits and challenges of waste-to-energy conversion -- Benefits -- Challenges of waste-to-energy conversion -- Automation in waste-to-energy conversion -- Basics of automation: role of automation in waste sorting and preprocessing -- Automated systems for waste segregation and classification -- Robotics and automated machinery for handling and processing -- Advantages and limitations of automation in waste-to-energy -- Challenges -- Machine learning applications in waste-to-energy -- Introduction/basics to machine learning -- Machine learning for predictive maintenance of waste-to-energy -- Optimization of energy production using machine learning -- Integration of automation and machine learning -- Synergies between automation and machine learning in waste-to-energy -- Components of AutoML -- Benefits and challenges in integrating automation and machine learning -- Prospects and emerging trends -- Conclusion -- References -- 2 Basics of machine learning -- Introduction -- Overview of machine learning -- Definition and evolution of machine learning -- The significance of machine learning in contemporary technology and industry -- Overview of resource recovery and value creation through machine learning -- Core concepts of machine learning -- Types of machine learning -- Supervised learning.</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">Unsupervised learning -- Semisupervised learning -- Reinforcement learning -- Comparison and contrasting of machine learning types -- Selection criteria for machine learning approaches in different scenarios -- Data preprocessing in machine learning -- The importance of data quality -- Data collection and management -- Data cleaning and normalization -- Feature selection and engineering -- Techniques for feature selection -- Feature engineering and its impact on model performance -- Handling imbalanced and missing data -- Techniques and strategies for imbalanced data -- Techniques and strategies for missing data -- Machine learning algorithms -- Traditional machine learning methods -- Linear and logistic regression -- Decision trees -- Ensemble methods -- Support vector machines -- K-nearest neighbors -- Advanced machine learning methods-neural networks -- Introduction to neural networks -- Deep learning and its applications -- Algorithm selection criteria -- Factors influencing the choice of algorithms -- Examples of resource recovery -- Practical aspects of machine learning -- Model training and validation -- Training techniques -- Validation methods and metrics -- Overfitting: causes and prevention -- Understanding overfitting -- Techniques to avoid overfitting -- Balancing model complexity and generalizability -- Model evaluation and performance metrics -- Criteria for evaluating machine learning models -- Standard performance metrics -- Ethical implications and bias in machine learning -- Ethical considerations in machine learning -- Addressing bias in machine learning models -- Types of biases in machine learning -- Strategies to identify and mitigate bias -- Transparent and responsible artificial intelligence -- Importance of transparency in machine learning -- Guidelines for responsible artificial intelligence practices.</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">Tools to create transparent and responsible artificial intelligence -- Conclusion -- Summarizing key takeaways -- Future directions of machine learning in resource recovery and value creation -- Emerging trends and technologies -- The role of machine learning in sustainable development -- Final thoughts and reflections -- The continuous evolution of machine learning -- Encouraging responsible and innovative use of machine learning in resource recovery -- Abbreviations -- References -- 3 Basics of automation -- Introduction -- Fundamentals of automation -- Role of automation in the modern industry -- Architecture of industrial automation -- Industrial control system -- Input/Output Equipment -- Input instrument (field sensor) -- Output instrument (actuator) -- Industrial sensor system -- Industrial actuator system -- Automatic controller -- Advantages and disadvantages of industrial automation -- Advantages of the automation system -- Disadvantages of the automation system -- Robotics and modern automation -- Effects of the automation and artificial intelligence in COVID-19 -- Case study 1: Internet of Things-enabled drip irrigation system -- Case study 2: drone and automation -- The future of automation: the power of artificial intelligence -- Conclusion -- References -- 4 Waste classification into plastics, industrial, domestic, and agriculture waste -- Introduction -- Related works -- Deep learning for waste classification -- Existing datasets and benchmarks -- Methodology -- Models -- Experimental setup -- Dataset description -- TrashBox dataset -- Data preprocessing -- TrashNet dataset for external validation -- Evaluation metrics -- Accuracy -- Precision -- Recall -- F1 score -- Receiver Operating Characteristic curve -- Hyperparameters and training -- Results and discussion -- Quantitative results -- External validation -- Qualitative analysis.</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">Discussion and conclusion -- Limitations and future directions -- Conclusion -- Acknowledgment -- References -- 5 Plastics recycling and the automation role in the recycling process -- Introduction -- Background -- Purpose of the chapter -- Scope and limitations -- Plastics recycling overview -- Types of plastics -- Polyethylene terephthalate: (Society of the Plastics Industry Code 1) -- High-density polyethylene: (Society of the Plastics Industry Code 2) -- Polyvinyl chloride: (Society of the Plastics Industry Code 3) -- Low-density polyethylene: (Society of the Plastics Industry Code 4) -- Polypropylene: (Society of the Plastics Industry Code 5) -- Polystyrene: (Society of the Plastics Industry Code 6) -- Other plastics: (Society of the Plastics Industry Code 7) -- Environmental impact of plastics -- Need for recycling -- Current state of plastics recycling -- Collection and sorting -- Challenges in collection -- Sorting technologies -- Processing and reprocessing -- Mechanical recycling -- Chemical recycling -- Advantages of chemical recycling of plastics -- Challenges related to chemical recycling of plastics -- Automation in plastics recycling -- Shredding and size reduction -- Sorting and separation -- Automation in washing and cleaning -- Automation in drying process -- Automated pelletizing systems -- Automated robotic sorting and handling -- Integration of artificial intelligence and machine learning in plastic recycling -- Remote monitoring and control -- Innovations in plastics recycling technologies -- Advanced sorting technologies -- AI-powered sorting algorithms -- Robotics and machine learning -- Emerging chemical recycling technologies -- Pyrolysis -- Solvent-based recycling -- Economic and environmental implications -- Cost-effectiveness of automation -- Reduction in greenhouse gas emissions -- Job impact and workforce transition.</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">Regulatory landscape -- Government policies and incentives -- International collaboration and standards -- Successful implementation of automation -- Challenges faced in real-world applications -- Future prospects -- Technological advancements -- Integration of circular economy principles -- Potential barriers to progress -- Conclusion -- Recap of key findings -- Recommendations for future research -- Future research on plastic recycling should prioritize the following areas -- Abbreviations and acronyms -- References -- 6 Artificial intelligence for reutilizing the plastics -- Introduction -- Plastic pollution scenario 2024 -- Machine learning in plastic composition analysis -- Recycling technologies to build a sustainable future -- Chemical recycling -- Mechanical recycling -- Recycling of dissolution -- Recycling of organic materials -- Recycling of monomers -- Reusing outdated online content -- Robot recycling -- Valorization of waste heat -- Artificial intelligence -- Extension of the material life cycle -- Additional technology fixes -- Some real-life implications of recycling technologies -- Automated fill-level sensors: Bintel -- Postconsumer textile waste chemical recycling: refibering -- Styrene butadiene styrene thermal technologies: waste heat valuation -- Several tactics using artificial intelligence to reduce and recycle plastic waste -- Waste collection that operates on its own -- Automated classification -- Finding novel techniques for disposal -- Avoiding waste in production -- Procedure for recycling plastic bottles -- Sorting and gathering bottles made of plastic -- Plastic bottle recycling technologies -- Typical obstacles in recycling plastic bottles -- Plastic bottle collecting and sorting -- Plastic bottle recycling methods -- Smart waste technologies -- Pello -- Robots for recycling -- Vacuum-powered waste pipes.</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">Trash compactors powered by sunlight.</subfield>
+  </datafield>
+  <datafield tag="520" ind1=" " ind2=" ">
+    <subfield code="a">Harnessing Automation and Machine Learning for Resource Recovery and Value Creation: From Waste to Value provides a comprehensive understanding of how automation and machine learning technologies can be used to convert waste into valuable resources.</subfield>
+  </datafield>
+  <datafield tag="588" ind1=" " ind2=" ">
+    <subfield code="a">Description based on publisher supplied metadata and other sources.</subfield>
+  </datafield>
+  <datafield tag="588" ind1=" " ind2=" ">
+    <subfield code="a">Description based on print version record.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Machine learning.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">Recycling (Waste, etc.)</subfield>
+    <subfield code="x">Data processing.</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="z">ISBN 9780443273742</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="z">ISBN 044327374X</subfield>
+  </datafield>
+  <datafield tag="906" ind1=" " ind2=" ">
+    <subfield code="a">BOOK</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">cr</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9949987788702882</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9923261953802884</subfield>
+    <subfield code="b">DE-83</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9961893200102883</subfield>
+    <subfield code="b">DE-188</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9961893200102883</subfield>
+    <subfield code="b">DE-578</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>3</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Machine Learning"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

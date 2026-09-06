@@ -1,0 +1,167 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>506</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>02843nms a2200589uu 4500</leader>
+  <controlfield tag="001">kobvindex_ZLB15770715</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250822230640.0</controlfield>
+  <controlfield tag="007">cr |||</controlfield>
+  <controlfield tag="008">060928c1867    ||||||p|||||||||||||ger||</controlfield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">2252483-6</subfield>
+    <subfield code="2">DE-600</subfield>
+  </datafield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">981379117</subfield>
+    <subfield code="2">DE-101</subfield>
+  </datafield>
+  <datafield tag="024" ind1="7" ind2=" ">
+    <subfield code="a">urn:nbn:de:mob-364-04641497</subfield>
+    <subfield code="2">urn</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-101)981379117</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-DXDE</subfield>
+    <subfield code="c">XA-DXDE</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVZLB15770715</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-602</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;15770715</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-609;15770715</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_ZLB15770715</subfield>
+  </datafield>
+  <datafield tag="110" ind1="1" ind2=" ">
+    <subfield code="0">(DE-609)01578678</subfield>
+    <subfield code="0">(DE-588)2008993-4</subfield>
+    <subfield code="a">Deutsches Reich</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Reichsgesetzblatt</subfield>
+    <subfield code="n">Teil 1, Inneres</subfield>
+    <subfield code="h">Elektronische Ressource</subfield>
+    <subfield code="c">hrsg. im Reichsministerium des Innern</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Reichsgesetzblatt / 1</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2="3">
+    <subfield code="a">Deutsches Reichsgesetzblatt</subfield>
+  </datafield>
+  <datafield tag="247" ind1="0" ind2="0">
+    <subfield code="a">Bundes-Gesetzblatt des Norddeutschen Bundes</subfield>
+  </datafield>
+  <datafield tag="247" ind1="0" ind2="0">
+    <subfield code="a">Reichsgesetzblatt</subfield>
+  </datafield>
+  <datafield tag="260" ind1="3" ind2=" ">
+    <subfield code="a">Saarbr&#xFC;cken</subfield>
+    <subfield code="a">Berlin</subfield>
+    <subfield code="b">juris GmbH</subfield>
+    <subfield code="b">[Verlag nicht ermittelbar]</subfield>
+    <subfield code="c">1867-1945</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">Online-Ressource</subfield>
+  </datafield>
+  <datafield tag="362" ind1="1" ind2=" ">
+    <subfield code="a">1867 - 1945 nachgewiesen</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Juris PreLex</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Volltext auch als Teil einer Datenbank verf&#xFC;gbar</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Gesehen am 14.02.2020</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Online-Ausgabe: Wien : &#xD6;sterr. Nationalbibliothek. 2008-2013. Online-Ressource</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Online-Ausgabe: M&#xFC;nchen : M&#xFC;nchener Digitalisierungszentrum, 2008-2013. Online-Ressource</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Online-Ausgabe: Herne : Stiftung Martin-Opitz-Bibliothek, [2011]. Online-Ressource</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">d20082013$aOnline-Ausgabe$bHerne$cStiftung Martin-Opitz-Bibliothek$bWien$c&#xD6;sterr. Nationalbibliothek$bM&#xFC;nchen$cM&#xFC;nchener Digitalisierungszentrum</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">ZDB-88-JPL</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">In: Juris PreLex (2128035-6)</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Index: Register zum Regierungs-Blatt f&#xFC;r das Gro&#xDF;herzogthum Mecklenburg-Schwerin ..., zum Bundes-, bezw. Reichs-Gesetzblatt ... und zum Central-Blatt f&#xFC;r das Deutsche Reich ... (2713863-X)</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">-2019, Wiesbaden, Makrolog GmbH</subfield>
+  </datafield>
+  <datafield tag="550" ind1=" " ind2=" ">
+    <subfield code="a">Urh. bis 1879: Reichskanzleramt; 1880 - 1918: Reichsamt des Innern</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="0">(DE-609)12164558</subfield>
+    <subfield code="0">(DE-588)35216-0</subfield>
+    <subfield code="a">Deutsches Reich. Reichsministerium des Innern</subfield>
+    <subfield code="4">isb</subfield>
+  </datafield>
+  <datafield tag="852" ind1=" " ind2=" ">
+    <subfield code="a">609</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="8">00</subfield>
+    <subfield code="u">https://nbn-resolving.org/urn:nbn:de:mob-364-04641497</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="8">01</subfield>
+    <subfield code="u">https://de.wikisource.org/wiki/Reichsgesetzblatt_(Deutschland)</subfield>
+    <subfield code="y">kostenfrei</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="8">02</subfield>
+    <subfield code="u">https://www.juris.de/</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="8">03</subfield>
+    <subfield code="u">http://alex.onb.ac.at/tab_dra.htm</subfield>
+    <subfield code="y">kostenfrei</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="8">04</subfield>
+    <subfield code="u">https://www.digitale-sammlungen.de/search?query=manifestation_id%3A%22ZDB%7C208155-6%7C%22&amp;sortField=date&amp;sortOrder=asc&amp;handler=simple-metadata</subfield>
+    <subfield code="y">kostenfrei</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="8">05</subfield>
+    <subfield code="u">https://ezb.ur.de/?2252483-6</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="8">06</subfield>
+    <subfield code="u">https://digital.martin-opitz-bibliothek.de/resolver/0464149</subfield>
+    <subfield code="y">kostenfrei</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">15770715</subfield>
+    <subfield code="b">DE-609</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>2</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>Online-Ressource Volltext</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

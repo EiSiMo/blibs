@@ -1,0 +1,392 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>60068</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>10154cas a2201129 c 4500</leader>
+  <controlfield tag="001">gbv_130857440</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20260123165107.0</controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">931117d18981954xx a| p|      0   |0ger c</controlfield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">015603504</subfield>
+    <subfield code="2">DE-101</subfield>
+  </datafield>
+  <datafield tag="016" ind1="7" ind2=" ">
+    <subfield code="a">1027802-3</subfield>
+    <subfield code="2">DE-600</subfield>
+  </datafield>
+  <datafield tag="024" ind1="8" ind2=" ">
+    <subfield code="a">BSB-QK-Image-ID121888960720007356#131889492270007356</subfield>
+    <subfield code="q">Identnummer</subfield>
+  </datafield>
+  <datafield tag="024" ind1="8" ind2=" ">
+    <subfield code="a">BSB-QK-Image-ID121871572210007356#131871942190007356</subfield>
+    <subfield code="q">Identnummer</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-627)130857440</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-576)077447662</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)ZDB1027802-3</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)1367941001</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-627</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="c">DE-627</subfield>
+    <subfield code="e">rakwb</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-AAAT</subfield>
+    <subfield code="c">XA-DXDE</subfield>
+    <subfield code="c">XA-AT</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;130857440</subfield>
+  </datafield>
+  <datafield tag="082" ind1="0" ind2="4">
+    <subfield code="a">370</subfield>
+    <subfield code="q">DE-600</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;130857440</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">gbv_130857440</subfield>
+  </datafield>
+  <datafield tag="110" ind1="2" ind2=" ">
+    <subfield code="a">Bisch&#xF6;fl. Privatgymnasium</subfield>
+    <subfield code="e">VerfasserIn</subfield>
+    <subfield code="0">(DE-588)64703-2</subfield>
+    <subfield code="0">(DE-627)101372965</subfield>
+    <subfield code="0">(DE-576)190466073</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Bericht des Bisch&#xF6;flichen Gymnasiums und des Di&#xF6;zesan-Knabenseminars am Kollegium Petrinum &#xFC;ber das ... Schuljahr ...</subfield>
+    <subfield code="b">als Nachtrag zur Gedenkschrift 1954</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Titelzusatz 11. (1907/1908)-20. (1916/1917)</subfield>
+    <subfield code="a">ver&#xF6;ffentlicht am Schlusse des Schuljahres ...</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Titelzusatz 21. (1917/1918-22. (1918/1919)</subfield>
+    <subfield code="a">ver&#xF6;ffentlicht am Schlusse des Schuljahres ... vom Direktor</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Titelzusatz 36. (1932/1933)-37. (1933/1934) und 42. (1945/1946)-49. (1952/1953)</subfield>
+    <subfield code="a">Schuljahr ...</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Umschlagtitel 38. (1934/1935)-39. (1935/1936)</subfield>
+    <subfield code="a">Schuljahr ... / Kollegium Petrinum in Linz a.d.D.</subfield>
+  </datafield>
+  <datafield tag="246" ind1="1" ind2=" ">
+    <subfield code="i">Umschlagtitel 40. (1936/1937)</subfield>
+    <subfield code="a">... Jahresbericht des Kollegium Petrinum in Linz, Schuljahr ...</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des Bisch&#xF6;flichen Privat-Gymnasiums am "Collegium Petrinum" in Urfahr f&#xFC;r das Schuljahr ...</subfield>
+    <subfield code="f">Haupttitel 1. (1898)-4. (1900/1901)</subfield>
+    <subfield code="g">e</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des Bisch&#xF6;flichen Privat-Gymnasiums am Kollegium Petrinum in Urfahr f&#xFC;r das Schuljahr ...</subfield>
+    <subfield code="f">Haupttitel 5. (1901/1902)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des laut M.-E. vom 15. J&#xE4;nner 1903, Z. 49.161 ex 1902, mit dem &#xD6;ffentlichkeits- und Maturit&#xE4;tspr&#xFC;fungsrechte ausgestatteten Bisch&#xF6;flichen Privat-Gymnasiums am Kollegium Petrinum in Urfahr f&#xFC;r das Schuljahr ...</subfield>
+    <subfield code="f">Haupttitel 6. (1902/1903)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des laut M.-E. vom 15. J&#xE4;nner 1903, Z. 49.161 ex 1902, mit dem &#xD6;ffentlichkeits- und Maturit&#xE4;tspr&#xFC;fungsrechte ausgestatteten Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum in Urfahr &#xFC;ber das Schuljahr ...</subfield>
+    <subfield code="f">Haupttitel 9. (1905/1906)-10. (1906/1907)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des laut M.-E. vom 15. J&#xE4;nner 1903, Z. 49.161 ex 1902, mit dem &#xD6;ffentlichkeits- und Maturit&#xE4;tspr&#xFC;fungsrechte ausgestatteten Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum in Urfahr</subfield>
+    <subfield code="f">Haupttitel 11. (1907/1908)-13. (1909/1910)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des laut M.-E. vom 15. J&#xE4;nner 1903, Z. 49.161 ex 1902, mit dem &#xD6;ffentlichkeits- und Reifepr&#xFC;fungsrechte ausgestatteten Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum in Urfahr</subfield>
+    <subfield code="f">Haupttitel 14. (1910/1911)-17. (1913/1914)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des laut M.-E. vom 15. J&#xE4;nner 1903, Z. 49.161 ex 1902, mit dem &#xD6;ffentlichkeits- und Reifepr&#xFC;fungsrechte ausgestatteten Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum derzeit in Gleink und Schlierbach</subfield>
+    <subfield code="f">Haupttitel 18. (1914/1915)-19. (1915/16)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des laut M.-E. vom 15. J&#xE4;nner 1903, Z. 49.161 ex 1902, mit dem &#xD6;ffentlichkeits- und Reifepr&#xFC;fungsrechte ausgestatteten Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum, Urfahr derzeit in Gleink und Schlierbach</subfield>
+    <subfield code="f">Haupttitel 20. (1916/1917)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des laut M.-E. vom 15. J&#xE4;nner 1903, Z. 49.161 ex 1902, mit dem &#xD6;ffentlichkeits- und Reifepr&#xFC;fungsrechte ausgestatteten Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum in Urfahr derzeit zu Gleink und Schlierbach</subfield>
+    <subfield code="f">Haupttitel 21. (1917/1918)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des laut M.-E. vom 15. J&#xE4;nner 1903, Z. 49.161 ex 1902, mit dem &#xD6;ffentlichkeits- und Reifepr&#xFC;fungsrechte ausgestatteten Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum in Linz (Urfahr) derzeit zu Gleink und Schlierbach</subfield>
+    <subfield code="f">Haupttitel 22. (1918/19)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">Bericht &#xFC;ber das ... Schuljahr des Di&#xF6;zesan-Knabenseminars Collegium Petrinum in Linz-Urfahr</subfield>
+    <subfield code="f">Haupttitel 24. (1920/1921)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">Gedenkschrift zum f&#xFC;nfundzwanzigj&#xE4;hrigen Bestande des Di&#xF6;zesanknabenseminars von Linz Kollegium Petrinum</subfield>
+    <subfield code="f">Haupttitel 25</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">Bericht des Bisch&#xF6;fl. Privatgymnasiums und Di&#xF6;zesan-Knabenseminars am Kollegium Petrinum in Linz-Urfahr &#xFC;ber das ... Schuljahr ...</subfield>
+    <subfield code="f">Haupttitel 27. (1923/1924)-33. (1929/1930)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">Bericht des Bisch&#xF6;fl. Privatgymnasiums und Di&#xF6;zesan-Knabenseminars am Kollegium Petrinum zu Linz-Urfahr &#xFC;ber das ... Schuljahr ...</subfield>
+    <subfield code="f">Haupttitel 34. (1930/1931)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">Bericht &#xFC;ber das ... Schuljahr ...</subfield>
+    <subfield code="f">Haupttitel 35. (1931/1932)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht</subfield>
+    <subfield code="f">Haupttitel 36. (1932/1933)-42. (1945/1946) und 44. (1947/1948)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des Bisch&#xF6;flichen Privatgymnasiums mit &#xD6;ffentlichkeitsrecht und des Di&#xF6;zesanknabenseminars Kollegium Petrinum in Urfahr</subfield>
+    <subfield code="f">Haupttitel 43. (1946/1947)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des Bisch&#xF6;flichen Privatgymnasiums mit &#xD6;ffentlichkeitsrecht und des Di&#xF6;zesanknabenseminars Kollegium Petrinum in Urfahr - Linz a.d.D.</subfield>
+    <subfield code="f">Haupttitel 45. (1948/1949)-47. (1950/1951)</subfield>
+  </datafield>
+  <datafield tag="247" ind1="1" ind2="0">
+    <subfield code="a">... Jahresbericht des Bisch&#xF6;flichen Gymnasiums und des Di&#xF6;zesanknabenseminars am Kollegium Petrinum in Urfahr-Linz a.d.D.</subfield>
+    <subfield code="f">Haupttitel 49. (1952/1953)</subfield>
+  </datafield>
+  <datafield tag="264" ind1="3" ind2="1">
+    <subfield code="a">[Linz]</subfield>
+    <subfield code="b">im Selbstverlag der Anstalt</subfield>
+    <subfield code="c">1898-1954</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Urfahr</subfield>
+    <subfield code="b">Verlag des Bisch&#xF6;flichen Privatgymnasiums am "Collegium Petrinum"</subfield>
+    <subfield code="c">1898-1900</subfield>
+  </datafield>
+  <datafield tag="264" ind1="2" ind2="1">
+    <subfield code="a">Urfahr</subfield>
+    <subfield code="b">Verlag des Bisch&#xF6;fl. Privatgymnasiums am "Collegium Petrinum"</subfield>
+    <subfield code="c">1901</subfield>
+  </datafield>
+  <datafield tag="264" ind1="2" ind2="1">
+    <subfield code="a">Urfahr</subfield>
+    <subfield code="b">Verlag des Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum</subfield>
+    <subfield code="c">1902-1914</subfield>
+  </datafield>
+  <datafield tag="264" ind1="3" ind2="1">
+    <subfield code="a">Gleink</subfield>
+    <subfield code="b">Verlag des Bisch&#xF6;flichen Privatgymnasiums am Kollegium Petrinum</subfield>
+    <subfield code="c">1915-1917</subfield>
+  </datafield>
+  <datafield tag="264" ind1="3" ind2="1">
+    <subfield code="a">Gleink</subfield>
+    <subfield code="b">Verlag des Bisch&#xF6;flichen Privatgymnasiums Kollegium Petrinum</subfield>
+    <subfield code="c">1918-1919</subfield>
+  </datafield>
+  <datafield tag="264" ind1="2" ind2="1">
+    <subfield code="a">Linz-Urfahr</subfield>
+    <subfield code="b">Di&#xF6;zesan-Knabenseminar Collegium Petrinum</subfield>
+    <subfield code="c">1921</subfield>
+  </datafield>
+  <datafield tag="264" ind1="2" ind2="1">
+    <subfield code="a">Linz-Urfahr</subfield>
+    <subfield code="b">Verlag des Kollegium Petrinum</subfield>
+    <subfield code="c">1922</subfield>
+  </datafield>
+  <datafield tag="264" ind1="2" ind2="1">
+    <subfield code="a">[Linz-Urfahr]</subfield>
+    <subfield code="b">[Di&#xF6;zesan-Knabenseminar]</subfield>
+    <subfield code="c">1924-1932</subfield>
+  </datafield>
+  <datafield tag="264" ind1="2" ind2="1">
+    <subfield code="a">[Linz]</subfield>
+    <subfield code="b">[Kollegium Petrinum]</subfield>
+    <subfield code="c">1933-1934</subfield>
+  </datafield>
+  <datafield tag="264" ind1="2" ind2="1">
+    <subfield code="a">Linz a.d. Donau</subfield>
+    <subfield code="b">Selbstverlag des Kollegium Petrinum</subfield>
+    <subfield code="c">1934-1937</subfield>
+  </datafield>
+  <datafield tag="264" ind1="2" ind2="1">
+    <subfield code="a">[Linz]</subfield>
+    <subfield code="b">[Kollegium Petrinum]</subfield>
+    <subfield code="c">1946-1947</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">Text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">ohne Hilfsmittel zu benutzen</subfield>
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">Band</subfield>
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="362" ind1="0" ind2=" ">
+    <subfield code="a">1.1898 - 50.1953/54</subfield>
+  </datafield>
+  <datafield tag="363" ind1="0" ind2="0">
+    <subfield code="a">1</subfield>
+    <subfield code="i">1898</subfield>
+  </datafield>
+  <datafield tag="363" ind1="1" ind2="0">
+    <subfield code="i">1953/54</subfield>
+    <subfield code="a">50</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Verfasser 35. (1931/1932): Bisch&#xF6;fliches Privatgymnasium und Di&#xF6;zesan-Knabenseminar Kollegium Petrinum in Linz an der Donau; 36. (1932/1933)-37. (1933/1934): Bisch&#xF6;fl. Privatgymnasium u. Di&#xF6;zesan-Knabenseminar Kollegium Petrinum in Linz a.d. Donau; 38. (1934/1935)-39. (1935/1936): Bisch&#xF6;fliches Gymnasium und Di&#xF6;zesan-Knabenseminar Kollegium Petrinum Linz a.d. Donau; 40. (1936/1937): Bisch&#xF6;fliches Gymnasium u. Di&#xF6;zesan-Knabenseminar Kollegium Petrinum Linz an der Donau; 42. (1945/1946): Bisch&#xF6;fliches Privatgymnasium m. &#xD6;R. u. Di&#xF6;zesanknabenseminar Kollegium Petrinum z.Z. in Lambach; 44. (1947/1948): Di&#xF6;zesanknabenseminar, Bisch&#xF6;fliches Privatgymnasium Kollegium Petrinum in Urfahr</subfield>
+  </datafield>
+  <datafield tag="515" ind1=" " ind2=" ">
+    <subfield code="a">In der Z&#xE4;hlung folgt auf das Schuljahr 3. (1900) das Schuljahr 4. (1900/01)</subfield>
+  </datafield>
+  <datafield tag="591" ind1=" " ind2=" ">
+    <subfield code="a">C!(17-09-14)NBWZ Kopien</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Zeitschrift</subfield>
+    <subfield code="0">(DE-588)4067488-5</subfield>
+    <subfield code="0">(DE-627)10454466X</subfield>
+    <subfield code="0">(DE-576)20917000X</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Schulprogramm</subfield>
+    <subfield code="0">(DE-588)4077211-1</subfield>
+    <subfield code="0">(DE-627)106080849</subfield>
+    <subfield code="0">(DE-576)209204362</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Kollegium Petrinum in Linz &lt;Urfahr&gt;</subfield>
+    <subfield code="b">Di&#xF6;zesan-Knabenseminar</subfield>
+    <subfield code="e">VerfasserIn</subfield>
+    <subfield code="0">(DE-588)1173285172</subfield>
+    <subfield code="0">(DE-627)1042438005</subfield>
+    <subfield code="0">(DE-576)515136158</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Kollegium Petrinum in Urfahr</subfield>
+    <subfield code="b">Bisch&#xF6;fliches Privat-Gymnasium</subfield>
+    <subfield code="e">VerfasserIn</subfield>
+    <subfield code="0">(DE-588)5011529-7</subfield>
+    <subfield code="0">(DE-627)102731969</subfield>
+    <subfield code="0">(DE-576)193468093</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Kollegium Petrinum in Linz &lt;Urfahr&gt;</subfield>
+    <subfield code="e">VerfasserIn</subfield>
+    <subfield code="0">(DE-588)64702-0</subfield>
+    <subfield code="0">(DE-627)101372922</subfield>
+    <subfield code="0">(DE-576)190466065</subfield>
+    <subfield code="4">aut</subfield>
+  </datafield>
+  <datafield tag="772" ind1="0" ind2="8">
+    <subfield code="i">Supplement zu</subfield>
+    <subfield code="n">1945/1946-1953/1954</subfield>
+    <subfield code="a">Katholische Kirche. Di&#xF6;zese Linz</subfield>
+    <subfield code="t">Linzer Di&#xF6;zesanblatt / Bisch&#xF6;fliches Ordinariat</subfield>
+    <subfield code="d">Linz, 1855</subfield>
+    <subfield code="w">(DE-627)167559567</subfield>
+    <subfield code="w">(DE-600)544643-0</subfield>
+    <subfield code="w">(DE-576)015786471</subfield>
+  </datafield>
+  <datafield tag="780" ind1="0" ind2="0">
+    <subfield code="i">Fortsetzung von</subfield>
+    <subfield code="a">Bisch&#xF6;fliches Knabenseminar am Freinberg bei Linz</subfield>
+    <subfield code="t">... Und letzter Jahres-Bericht des Bisch&#xF6;flichen Knaben-Seminars auf dem Freinberge in Linz unter der Leitung der Gesellschaft Jesu am Schlusse des Schuljahres ...</subfield>
+    <subfield code="d">[Linz] : [Bisch&#xF6;fliches Knabenseminar], 1875</subfield>
+    <subfield code="h">B&#xE4;nde</subfield>
+    <subfield code="w">(DE-627)104226421X</subfield>
+    <subfield code="w">(DE-600)2952978-5</subfield>
+    <subfield code="w">(DE-576)515020923</subfield>
+  </datafield>
+  <datafield tag="785" ind1="0" ind2="0">
+    <subfield code="i">Forts.</subfield>
+    <subfield code="a">Bisch&#xF6;fl. Privatgymnasium</subfield>
+    <subfield code="t">Jahresbericht ...</subfield>
+    <subfield code="d">Linz : Kollegium Petrinum, 1955</subfield>
+    <subfield code="w">(DE-627)168637383</subfield>
+    <subfield code="w">(DE-600)795254-5</subfield>
+    <subfield code="w">(DE-576)445970359</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Kollegium Petrinum in Linz (Urfahr)</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesan-Knabenseminar Collegium Petrinum in Linz-Urfahr</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesan-Knabenseminar von Linz Kollegium Petrinum</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesan-Knabenseminar am Kollegium Petrinum in Linz-Urfahr</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesan-Knabenseminar am Kollegium Petrinum zu Linz-Urfahr</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Bisch&#xF6;fliches Knabenseminar am Collegium Petrinum in Linz</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesan-Knabenseminar Kollegium Petrinum in Linz an der Donau</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesan-Knabenseminar Kollegium Petrinum in Linz a.d. Donau</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesan-Knabenseminar Kollegium Petrinum Linz a.d. Donau</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesanknabenseminar Kollegium Petrinum z.Z. in Lambach</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesanknabenseminar Kollegium Petrinum in Urfahr</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesanknabenseminar Kollegium Petrinum in Urfahr - Linz a.d.D.</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesanknabenseminar am Kollegium Petrinum in Urfahr - Linz a.d.D.</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesanknabenseminar am Kollegium Petrinum in Urfahr-Linz a.d.D.</subfield>
+  </datafield>
+  <datafield tag="910" ind1=" " ind2=" ">
+    <subfield code="a">Di&#xF6;zesanknabenseminar am Kollegium Petrinum in Urfahr-Linz a.d. Donau</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">130857440</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="951" ind1=" " ind2=" ">
+    <subfield code="a">JT</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>3</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Jahresbericht"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

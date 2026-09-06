@@ -1,0 +1,278 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>30877</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>03594nam#a2200997#ia4500</leader>
+  <controlfield tag="001">kobvindex_MFN19797</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250109144935.0</controlfield>
+  <controlfield tag="007">tu</controlfield>
+  <controlfield tag="008">920710m17491767xx######r#####|||#|#fre#u</controlfield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">BV005433352</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)BVBBV005433352</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-604)BV005433352</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="c">DE-604</subfield>
+    <subfield code="e">rakddb</subfield>
+    <subfield code="a">DE-602</subfield>
+    <subfield code="d">DE-188</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2="7">
+    <subfield code="a">fre</subfield>
+    <subfield code="2">ISO 639-2</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)KBVMFN19797</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-B16;19797</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">IG 2206</subfield>
+    <subfield code="0">(DE-625)55845:</subfield>
+    <subfield code="2">rvk</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">WB 2360</subfield>
+    <subfield code="0">(DE-625)147942:</subfield>
+    <subfield code="2">rvk</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-B16;19797</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">kobvindex_MFN19797</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Buffon, Georges Louis Le Clerc &lt;&lt;de&gt;&gt;</subfield>
+    <subfield code="d">1707-1788</subfield>
+    <subfield code="0">(DE-588)118517252</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="243" ind1="1" ind2="0">
+    <subfield code="a">Sammlung</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Histoire naturelle g&#xE9;n&#xE9;rale et particuli&#xE8;re :</subfield>
+    <subfield code="b">avec la description du Cabinet du Roi /</subfield>
+    <subfield code="c">[Georges Louis LeClerc de] Buffon.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Paris :</subfield>
+    <subfield code="b">Imprimerie Royale,</subfield>
+    <subfield code="c">1749 - 1767.</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">unmediated</subfield>
+    <subfield code="b">n</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">volume</subfield>
+    <subfield code="b">nc</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="883" ind1=" " ind2=" ">
+    <subfield code="w">9958999749802883</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges-Louis Le Clerc &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, George Louis Leclerc &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges Louis Leclerc &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges-Louis Leclerc &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges Louis Leclerc</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, George-Louis Leclerc</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges-Louis Leclerc</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges Louis Leclerce</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges Louis Le Clerc &#x98;von&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges-Louis-Marie Le Clerc</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, George Louis &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georges L. &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, George L. &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Leclerc &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georg Ludwig Leclerc &#x98;von&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Georg Louis Leclerc</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Leclerc &#x98;von&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Giorgio Luigi LeClerc &#x98;di&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon, Jean-Louis Leclerc &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">B&#xFC;ffon, Georg L. &#x98;von&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Bjuffon, &#x17D;or&#x17E; Lui Lekler &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">De Buffon, Georges-Louis Leclerc</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc de Buffon, George Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc de Buffon, George-Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc de Buffon, Georges Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Le Clerc de Buffon, Georges Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Le Clerc de Buffon, Georges-Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">LeClerc de Buffon, Georges-Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc, George Louis Buffon &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc, Georges Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc, George-Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc de Buffon, Georges L.</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc, Georges-Louis</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc, Georges L. &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Clerc de Buffon, Georges Louis &#x98;le&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon &#x98;von&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Buffon &#x98;de&#x9C;</subfield>
+  </datafield>
+  <datafield tag="909" ind1=" " ind2=" ">
+    <subfield code="a">Leclerc de Buffon</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">19797</subfield>
+    <subfield code="b">DE-B16</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+  <datafield tag="942" ind1=" " ind2=" ">
+    <subfield code="a">01</subfield>
+    <subfield code="c">BOOK</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816529</subfield>
+    <subfield code="8">9959044389902883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816526</subfield>
+    <subfield code="8">9959044390302883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816521</subfield>
+    <subfield code="8">9958998471402883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816523</subfield>
+    <subfield code="8">9958998471202883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV045570035</subfield>
+    <subfield code="8">9959044381902883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816533</subfield>
+    <subfield code="8">9959051371702883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816528</subfield>
+    <subfield code="8">9959044390102883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816535</subfield>
+    <subfield code="8">9959044368202883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816527</subfield>
+    <subfield code="8">9959044390202883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816524</subfield>
+    <subfield code="8">9958998471102883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816534</subfield>
+    <subfield code="8">9959051371502883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV045896186</subfield>
+    <subfield code="8">9959051351102883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816530</subfield>
+    <subfield code="8">9959044389502883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816525</subfield>
+    <subfield code="8">9959044390502883</subfield>
+  </datafield>
+  <datafield tag="969" ind1=" " ind2=" ">
+    <subfield code="p">BV025816522</subfield>
+    <subfield code="8">9958998471302883</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>13</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.date="1750"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

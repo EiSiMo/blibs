@@ -1,0 +1,151 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>223045</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>02166cam a2200457 c 4500</leader>
+  <controlfield tag="001">gbv_012546550</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20220916204430.0</controlfield>
+  <controlfield tag="007">he amb000bucu</controlfield>
+  <controlfield tag="008">710101s1979    gw |||||bm    00| ||ger c</controlfield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-627)012546550</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)GBV012546550</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)80017753</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-627</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="c">DE-627</subfield>
+    <subfield code="e">rakwb</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">ger</subfield>
+  </datafield>
+  <datafield tag="044" ind1=" " ind2=" ">
+    <subfield code="c">XA-DE</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;012546550</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-1;012546550</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">gbv_012546550</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Oberquelle, Horst</subfield>
+    <subfield code="d">1947-</subfield>
+    <subfield code="e">VerfasserIn</subfield>
+    <subfield code="0">(DE-588)172292743</subfield>
+    <subfield code="0">(DE-627)704726777</subfield>
+    <subfield code="0">(DE-576)16241899X</subfield>
+    <subfield code="4">aut</subfield>
+    <subfield code="9">ddb_valid</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Objektorientierte Informationsverarbeitung als Grundlage benutzergerechten Editierens</subfield>
+    <subfield code="b">eine neue Sicht von Informationsverarbeitung und ihre Anwendung beim Probleml&#xF6;sen im Dialog</subfield>
+    <subfield code="c">von Horst Oberquelle</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Hamburg</subfield>
+    <subfield code="c">1979</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">Getr. Z&#xE4;hlung</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">Text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">Mikroform</subfield>
+    <subfield code="b">h</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">Mikrofiche</subfield>
+    <subfield code="b">he</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Dissertation am Fachbereich Informatik, Fakult&#xE4;t f&#xFC;r Mathematik, Informatik und Naturwissenschaften, Universit&#xE4;t Hamburg angenommen</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Universit&#xE4;t Hamburg, Fachbereich Informatik ist die Hochschulschrift betreuende Institution</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Dissertation am Fachbereich Informatik, Universit&#xE4;t Hamburg angenommen</subfield>
+  </datafield>
+  <datafield tag="502" ind1=" " ind2=" ">
+    <subfield code="b">Dissertation</subfield>
+    <subfield code="c">Universit&#xE4;t Hamburg</subfield>
+    <subfield code="d">1979</subfield>
+  </datafield>
+  <datafield tag="533" ind1=" " ind2=" ">
+    <subfield code="a">Mikrofiche-Ausgabe</subfield>
+    <subfield code="e">3 Mikrofiches</subfield>
+  </datafield>
+  <datafield tag="583" ind1="1" ind2=" ">
+    <subfield code="a">Massenents&#xE4;uert</subfield>
+    <subfield code="c">2009</subfield>
+    <subfield code="2">pdager</subfield>
+    <subfield code="5">DE-18</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="7">
+    <subfield code="a">Hochschulschrift</subfield>
+    <subfield code="0">(DE-588)4113937-9</subfield>
+    <subfield code="0">(DE-627)105825778</subfield>
+    <subfield code="0">(DE-576)209480580</subfield>
+    <subfield code="2">gnd-content</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Universit&#xE4;t Hamburg</subfield>
+    <subfield code="e">Grad-verleihende Institution</subfield>
+    <subfield code="0">(DE-588)35534-3</subfield>
+    <subfield code="0">(DE-627)100820204</subfield>
+    <subfield code="0">(DE-576)190340177</subfield>
+    <subfield code="4">dgg</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Universit&#xE4;t Hamburg</subfield>
+    <subfield code="b">Fakult&#xE4;t f&#xFC;r Mathematik, Informatik und Naturwissenschaften</subfield>
+    <subfield code="0">(DE-588)3063410-6</subfield>
+    <subfield code="0">(DE-627)509514413</subfield>
+    <subfield code="0">(DE-576)252410793</subfield>
+    <subfield code="4">oth</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">Universit&#xE4;t Hamburg</subfield>
+    <subfield code="b">Fachbereich Informatik</subfield>
+    <subfield code="0">(DE-588)2051517-0</subfield>
+    <subfield code="0">(DE-627)103084312</subfield>
+    <subfield code="0">(DE-576)191995185</subfield>
+    <subfield code="4">oth</subfield>
+  </datafield>
+  <datafield tag="751" ind1=" " ind2=" ">
+    <subfield code="a">Hamburg</subfield>
+    <subfield code="4">uvp</subfield>
+  </datafield>
+  <datafield tag="889" ind1=" " ind2=" ">
+    <subfield code="w">(DE-627)424456702</subfield>
+  </datafield>
+  <datafield tag="889" ind1=" " ind2=" ">
+    <subfield code="w">(DE-627)058863729</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">012546550</subfield>
+    <subfield code="b">DE-1</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">d</subfield>
+  </datafield>
+  <datafield tag="951" ind1=" " ind2=" ">
+    <subfield code="a">BO</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>2</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>Hochschulschrift Dissertation Universitaet</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>

@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="/etc/metaproxy/sru.xsl"?>
+<zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>1554</zs:numberOfRecords><zs:records><zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>06322nam a22004813i 4500</leader>
+  <controlfield tag="001">almahu_9950102195902882</controlfield>
+  <controlfield tag="003">DE-602</controlfield>
+  <controlfield tag="005">20250930214123.0</controlfield>
+  <controlfield tag="006">m     o  d |      </controlfield>
+  <controlfield tag="007">cr cnu||||||||</controlfield>
+  <controlfield tag="008">250930s2021    xx      o     ||||0 ger d</controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9783741001321</subfield>
+    <subfield code="q">(electronic bk.)</subfield>
+  </datafield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="z">9783741003585</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(MiAaPQ)EBC6507603</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(Au-PeEL)EBL6507603</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)1240584881</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">MiAaPQ</subfield>
+    <subfield code="b">eng</subfield>
+    <subfield code="e">rda</subfield>
+    <subfield code="e">pn</subfield>
+    <subfield code="c">MiAaPQ</subfield>
+    <subfield code="d">MiAaPQ</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950102195902882</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">DE-11;9950102195902882</subfield>
+  </datafield>
+  <datafield tag="092" ind1=" " ind2=" ">
+    <subfield code="a">almahu_9950102195902882</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Schro&#x308;ter, Felix.</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Spiel | Figur :</subfield>
+    <subfield code="b">Theorie und A&#x308;sthetik der Computerspielfigur.</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">1st ed.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="1">
+    <subfield code="a">Marburg :</subfield>
+    <subfield code="b">Schu&#x308;ren Verlag,</subfield>
+    <subfield code="c">2021.</subfield>
+  </datafield>
+  <datafield tag="264" ind1=" " ind2="4">
+    <subfield code="c">&#xA9;2021.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">1 online resource (349 pages)</subfield>
+  </datafield>
+  <datafield tag="336" ind1=" " ind2=" ">
+    <subfield code="a">text</subfield>
+    <subfield code="b">txt</subfield>
+    <subfield code="2">rdacontent</subfield>
+  </datafield>
+  <datafield tag="337" ind1=" " ind2=" ">
+    <subfield code="a">computer</subfield>
+    <subfield code="b">c</subfield>
+    <subfield code="2">rdamedia</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="a">online resource</subfield>
+    <subfield code="b">cr</subfield>
+    <subfield code="2">rdacarrier</subfield>
+  </datafield>
+  <datafield tag="490" ind1="1" ind2=" ">
+    <subfield code="a">Marburger Schriften zur Medienforschung ;</subfield>
+    <subfield code="v">v.86</subfield>
+  </datafield>
+  <datafield tag="505" ind1="0" ind2=" ">
+    <subfield code="a">Intro -- Impressum -- Inhalt -- Wu&#x308;rdigung -- 1 Einleitung -- 2 Zum Stand der Figurenforschung -- 2.1 Figurenforschung in Literatur- und Medienwissenschaft -- 2.1.1 Normative Poetiken der Figur -- 2.1.2 Anfa&#x308;nge deskriptiver Figurentheorie -- 2.1.3 Strukturalistische und semiotische Figurentheorien -- 2.1.4 Poststrukturalistische und psychoanalytische Figurentheorien -- 2.1.5 Kognitive Figurentheorien -- 2.1.6 Interdisziplina&#x308;re Ansa&#x308;tze und transmediale Narratologie -- 2.1.7 Zwischenfazit: Figurenforschung in Literatur- und Medienwissenschaft -- 2.2 Forschung zur Computerspielfigur -- 2.2.1 Avatartheorien der Figur -- 2.2.2 Figurentheorie und Computerspiel -- 2.2.3 Game Studies und kognitive Figurentheorie -- 2.2.4 Zwischenfazit: Forschung zur Computerspielfigur -- 3 Figurendarstellung im Computerspiel -- 3.1 Darstellungsmodi des Computerspiels -- 3.1.1 Darstellungsmodus: Narration -- 3.1.2 Darstellungsmodus: Simulation -- 3.1.3 Darstellungsmodus: Kommunikation -- 3.1.4 Darstellungsmodus: Deskription -- 3.2 Ontologie der Computerspielfigur -- 3.2.1 Figuren als kommunikative Artefakte -- 3.2.2 Nonlinearita&#x308;t von Figurendarstellungen -- 3.2.3 Interaktivita&#x308;t von Figurendarstellungen -- 3.2.4 Konfigurierbarkeit von Figuren -- 3.2.5 Kommunikative Funktion von Figuren -- 3.2.6 Weitere Charakteristika von Figuren -- 3.3 Mittel der Figurendarstellung -- 3.3.1 Cut-Scenes -- 3.3.2 Geskriptete Ereignisse -- 3.3.3 Quick-Time-Events -- 3.3.4 Sprachliche Darstellungsmittel -- 3.3.5 Interface -- 3.3.6 Zwischenfazit: Figurendarstellung im Computerspiel -- 4 Figurenrezeption im Computerspiel -- 4.1 Figurenrezeption im Film -- 4.1.1 Kognitive Filmtheorie -- 4.2 Figurenrezeption im Computerspiel: kognitive Aspekte -- 4.2.1 Modi der Figurenrezeption -- 4.2.2 Ebenen der Figurenrezeption -- 4.2.3 Interaktivita&#x308;t und Figurenrezeption.</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">4.3 Figurenrezeption im Computerspiel: emotive Aspekte -- 4.3.1 Theorie audiovisueller Emotionen -- 4.3.2 Emotionstheorien des Computerspiels -- 4.3.3 Ein integratives Modell der Computerspielemotion -- 5 Figurenanalyse im Computerspiel -- 5.1 Computerspielfiguren als fiktive Wesen -- 5.1.1 Artefakteigenschaften fiktiver Wesen -- 5.1.2 Fiktive Wesen als Symbole und Symptome -- 5.2 Computerspielfiguren als Spielfiguren -- 5.2.1 Artefakteigenschaften von Spielfiguren -- 5.2.2 Spielfiguren als Symbole und Symptome -- 5.3 Computerspielfiguren als Repra&#x308;sentationen von Spielern -- 5.3.1 Artefakteigenschaften &#x2039;sozialer&#x203A; Aspekte der Figur -- 5.3.2 &#x2039;Soziale&#x203A; Aspekte der Figur als Symbol und Symptom -- 5.3.3 Zwischenfazit: Figurenanalyse im Computerspiel -- 6 Zur A&#x308;sthetik spielergesteuerter Figuren -- 6.1 Rezeptionsa&#x308;sthetik spielergesteuerter Figuren -- 6.1.1 Konzeption und a&#x308;sthetische Gestaltung spielergesteuerter Figuren -- 6.1.2 Narrative Bedeutungskonstruktion durch spielergesteuerte Figuren -- 6.1.3 Formen der Involvierung durch spielergesteuerte Figuren -- 6.2 Figurensubjektivita&#x308;t und Embodiment -- 6.3 Case Study: Subjektivita&#x308;t und Embodiment in Journey -- 7 Zur A&#x308;sthetik computergesteuerter Figuren -- 7.1 Rezeptionsa&#x308;sthetik computergesteuerter Figuren -- 7.1.1 Konzeption und a&#x308;sthetische Gestaltung von computergesteuerten Figuren -- 7.1.2 Narrative Bedeutungskonstruktion und non-player characters -- 7.1.3 Ludische Involvierung und ku&#x308;nstliche Intelligenz -- 7.2 Emotionale Anteilnahme an computergesteuerten Figuren -- 7.3 Case Study: Figurenrezeption in ALIEN: ISOLATION -- 8 Zur A&#x308;sthetik Mitspieler-gesteuerter Figuren -- 8.1 Rezeptionsa&#x308;sthetik Mitspieler-gesteuerter Figuren -- 8.1.1 Konzeption und a&#x308;sthetische Gestaltung von Mitspieler-gesteuerten Figuren -- 8.1.2 Ausdrucksformen sozialen Status durch Mitspieler-gesteuerte Figuren.</subfield>
+  </datafield>
+  <datafield tag="505" ind1="8" ind2=" ">
+    <subfield code="a">8.1.3 A&#x308;sthetische Strukturierung von Kommunikation durch Mitspieler-gesteuerte Figuren -- 8.2 Soziale Involvierung durch Mitspieler-gesteuerte Figuren -- 8.3 Case Study: Soziale Involvierung in DESTINY 2 -- 9 Zusammenfassung -- 9.1 Darstellung, Ontologie und Rezeption von Computerspielfiguren -- 9.2 Analyse von Computerspielfiguren -- 9.3 A&#x308;sthetik von Computerspielfiguren -- 9.4 Ausblick: Jenseits der Rezeptionsa&#x308;sthetik -- Farbtafeln -- 10 Medienverzeichnis -- 10.1 Computerspielverzeichnis -- 10.2 Filmverzeichnis -- 10.3 Serienverzeichnis -- 10.4 Literaturverzeichnis (Prima&#x308;rliteratur) -- 11 Literaturverzeichnis -- 12 Abbildungsverzeichnis -- 13 Register -- A -- B -- C -- D -- E -- F -- G -- H -- I -- J -- K -- L -- M -- N -- O -- P -- Q -- R -- S -- T -- V -- W -- Z.</subfield>
+  </datafield>
+  <datafield tag="588" ind1=" " ind2=" ">
+    <subfield code="a">Description based on publisher supplied metadata and other sources.</subfield>
+  </datafield>
+  <datafield tag="590" ind1=" " ind2=" ">
+    <subfield code="a">Electronic reproduction. Ann Arbor, Michigan : ProQuest Ebook Central, 2025. Available via World Wide Web. Access may be limited to ProQuest Ebook Central affiliated libraries.</subfield>
+  </datafield>
+  <datafield tag="655" ind1=" " ind2="4">
+    <subfield code="a">Electronic books.</subfield>
+  </datafield>
+  <datafield tag="776" ind1="0" ind2="8">
+    <subfield code="i">Print version:</subfield>
+    <subfield code="a">Schro&#x308;ter, Felix</subfield>
+    <subfield code="t">Spiel | Figur</subfield>
+    <subfield code="d">Marburg : Schu&#x308;ren Verlag,c2021</subfield>
+    <subfield code="z">ISBN 9783741003585</subfield>
+  </datafield>
+  <datafield tag="797" ind1="2" ind2=" ">
+    <subfield code="a">ProQuest (Firm)</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Marburger Schriften zur Medienforschung</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2="0">
+    <subfield code="u">https://ebookcentral.proquest.com/lib/huberlin-ebooks/detail.action?docID=6507603</subfield>
+    <subfield code="z">Click to View</subfield>
+  </datafield>
+  <datafield tag="338" ind1=" " ind2=" ">
+    <subfield code="b">cr</subfield>
+  </datafield>
+  <datafield tag="924" ind1=" " ind2=" ">
+    <subfield code="a">9950102195902882</subfield>
+    <subfield code="b">DE-11</subfield>
+    <subfield code="c">KOBV</subfield>
+    <subfield code="d">c</subfield>
+  </datafield>
+  <datafield tag="950" ind1=" " ind2=" ">
+    <subfield code="s">false</subfield>
+  </datafield>
+</record></zs:recordData><zs:recordPosition>2</zs:recordPosition></zs:record></zs:records><zs:nextRecordPosition>51</zs:nextRecordPosition><zs:echoedSearchRetrieveRequest><zs:version>2.0</zs:version><zs:query>dc.title="Computerspiel"</zs:query><zs:maximumRecords>50</zs:maximumRecords><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordSchema>marcxml</zs:recordSchema></zs:echoedSearchRetrieveRequest></zs:searchRetrieveResponse>
