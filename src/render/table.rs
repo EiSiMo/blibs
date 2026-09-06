@@ -11,19 +11,53 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use crate::render::Style;
 
-/// The width to lay out for when there is no terminal to ask.
+/// The width to lay out for when there is no terminal and `COLUMNS` says nothing.
 ///
 /// A fixed number rather than "unlimited": a piped or redirected invocation must produce
 /// the same bytes on every machine, and an agent that diffs two runs should not see the
 /// launching terminal in the diff.
-pub const DEFAULT_WIDTH: usize = 100;
+///
+/// **Deliberately generous.** The other audience of this tool captures the human output
+/// of a piped invocation, and a title cut down to a terminal-sized column is information
+/// destroyed for no reason — nothing is watching those columns. 160 is wide enough that
+/// the example layouts print in full, and still finite so the output stays reproducible.
+pub const DEFAULT_WIDTH: usize = 160;
+
+/// The environment variable that overrides the width where there is no terminal to ask.
+///
+/// The name shells already use for this, so `COLUMNS=100 blibs search …` needs no flag of
+/// its own. It is consulted *after* the terminal, never instead of it: a real terminal
+/// knows its own width, and shells are not consistent about exporting the variable.
+const COLUMNS_VAR: &str = "COLUMNS";
 
 /// The marker put where text was cut away.
 const ELLIPSIS: char = '…';
 
-/// The terminal's width in columns, or [`DEFAULT_WIDTH`] when there is no terminal.
+/// The width to lay out for: the terminal's own, else `COLUMNS`, else [`DEFAULT_WIDTH`].
 pub fn terminal_columns() -> usize {
-    terminal_size::terminal_size().map_or(DEFAULT_WIDTH, |(width, _)| usize::from(width.0))
+    let columns = std::env::var(COLUMNS_VAR).ok();
+    columns_from(
+        terminal_size::terminal_size().map(|(width, _)| usize::from(width.0)),
+        columns.as_deref(),
+    )
+}
+
+/// The width decision itself, with both inputs handed in.
+///
+/// Split out from [`terminal_columns`] because that one reads the process environment,
+/// which a test cannot change safely. The order is the whole rule: a terminal knows its
+/// width, `COLUMNS` is what the caller says when there is none, and [`DEFAULT_WIDTH`] is
+/// the answer when neither speaks.
+///
+/// A width of zero is treated as "not stated" from either source — some terminals report
+/// zero while resizing, and a `COLUMNS=0` layout would be nothing but ellipses.
+pub fn columns_from(size: Option<usize>, env: Option<&str>) -> usize {
+    size.filter(|width| *width > 0)
+        .or_else(|| {
+            env.and_then(|value| value.trim().parse::<usize>().ok())
+                .filter(|width| *width > 0)
+        })
+        .unwrap_or(DEFAULT_WIDTH)
 }
 
 /// Display width of text in terminal columns.
@@ -377,6 +411,59 @@ mod tests {
 
     fn green() -> anstyle::Style {
         anstyle::Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)))
+    }
+
+    /// A terminal is asked first and believed, whatever `COLUMNS` claims.
+    #[test]
+    fn a_terminal_width_wins_over_the_environment() {
+        assert_eq!(columns_from(Some(80), Some("200")), 80);
+        assert_eq!(columns_from(Some(80), None), 80);
+    }
+
+    /// Without a terminal, `COLUMNS` is what the caller says. Whitespace around the
+    /// number is what `COLUMNS=" 90 "` and a shell that pads it produce.
+    #[test]
+    fn columns_is_used_when_there_is_no_terminal() {
+        assert_eq!(columns_from(None, Some("90")), 90);
+        assert_eq!(columns_from(None, Some(" 90 ")), 90);
+    }
+
+    /// Neither source, or neither usable: the generous default, so that a captured
+    /// human output carries whole titles rather than ellipses.
+    #[test]
+    fn an_unusable_width_falls_back_to_the_default() {
+        assert_eq!(columns_from(None, None), DEFAULT_WIDTH);
+        assert_eq!(columns_from(None, Some("")), DEFAULT_WIDTH);
+        assert_eq!(columns_from(None, Some("wide")), DEFAULT_WIDTH);
+        assert_eq!(columns_from(None, Some("-10")), DEFAULT_WIDTH);
+        assert_eq!(
+            columns_from(None, Some("0")),
+            DEFAULT_WIDTH,
+            "0 is no width"
+        );
+        assert_eq!(
+            columns_from(Some(0), Some("90")),
+            90,
+            "a terminal reporting zero has not stated a width"
+        );
+        assert_eq!(columns_from(Some(0), None), DEFAULT_WIDTH);
+    }
+
+    /// The default is wide enough that the two example layouts print in full: it exists
+    /// so that a captured human output carries whole titles rather than ellipses.
+    #[test]
+    fn the_default_width_does_not_truncate_the_example_layouts() {
+        let row = vec![
+            Cell::new("1 ●"),
+            Cell::new("Der Prozess : Roman einer Verwandlung"),
+            Cell::new("Kafka, Franz"),
+            Cell::new("1953"),
+            Cell::new("almafu_BV008885798").whole(),
+        ];
+        let layout = Layout::auto(row.len());
+        let widths = layout.widths(std::slice::from_ref(&row), DEFAULT_WIDTH);
+        let rendered = layout.render_row(&row, &widths, Style::plain(DEFAULT_WIDTH));
+        assert!(!rendered.contains(ELLIPSIS), "{rendered}");
     }
 
     #[test]

@@ -334,6 +334,18 @@ pub mod note_kinds {
     /// The record is an Onleihe title: it has no copies on a shelf, and its loan state
     /// is stated only as prose in the link to the lending platform.
     pub const VOEBB_ONLINE_ONLY: &str = "voebb_online_only";
+
+    /// voebb.de's advanced search has no free-text index, so free terms next to a field
+    /// flag were searched as a title — the closest index the form offers.
+    pub const VOEBB_FREE_TERMS_AS_TITLE: &str = "voebb_free_terms_as_title";
+
+    /// The query needed more rows than voebb.de's advanced form has, and the note names
+    /// the part that was not sent.
+    pub const VOEBB_QUERY_TRUNCATED: &str = "voebb_query_truncated";
+
+    /// The branch facet does not list this branch for this search, which is the site's
+    /// way of saying it holds nothing matching. Not an error, and not a broken filter.
+    pub const VOEBB_BRANCH_NOT_LISTED: &str = "voebb_branch_not_listed";
 }
 
 /// The query, echoed back so a result can be reproduced without the shell history.
@@ -406,6 +418,9 @@ mod tests {
             note_kinds::HOLDING_WITHOUT_ISIL,
             note_kinds::VOEBB_MULTIVOLUME,
             note_kinds::VOEBB_ONLINE_ONLY,
+            note_kinds::VOEBB_FREE_TERMS_AS_TITLE,
+            note_kinds::VOEBB_QUERY_TRUNCATED,
+            note_kinds::VOEBB_BRANCH_NOT_LISTED,
         ];
         for (index, kind) in all.iter().enumerate() {
             assert!(

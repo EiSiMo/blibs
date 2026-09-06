@@ -20,7 +20,8 @@ use std::io::{self, Write};
 
 use crate::cli::{Cli, Command, LibrariesPlan, Plan, ShowPlan, long_help, validate};
 use crate::engine::kobv::Kobv;
-use crate::error::{EmptyReason, Error, Outcome, UnexpectedError, UsageError};
+use crate::engine::voebb::Voebb;
+use crate::error::{EmptyReason, Error, Outcome, UnexpectedError};
 use crate::http::{Fetch, scope_map};
 use crate::libraries::{self, Library};
 use crate::model::{
@@ -136,7 +137,7 @@ fn search_one_engine(
     locations: &[Location],
     fetch: &dyn Fetch,
 ) -> Result<EngineOutcome, Error> {
-    let catalog = catalog_for(engine, locations, fetch)?;
+    let catalog = catalog_for(engine, fetch);
     let request = SearchRequest {
         query: plan.query.clone(),
         locations: locations.to_vec(),
@@ -187,36 +188,13 @@ fn sort_location(locations: &[Location]) -> Option<&Location> {
 /// The engine that answers for these locations.
 ///
 /// Boxed because the two engines are different types and `run` must not branch on which
-/// one it got — everything downstream sees a [`Catalog`].
-fn catalog_for<'f>(
-    engine: Engine,
-    locations: &[Location],
-    fetch: &'f dyn Fetch,
-) -> Result<Box<dyn Catalog + 'f>, Error> {
+/// one it got — everything downstream sees a [`Catalog`]. The choice is made **once**,
+/// from `--at` or from a record id's prefix, and nothing after this line knows which
+/// catalogue answered.
+fn catalog_for<'f>(engine: Engine, fetch: &'f dyn Fetch) -> Box<dyn Catalog + 'f> {
     match engine {
-        Engine::Kobv => Ok(Box::new(Kobv::new(fetch))),
-        // Phase 5: replaced by `Box::new(Voebb::new(fetch))`. Until voebb.de is
-        // implemented, a branch in `--at` is refused *before* anything is sent rather
-        // than answered from the KOBV side — a KOBV record does not know the branch, so
-        // any answer would be about the whole network and silently wrong.
-        Engine::Voebb => Err(UsageError::FlagUnsupportedByEngine {
-            flag: branch_flag(locations),
-            engine: Engine::Voebb,
-        }
-        .into()),
-    }
-}
-
-/// `--at AGB` — how the refused branch reads back on the command line.
-fn branch_flag(locations: &[Location]) -> String {
-    let keys: Vec<&str> = locations
-        .iter()
-        .map(|location| location.key.as_str())
-        .collect();
-    if keys.is_empty() {
-        "--at <branch>".to_owned()
-    } else {
-        format!("--at {}", keys.join(","))
+        Engine::Kobv => Box::new(Kobv::new(fetch)),
+        Engine::Voebb => Box::new(Voebb::new(fetch)),
     }
 }
 
@@ -356,7 +334,7 @@ fn run_show(
     err: &mut dyn Write,
     style: Style,
 ) -> Result<Outcome, Error> {
-    let catalog = catalog_for(plan.engine(), &plan.locations, fetch)?;
+    let catalog = catalog_for(plan.engine(), fetch);
     let Some(mut record) = catalog.show(&plan.id, plan.availability)? else {
         let reason = EmptyReason::NoSuchRecord {
             id: plan.id.clone(),

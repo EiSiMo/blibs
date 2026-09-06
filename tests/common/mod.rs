@@ -38,22 +38,47 @@ pub fn read_fixture(relative: &str) -> String {
         .unwrap_or_else(|err| panic!("cannot read fixture {}: {err}", path.display()))
 }
 
-/// A request rendered as one comparable line: `GET https://host/path?a=1&b=2`.
+/// A request rendered as one comparable line: `GET https://host/path?a=1&b=2`, with a
+/// `POST` form appended as ` [form: a=1&b=2]`.
 ///
-/// Query parameters are kept in the order the client built them, so a test can assert on
-/// the exact query that would go out — including the PQF string.
+/// Query parameters and form fields are kept in the order the client built them, so a
+/// test can assert on the exact request that would go out — the PQF string on one side,
+/// and on the other the aDISWeb form whose every request otherwise looks the same.
 pub fn describe(request: &Request) -> String {
     let mut line = format!("{} {}", request.method.as_str(), request.base);
     if !request.query.is_empty() {
         line.push('?');
-        let pairs: Vec<String> = request
-            .query
-            .iter()
-            .map(|(key, value)| format!("{key}={value}"))
-            .collect();
-        line.push_str(&pairs.join("&"));
+        line.push_str(&pairs(&request.query));
+    }
+    if !request.form.is_empty() {
+        line.push_str(" [form: ");
+        line.push_str(&pairs(&request.form));
+        line.push(']');
     }
     line
+}
+
+/// `a=1&b=2`, in the order given.
+fn pairs(fields: &[(String, String)]) -> String {
+    fields
+        .iter()
+        .map(|(key, value)| format!("{key}={value}"))
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
+/// Whether a request carries a form field with this name.
+pub fn has_field(request: &Request, name: &str) -> bool {
+    request.form.iter().any(|(key, _)| key == name)
+}
+
+/// The value of one form field.
+pub fn field<'a>(request: &'a Request, name: &str) -> Option<&'a str> {
+    request
+        .form
+        .iter()
+        .find(|(key, _)| key == name)
+        .map(|(_, value)| value.as_str())
 }
 
 #[derive(Debug, Default)]

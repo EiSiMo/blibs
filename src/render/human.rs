@@ -63,6 +63,57 @@ const FIELD_LABEL: usize = 11;
 /// `order_option` never collides with it.
 const STATUS_COLUMN: usize = 20;
 
+/// ISO-639-2/B codes and the English name `show` prints for them.
+///
+/// A display table, never a translation: the code stays in the JSON document and in
+/// `--language`, and only the line a human reads is spelled out. The list covers the
+/// codes that actually occur in this catalogue in any number; a code that is not here is
+/// **printed as the code**, because inventing a name for it would be a claim, and a wrong
+/// language is worse than an unexplained one.
+///
+/// ISO-639-2/**B** is the bibliographic set MARC uses, so `ger`/`fre`/`dut`/`gre`/`chi`
+/// are the spellings to expect — not the terminological `deu`/`fra`/`nld`/`ell`/`zho`.
+const LANGUAGE_NAMES: [(&str, &str); 30] = [
+    ("ger", "German"),
+    ("eng", "English"),
+    ("fre", "French"),
+    ("spa", "Spanish"),
+    ("ita", "Italian"),
+    ("rus", "Russian"),
+    ("pol", "Polish"),
+    ("tur", "Turkish"),
+    ("ara", "Arabic"),
+    ("heb", "Hebrew"),
+    ("chi", "Chinese"),
+    ("jpn", "Japanese"),
+    ("lat", "Latin"),
+    ("gre", "Greek"),
+    ("dut", "Dutch"),
+    ("por", "Portuguese"),
+    ("cze", "Czech"),
+    ("hun", "Hungarian"),
+    ("swe", "Swedish"),
+    ("dan", "Danish"),
+    ("nor", "Norwegian"),
+    ("fin", "Finnish"),
+    ("ukr", "Ukrainian"),
+    ("per", "Persian"),
+    ("hin", "Hindi"),
+    ("kor", "Korean"),
+    ("vie", "Vietnamese"),
+    ("cat", "Catalan"),
+    ("srp", "Serbian"),
+    ("hrv", "Croatian"),
+];
+
+/// Codes that name no language at all: "undetermined", "no linguistic content" and
+/// "multiple languages". They are dropped rather than printed — `Language und` states
+/// nothing, and a record whose only code is one of these gets no `Language` line.
+///
+/// The KOBV parser already drops them; a record from another engine may still carry one,
+/// and this renderer is the last place that can keep it off the page.
+const UNNAMED_LANGUAGES: [&str; 3] = ["und", "zxx", "mul"];
+
 /// How many authors `show` prints before it counts the rest.
 const MAX_AUTHORS: usize = 5;
 /// How many subject headings `show` prints before it counts the rest.
@@ -565,8 +616,9 @@ fn write_fields(out: &mut dyn Write, fields: &[(String, String)], style: Style) 
 
 /// The fields `show` prints, in order, leaving out what the record does not state.
 ///
-/// The language is the code the record carries (`ger`), not a translated name: a mapping
-/// invented here would be a claim the catalogue never made.
+/// The language is spelled out where [`LANGUAGE_NAMES`] knows the code and printed as the
+/// bare code where it does not — see there for why the table is small and why nothing is
+/// guessed.
 fn record_fields(record: &Record) -> Vec<(String, String)> {
     let mut fields = Vec::new();
     let published = join_present(
@@ -588,7 +640,7 @@ fn record_fields(record: &Record) -> Vec<(String, String)> {
         "Extent",
         record.extent.clone().unwrap_or_default(),
     );
-    push_field(&mut fields, "Language", record.languages.join(", "));
+    push_field(&mut fields, "Language", languages(record));
     push_field(&mut fields, "Format", format_label(record));
     push_field(&mut fields, "ISBN", record.isbns.join(" · "));
     push_field(&mut fields, "Subjects", subjects(record));
@@ -607,6 +659,30 @@ fn push_field(fields: &mut Vec<(String, String)>, label: &str, value: String) {
     if !value.is_empty() {
         fields.push((label.to_owned(), value));
     }
+}
+
+/// The languages of a record, named where they can be named.
+///
+/// Every code the record carries is listed, in its order: a bilingual edition is two
+/// languages and saying only the first would be wrong. Codes that name no language are
+/// dropped, so a record that states nothing else gets no `Language` line at all.
+fn languages(record: &Record) -> String {
+    record
+        .languages
+        .iter()
+        .filter(|code| !UNNAMED_LANGUAGES.contains(&code.as_str()))
+        .map(|code| language_name(code))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// The English name of an ISO-639-2/B code, or the code itself when it is not in
+/// [`LANGUAGE_NAMES`]. Never a guess: `Language xyz` says exactly what the record says.
+fn language_name(code: &str) -> &str {
+    LANGUAGE_NAMES
+        .iter()
+        .find(|(known, _)| *known == code)
+        .map_or(code, |(_, name)| *name)
 }
 
 /// The subject headings, capped at [`MAX_SUBJECTS`] with the rest counted.
@@ -1587,15 +1663,14 @@ AGB (VÖBB) · 35 results · showing 2
 
     /// The example in `plan/cli.md` § `show`.
     ///
-    /// Four deviations, each with a reason the data itself gives:
+    /// Three deviations, each with a reason the data itself gives:
     ///
-    /// 1. `Language ger`, not `German`. The record carries an ISO-639-2/B code and this
-    ///    tool never invents a name for it.
-    /// 2. `ISBN 9783596294331`, not `978-3-596-29433-1`. Hyphenation needs the
-    ///    registration-group ranges, which are not in this binary.
-    /// 3. `· 2 of 2 available` behind the HU name: copies are counted whenever a house
+    /// 1. `ISBN 9783596294331`, not `978-3-596-29433-1`. Re-hyphenating needs the
+    ///    registration-group ranges, which are not in this binary, and the record's own
+    ///    hyphens come out on the way in (`plan/cli.md` § JSON).
+    /// 2. `· 2 of 2 available` behind the HU name: copies are counted whenever a house
     ///    has more than one, and the example omits it there while demanding it in prose.
-    /// 4. The sentence about the copy on loan, which the rules require and the example
+    /// 3. The sentence about the copy on loan, which the rules require and the example
     ///    leaves out.
     #[test]
     fn the_show_example_is_reproduced() {
@@ -1614,7 +1689,7 @@ Roman
   Published    S. Fischer, Frankfurt am Main, 1953
   Edition      3. Auflage
   Extent       345 Seiten
-  Language     ger
+  Language     German
   Format       Book
   ISBN         9783596294331
   Subjects     Deutsche Literatur · Roman · Prag
@@ -1637,6 +1712,64 @@ Holdings
 almafu_BV008885798
 ";
         assert_eq!(rendered_show(&prozess(), &locations), expected);
+    }
+
+    /// A known code is spelled out, an unknown one is printed **as the code**: the tool
+    /// says what the record says rather than guessing at a name.
+    #[test]
+    fn a_language_code_is_named_only_when_it_is_known() {
+        assert_eq!(language_name("ger"), "German");
+        assert_eq!(language_name("gre"), "Greek", "the B set, not `ell`");
+        assert_eq!(language_name("dut"), "Dutch", "the B set, not `nld`");
+        assert_eq!(language_name("xyz"), "xyz");
+        assert_eq!(language_name("deu"), "deu", "the T code is not the B code");
+        assert_eq!(language_name("GER"), "GER", "codes are lowercase in MARC");
+    }
+
+    /// Every code in the table is a three-letter code and every name is spelled out
+    /// once — a duplicated code would make the table's first entry unreachable.
+    #[test]
+    fn the_language_table_holds_no_duplicate_codes() {
+        for (index, (code, name)) in LANGUAGE_NAMES.iter().enumerate() {
+            assert_eq!(code.len(), 3, "{code:?} is not a three-letter code");
+            assert!(!name.is_empty());
+            assert!(
+                !LANGUAGE_NAMES[..index].iter().any(|(seen, _)| seen == code),
+                "{code:?} occurs twice"
+            );
+            assert!(
+                !UNNAMED_LANGUAGES.contains(code),
+                "{code:?} names no language and must not be given one"
+            );
+        }
+    }
+
+    /// A record in two languages names both, in its own order.
+    #[test]
+    fn a_multilingual_record_names_every_language() {
+        let mut record = prozess();
+        record.languages = vec!["ger".to_owned(), "lat".to_owned(), "xyz".to_owned()];
+        assert!(
+            rendered_show(&record, &[]).contains("Language     German, Latin, xyz"),
+            "{}",
+            rendered_show(&record, &[])
+        );
+    }
+
+    /// `und` states nothing, so it is not printed — and a record whose only code is one
+    /// of those gets no `Language` line rather than an empty one.
+    #[test]
+    fn a_code_that_names_no_language_is_left_out() {
+        let mut record = prozess();
+        record.languages = vec!["und".to_owned()];
+        assert!(!rendered_show(&record, &[]).contains("Language"));
+
+        record.languages = vec!["und".to_owned(), "eng".to_owned()];
+        assert!(
+            rendered_show(&record, &[]).contains("Language     English"),
+            "{}",
+            rendered_show(&record, &[])
+        );
     }
 
     /// 4.9 % of records have no `924` at all. That is "not stated in this record", and

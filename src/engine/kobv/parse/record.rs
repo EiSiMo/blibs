@@ -78,6 +78,11 @@ const UNSPECIFIC_LANGUAGES: [&str; 3] = ["und", "zxx", "mul"];
 /// The carrier code that means "online resource", in `007/00-01` and in `338$b`.
 const ONLINE_CARRIER: &str = "cr";
 
+/// The hyphens an ISBN is written with. The ASCII one is the standard's; the other three
+/// are what a copy from a typeset page or a word processor leaves behind. See
+/// [`normalized_isbn`].
+const ISBN_SEPARATORS: [char; 4] = ['-', '\u{2010}', '\u{2011}', '\u{2013}'];
+
 /// Build a [`Record`] from a MARC record.
 ///
 /// The only failure is the record's identity: a missing `001`, or one without a source
@@ -540,18 +545,41 @@ fn format(marc: &MarcRecord, online: bool) -> Format {
     }
 }
 
-/// `020$a`, cut at the first space.
+/// `020$a`, cut at the first space and stripped of its separators.
 ///
 /// `$z` is a cancelled ISBN, `$9` a hyphenated KOBV duplicate of `$a` and `$q` the
 /// binding — taking any of them would either list a wrong number or list every ISBN twice.
-/// Hyphens are kept as the record has them; normalising for comparison happens in `cli`.
+///
+/// The number is **normalised**: `3-8044-1755-8` is emitted as `3804417558`. That is what
+/// `plan/cli.md` § JSON states, and `plan/cli.md` is the contract — `plan/marc-mapping.md`
+/// still says "not normalised" and is the older of the two. The reason the contract wins:
+/// the same edition is hyphenated in one record and bare in the next, so an agent that
+/// compares `isbns[]` against the number it searched for would miss half the catalogue,
+/// and `--isbn` is normalised the same way before it is sent (`cli::isbn`). Re-hyphenating
+/// for display is the operation that is *not* possible here — it needs the
+/// registration-group ranges, which this binary does not carry.
+///
+/// A value that is nothing but separators is dropped rather than emitted empty.
 fn isbns(marc: &MarcRecord) -> Vec<String> {
     marc.fields("020")
         .flat_map(|field| field.subs('a'))
         .filter_map(|value| {
             let isbn = value.split_once(' ').map_or(value, |(head, _)| head);
-            non_empty(isbn.to_owned())
+            non_empty(normalized_isbn(isbn))
         })
+        .collect()
+}
+
+/// Drop the separators a written ISBN carries, keeping every other character.
+///
+/// The ASCII hyphen is the one the standard uses; the others are what a copy from a
+/// typeset page produces, and whitespace is what a careless catalogue entry adds. Nothing
+/// else is touched: a value this function does not recognise is passed through rather than
+/// repaired, because an ISBN the record states wrongly is still what the record states.
+fn normalized_isbn(value: &str) -> String {
+    value
+        .chars()
+        .filter(|c| !ISBN_SEPARATORS.contains(c) && !c.is_whitespace())
         .collect()
 }
 
@@ -582,32 +610,41 @@ fn subjects(marc: &MarcRecord) -> Vec<String> {
     subjects
 }
 
-/// `856$u`, with the link text and what it points at.
+/// `856$u`, with the link text and what it points at, **deduplicated by target**.
 ///
 /// Three quarters of these links are covers and tables of contents. An agent that takes
 /// the first link for the full text would be wrong most of the time, which is why the
 /// kind is carried alongside. It comes from the link **text** (`$3` → `$y` → `$z`), never
 /// from `ind2`: `ind2=0` means "the resource itself" in theory and marks cover images in
 /// practice.
+///
+/// One target is emitted once. Union records repeat the same link once per contributing
+/// source — `almafu_BV008885798` carries its table of contents three times, which `show`
+/// printed as three identical lines — and the repeats are not always identical: in
+/// `b3kat_BV035602531` the same Springer link occurs labelled `Volltext` and again with no
+/// label at all. **The first occurrence wins**, label and kind together, because dropping
+/// the labelled one would demote a full text to [`UrlKind::Other`] — the one thing this
+/// field exists to state correctly.
 fn urls(marc: &MarcRecord) -> Vec<ResourceUrl> {
-    marc.fields("856")
-        .flat_map(|field| {
-            let label = ['3', 'y', 'z']
-                .into_iter()
-                .find_map(|code| field.sub(code))
-                .and_then(|value| non_empty(value.to_owned()));
-            let kind = url_kind(label.as_deref());
-            field
-                .subs('u')
-                .filter(|url| !url.is_empty())
-                .map(|url| ResourceUrl {
-                    url: url.to_owned(),
-                    kind,
-                    label: label.clone(),
-                })
-                .collect::<Vec<_>>()
-        })
-        .collect()
+    let mut urls: Vec<ResourceUrl> = Vec::new();
+    for field in marc.fields("856") {
+        let label = ['3', 'y', 'z']
+            .into_iter()
+            .find_map(|code| field.sub(code))
+            .and_then(|value| non_empty(value.to_owned()));
+        let kind = url_kind(label.as_deref());
+        for url in field.subs('u').filter(|url| !url.is_empty()) {
+            if urls.iter().any(|seen| seen.url == url) {
+                continue;
+            }
+            urls.push(ResourceUrl {
+                url: url.to_owned(),
+                kind,
+                label: label.clone(),
+            });
+        }
+    }
+    urls
 }
 
 /// Classify a link by its label. An unlabelled or unrecognised link is
@@ -722,7 +759,7 @@ mod tests {
         assert_eq!(record.languages, ["ger"]);
         assert_eq!(record.format, Format::Book);
         assert!(!record.online);
-        assert_eq!(record.isbns, ["3-89473-790-5"]);
+        assert_eq!(record.isbns, ["3894737905"], "020$a is `3-89473-790-5`");
         assert_eq!(record.authors.len(), 1);
         assert_eq!(record.authors[0].name, "Kleinschmidt, Klaus");
         assert_eq!(record.authors[0].kind, AuthorKind::Person);
@@ -854,6 +891,111 @@ mod tests {
     fn only_020_subfield_a_becomes_an_isbn() {
         let record = convert("arabic.xml", "gbv_1603494723");
         assert_eq!(record.isbns, ["3700101198"]);
+    }
+
+    /// `plan/cli.md` § JSON promises bare digits, so the hyphens the record writes come
+    /// out — otherwise the same edition compares unequal to itself between two records.
+    #[test]
+    fn an_isbn_is_emitted_without_its_hyphens() {
+        assert_eq!(normalized_isbn("3-8044-1755-8"), "3804417558");
+        assert_eq!(normalized_isbn("978-3-596-29433-1"), "9783596294331");
+        assert_eq!(normalized_isbn("3 8044 1755 8"), "3804417558");
+        assert_eq!(
+            normalized_isbn("978\u{2013}3\u{2011}596\u{2010}29433\u{2013}1"),
+            "9783596294331",
+            "a typeset dash is a hyphen too"
+        );
+        assert_eq!(
+            normalized_isbn("3804417558"),
+            "3804417558",
+            "an already bare number is untouched"
+        );
+        assert_eq!(
+            normalized_isbn("0-19-853737-X"),
+            "019853737X",
+            "the ISBN-10 check symbol is a character, not a digit, and stays"
+        );
+    }
+
+    /// No fixture record states an ISBN that is not bare digits after normalisation, and
+    /// none states one twice — the check that the hyphens actually went.
+    #[test]
+    fn every_fixture_isbn_is_normalised() {
+        for (file, marc) in fixture::all_records() {
+            let Ok(record) = from_marc(&marc) else {
+                continue;
+            };
+            for isbn in &record.isbns {
+                assert!(
+                    !isbn.contains(ISBN_SEPARATORS) && !isbn.contains(char::is_whitespace),
+                    "{isbn:?} in {file} still carries a separator"
+                );
+            }
+        }
+    }
+
+    /// Three `856` fields, one target, one line. `show` printed this record's table of
+    /// contents three times over.
+    #[test]
+    fn a_repeated_link_is_emitted_once() {
+        let record = convert("record.xml", "almafu_BV008885798");
+        assert_eq!(record.urls.len(), 1, "{:?}", record.urls);
+        assert_eq!(record.urls[0].kind, UrlKind::Toc);
+        assert_eq!(record.urls[0].label.as_deref(), Some("Inhaltsverzeichnis"));
+    }
+
+    /// The repeats are not identical here: each link occurs once labelled `Volltext` and
+    /// once with no label. The labelled one comes first and is the one that is kept —
+    /// taking the later one would turn a full text into [`UrlKind::Other`].
+    #[test]
+    fn the_first_label_wins_when_the_same_link_repeats() {
+        let record = convert("ebook.xml", "b3kat_BV035602531");
+        let targets: Vec<&str> = record.urls.iter().map(|url| url.url.as_str()).collect();
+        assert_eq!(
+            targets,
+            [
+                "http://link.springer.com/",
+                "https://dbis.ur.de/resources/6943"
+            ]
+        );
+        assert!(
+            record.urls.iter().all(
+                |url| url.kind == UrlKind::Fulltext && url.label.as_deref() == Some("Volltext")
+            ),
+            "{:?}",
+            record.urls
+        );
+    }
+
+    /// Two different targets in one field are two links; only the *same* target folds.
+    /// The field's link text describes every target it names, so both carry it.
+    #[test]
+    fn two_targets_in_one_field_stay_two_links() {
+        let xml = r#"<record xmlns="http://www.loc.gov/MARC21/slim">
+              <controlfield tag="001">kobvindex_TEST1</controlfield>
+              <datafield tag="856" ind1="4" ind2=" ">
+                <subfield code="u">https://example.org/toc</subfield>
+                <subfield code="u">https://example.org/cover</subfield>
+                <subfield code="3">Inhaltsverzeichnis</subfield>
+              </datafield>
+              <datafield tag="856" ind1="4" ind2=" ">
+                <subfield code="u">https://example.org/toc</subfield>
+              </datafield>
+            </record>"#;
+        let document = roxmltree::Document::parse(xml).expect("the snippet is XML");
+        let marc = MarcRecord::from_node(document.root_element());
+        let record = from_marc(&marc).expect("the snippet has an id");
+        assert_eq!(record.urls.len(), 2, "{:?}", record.urls);
+        assert_eq!(record.urls[0].url, "https://example.org/toc");
+        assert_eq!(record.urls[1].url, "https://example.org/cover");
+        assert!(
+            record
+                .urls
+                .iter()
+                .all(|url| url.kind == UrlKind::Toc && url.label.is_some()),
+            "the field's text describes both of its targets: {:?}",
+            record.urls
+        );
     }
 
     /// The union deduplicates: this record names `Kairo` and `Geschichte 1599` in two

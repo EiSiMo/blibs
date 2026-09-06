@@ -23,7 +23,8 @@
 //! **The item table has three states, and two of them are empty for different reasons.**
 //! Present with rows is the normal case; present without a header row is a multi-part
 //! work whose volumes are records of their own (`detail_multivolume`); absent altogether
-//! is an Onleihe title whose loan state sits in the link text (`detail_online`). Each
+//! is an electronic title whose loan state sits in the link text (`detail_online`,
+//! `detail_overdrive`). Each
 //! empty item list carries a note saying which — an empty list on its own is
 //! indistinguishable from "held nowhere", which is the worst answer this tool can give.
 //!
@@ -66,7 +67,7 @@ pub struct DetailPage {
 ///
 /// Fails only when the page is not a detail page at all — no `table.gi`, no `Titel` row,
 /// an item table whose header this parser does not recognise, or a missing item table on
-/// a record that is not an Onleihe title. Everything softer is a note.
+/// a record that has no lending link either. Everything softer is a note.
 pub fn parse_detail(html: &str, id: &RecordId) -> Result<DetailPage, Error> {
     let document = Html::parse_document(html);
     let bibliographic = Bibliographic::read(&document)?;
@@ -74,6 +75,26 @@ pub fn parse_detail(html: &str, id: &RecordId) -> Result<DetailPage, Error> {
     let items = items_of(&document, &bibliographic, &mut notes)?;
     let record = record_of(id, &bibliographic, items);
     Ok(DetailPage { record, notes })
+}
+
+/// Whether this page is voebb.de's answer to a record number it does not hold.
+///
+/// Measured 2026-09-06 with `sp=SAK00000000`: the site answers an unknown number with
+/// **its search entry page** — status 200, a valid `Form0`, and none of the containers a
+/// record page has. Read as a detail page that would be a missing selector; read as a
+/// result list it would be "no hits". It is neither, so it is recognised here and turned
+/// into `Ok(None)` by the client.
+///
+/// Two positive signals are required, not one. The absence of `table.gi` alone would make
+/// every future redesign of the record page look like a record that does not exist —
+/// which is exactly the silent wrong answer this crate exists to avoid. So the entry
+/// page's own container (`div#R04`) has to be there as well, and the record page's
+/// (`div#R03`) has to be absent.
+pub fn is_missing_record(html: &str) -> bool {
+    let document = Html::parse_document(html);
+    document.select(&selectors().bib_table).next().is_none()
+        && document.select(&selectors().record_body).next().is_none()
+        && document.select(&selectors().entry_body).next().is_some()
 }
 
 /// Assemble the record from the bibliographic tables and the copies.
@@ -84,7 +105,7 @@ fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> 
     let (title, subtitle) = title_of(bibliographic.first("Titel").unwrap_or_default());
     let publication = bibliographic.first("Veröffentlichung").unwrap_or_default();
     let (place, publisher) = imprint_of(publication);
-    let online = bibliographic.first("Link zur Onleihe").is_some();
+    let online = lending_link(bibliographic).is_some();
     let (format, online) = format_of(bibliographic.first("Medienart").unwrap_or_default(), online);
 
     Record {
@@ -295,9 +316,9 @@ fn languages_of(values: &[String]) -> Vec<String> {
 ///
 /// `Mehrteiliges Werk` is deliberately in the last row: it states a bibliographic
 /// *level*, not a material, and the volumes that carry the material are records of their
-/// own. `online` also comes in from a `Link zur Onleihe` row, which is why it is an
+/// own. `online` also comes in from a `Link zu …` row, which is why it is an
 /// argument here and not derived from the table alone.
-fn format_of(medienart: &str, online: bool) -> (Format, bool) {
+pub(in crate::engine::voebb) fn format_of(medienart: &str, online: bool) -> (Format, bool) {
     let value = fold(medienart.trim_matches(['[', ']']).trim());
     let format = match value.as_str() {
         "band" | "buch" => Format::Book,
@@ -358,6 +379,25 @@ fn subjects_of(values: &[String]) -> Vec<String> {
     subjects
 }
 
+/// The label prefix of every e-lending link voebb.de states.
+///
+/// Measured: `Link zur Onleihe` and `Link zu Overdrive`. The vendor behind it is not the
+/// point and is never matched on — a third platform tomorrow would be read the same way.
+const LENDING_LINK: &str = "Link zu";
+
+/// The row that points at the lending platform, when the record has one.
+///
+/// This is what tells an electronic title without copies apart from a record page whose
+/// item table stopped being found. The row's own text carries the loan state in prose
+/// (`(Das Medium ist ausgeliehen / Vormerkung möglich)`), which is the only statement
+/// about availability such a title has.
+fn lending_link(bibliographic: &Bibliographic) -> Option<&BibRow> {
+    bibliographic
+        .rows
+        .iter()
+        .find(|row| row.label.starts_with(LENDING_LINK))
+}
+
 /// The links of the bibliographic tables, classified by the label of their row.
 ///
 /// Only labelled rows are read. The unlabelled first row of every page is the record's
@@ -378,11 +418,11 @@ fn urls_of(bibliographic: &Bibliographic) -> Vec<ResourceUrl> {
     urls
 }
 
-/// What a link under this label points at. The Onleihe link is the resource itself; the
+/// What a link under this label points at. A lending link is the resource itself; the
 /// two `Inhalt…` rows are the catalogue's own scans; anything else is unclassified rather
 /// than guessed.
 fn url_kind(label: &str) -> UrlKind {
-    if label.contains("Onleihe") {
+    if label.starts_with(LENDING_LINK) {
         UrlKind::Fulltext
     } else if label.starts_with("Inhaltsverzeichnis") {
         UrlKind::Toc
@@ -399,9 +439,9 @@ fn url_kind(label: &str) -> UrlKind {
 /// | --- | --- | --- |
 /// | table with rows | a normal record | the copies |
 /// | table without rows (and without `<thead>`) | a multi-part work; the volumes are records of their own | empty, [`note_kinds::VOEBB_MULTIVOLUME`] |
-/// | no table, but a `Link zur Onleihe` | an Onleihe title; the loan state is in the link text | empty, [`note_kinds::VOEBB_ONLINE_ONLY`] |
+/// | no table, but a `Link zu …` row | an electronic title; the loan state is in the link text | empty, [`note_kinds::VOEBB_ONLINE_ONLY`] |
 ///
-/// A missing table on a record that is *not* an Onleihe title is a named error: at that
+/// A missing table on a record that has no lending link is a named error: at that
 /// point the page has stopped being the page this parser knows, and an empty copy list
 /// would read as "held nowhere".
 fn items_of(
@@ -411,14 +451,16 @@ fn items_of(
 ) -> Result<Vec<Item>, Error> {
     let selectors = selectors();
     let Some(table) = document.select(&selectors.item_table).next() else {
-        let Some(link) = bibliographic.first("Link zur Onleihe") else {
+        let Some(row) = lending_link(bibliographic) else {
             return Err(missing_selector("table#resptable-1"));
         };
+        let state = row.values.first().map_or("", String::as_str);
         notes.push(Note::new(
             note_kinds::VOEBB_ONLINE_ONLY,
             format!(
-                "this is an Onleihe title: it has no copies on a shelf, and voebb.de \
-                 states its loan status only as {link:?}"
+                "this is an electronic title ({}): it has no copies on a shelf, and \
+                 voebb.de states its loan status only as {state:?}",
+                row.label
             ),
         ));
         return Ok(Vec::new());
@@ -814,6 +856,10 @@ struct Selectors {
     header_cell: Selector,
     item_row: Selector,
     status_span: Selector,
+    /// The container every record page has and the entry page has not.
+    record_body: Selector,
+    /// The container the entry page has and no record page has.
+    entry_body: Selector,
 }
 
 /// The selectors, compiled on first use.
@@ -829,6 +875,8 @@ fn selectors() -> &'static Selectors {
         header_cell: compile("thead th"),
         item_row: compile("tbody tr"),
         status_span: compile("span[class]"),
+        record_body: compile("div#R03"),
+        entry_body: compile("div#R04"),
     })
 }
 
@@ -874,6 +922,8 @@ mod tests {
     const ONLINE: &str = include_str!("../../../../tests/fixtures/voebb/detail_online.html");
     const MULTIVOLUME: &str =
         include_str!("../../../../tests/fixtures/voebb/detail_multivolume.html");
+    const UNKNOWN: &str = include_str!("../../../../tests/fixtures/voebb/detail_unknown.html");
+    const OVERDRIVE: &str = include_str!("../../../../tests/fixtures/voebb/detail_overdrive.html");
 
     /// Parse a fixture under the id it was fetched with.
     fn parsed(html: &str, local: &str) -> DetailPage {
@@ -896,6 +946,33 @@ mod tests {
 
     fn statuses(page: &DetailPage) -> Vec<Status> {
         items(page).iter().map(|item| item.status).collect()
+    }
+
+    /// A record number the catalogue does not hold comes back as the search entry page.
+    /// Recognising it is what keeps `show` at exit 1 instead of a selector error.
+    #[test]
+    fn an_unknown_record_number_answers_with_the_entry_page() {
+        assert!(is_missing_record(UNKNOWN));
+    }
+
+    /// Every real record page is a record page, and none of them is mistaken for a
+    /// number the catalogue does not hold — including the two whose item table is empty.
+    #[test]
+    fn a_real_record_page_is_never_read_as_a_missing_record() {
+        for html in [AVAILABLE, ON_LOAN, REFERENCE, ONLINE, MULTIVOLUME] {
+            assert!(!is_missing_record(html));
+        }
+    }
+
+    /// A record page whose bibliographic tables vanished is a **changed site**, not a
+    /// missing record: it keeps the record page's own container, so it fails loudly.
+    #[test]
+    fn a_record_page_without_tables_is_an_error_not_a_missing_record() {
+        let broken = AVAILABLE.replace("class=\"gi\"", "class=\"gone\"");
+        assert!(!is_missing_record(&broken));
+        let error = parse_detail(&broken, &RecordId::voebb("SAK13776205"))
+            .expect_err("a record page without any table.gi must fail");
+        assert!(error.to_string().contains("table.gi"), "{error}");
     }
 
     /// `detail_available` (`SAK13776205`): the normal case, five columns, one copy.
@@ -1200,13 +1277,38 @@ mod tests {
         assert!(error.to_string().contains("Verfügbarkeit"), "{error}");
     }
 
-    /// A missing item table on a record that is not an Onleihe title is a named error:
+    /// The second lending platform, found live on 2026-09-06: `Link zu Overdrive` where
+    /// the fixture that shaped this parser had `Link zur Onleihe`. The vendor's name is
+    /// not what makes a title electronic — the lending link is — so this record reads the
+    /// same way, with a note that names the label it went by.
+    #[test]
+    fn a_lending_link_from_another_platform_is_read_the_same_way() {
+        let page = parsed(OVERDRIVE, "SAK34672596");
+        assert!(items(&page).is_empty());
+        assert!(page.record.online, "an e-lending title is online");
+        let note = page
+            .notes
+            .iter()
+            .find(|note| note.kind == note_kinds::VOEBB_ONLINE_ONLY)
+            .expect("an empty copy list is never silent");
+        assert!(note.message.contains("Overdrive"), "{note:?}");
+        assert!(
+            page.record
+                .urls
+                .iter()
+                .any(|url| url.kind == UrlKind::Fulltext),
+            "the lending link is the resource itself: {:?}",
+            page.record.urls
+        );
+    }
+
+    /// A missing item table on a record with no lending link at all is a named error:
     /// an empty copy list would read as "held nowhere".
     #[test]
-    fn a_missing_item_table_without_an_onleihe_link_is_an_error() {
+    fn a_missing_item_table_without_a_lending_link_is_an_error() {
         let broken = AVAILABLE.replace("id=\"resptable-1\"", "id=\"resptable-2\"");
         let error = parse_detail(&broken, &RecordId::voebb("SAK13776205"))
-            .expect_err("a record with neither copies nor an Onleihe link is broken");
+            .expect_err("a record with neither copies nor a lending link is broken");
         assert!(error.to_string().contains("resptable-1"), "{error}");
     }
 

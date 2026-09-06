@@ -9,8 +9,8 @@
 mod common;
 
 use blibs::cli::{Cli, run};
-use blibs::error::{Error, ExitCode, Outcome};
-use blibs::http::Request;
+use blibs::error::{Error, ExitCode, NetworkError, Outcome};
+use blibs::http::{Fetch, Request, Response};
 use blibs::render::Style;
 use clap::Parser;
 
@@ -50,7 +50,7 @@ impl Ran {
     }
 }
 
-fn invoke(args: &[&str], fetch: &FixtureFetch) -> Ran {
+fn invoke(args: &[&str], fetch: &dyn Fetch) -> Ran {
     let mut out = Vec::new();
     let mut err = Vec::new();
     let outcome = run(&cli(args), fetch, &mut out, &mut err, Style::plain(WIDE));
@@ -348,14 +348,19 @@ fn show_of_an_unknown_id_is_exit_one() {
     assert_eq!(ran.json(), serde_json::Value::Null);
 }
 
-/// Until the voebb engine exists, a branch in `--at` is refused **before** a request goes
-/// out. Answering it from the KOBV side would be a statement about the whole network,
-/// which is the one wrong answer this split exists to prevent.
+/// A branch in `--at` goes to the other engine, and a flag that engine has no index for
+/// is refused **before** a request goes out — from either catalogue. Answering it from
+/// the KOBV side would be a statement about the whole network, which is the one wrong
+/// answer this split exists to prevent. The two engines' searches live in
+/// `tests/search_voebb.rs`.
 #[test]
-fn a_voebb_branch_is_refused_without_sending_anything() {
+fn a_flag_the_other_engine_cannot_honour_is_refused_without_sending_anything() {
     let fetch = search_fetch();
     let recorder = fetch.recorder();
-    let ran = invoke(&["search", "Vorleser", "--at", "AGB"], &fetch);
+    let ran = invoke(
+        &["search", "Vorleser", "--at", "HU,AGB", "--year", "1997"],
+        &fetch,
+    );
 
     assert_eq!(ran.exit(), ExitCode::Usage);
     assert_eq!(
@@ -365,21 +370,99 @@ fn a_voebb_branch_is_refused_without_sending_anything() {
         recorder.log()
     );
     let Err(error) = ran.outcome else {
-        panic!("a missing engine is an error, not a result");
+        panic!("an unsupported flag is an error, not a result");
     };
     assert_eq!(error.kind(), "unsupported_by_engine");
     assert!(error.to_string().contains("voebb"), "{error}");
 }
 
-/// One failing engine fails the whole invocation. A half-answer that looks whole is worse
-/// than no answer, so the KOBV half is not rendered either.
-#[test]
-fn one_failing_engine_fails_the_invocation() {
-    let fetch = search_fetch();
-    let ran = invoke(&["search", "Vorleser", "--at", "HU,AGB"], &fetch);
+/// A [`Fetch`] whose requests never arrive.
+///
+/// Backoff and retry live *inside* the real `Http`, below this seam, so an error handed
+/// back here is the final one — which is exactly the situation the exit code describes.
+struct FailingFetch {
+    error: fn() -> Error,
+}
 
-    assert_eq!(ran.exit(), ExitCode::Usage);
-    assert!(ran.out.is_empty(), "nothing is rendered: {:?}", ran.out);
+impl Fetch for FailingFetch {
+    fn fetch(&self, _request: &Request) -> Result<Response, Error> {
+        Err((self.error)())
+    }
+}
+
+/// DNS, TLS, connection refused — the request never left.
+fn transport_failure() -> Error {
+    Error::Network(NetworkError::Transport {
+        host: "sru.kobv.de".to_owned(),
+        source: Box::new(std::io::Error::new(
+            std::io::ErrorKind::ConnectionRefused,
+            "connection refused",
+        )),
+    })
+}
+
+/// The request left and nothing came back within the timeout.
+fn timeout() -> Error {
+    Error::Network(NetworkError::Timeout {
+        host: "sru.kobv.de".to_owned(),
+        seconds: 10,
+    })
+}
+
+/// A request that never reaches the service is exit 3, and the failure keeps its own
+/// `kind` all the way out of `run` — `network` and `timeout` are different situations and
+/// an agent retries them differently.
+#[test]
+fn an_unreachable_service_is_exit_three() {
+    for (make, kind) in [
+        (transport_failure as fn() -> Error, "network"),
+        (timeout as fn() -> Error, "timeout"),
+    ] {
+        let fetch = FailingFetch { error: make };
+        let ran = invoke(&["search", "Vorleser"], &fetch);
+
+        assert_eq!(ran.exit(), ExitCode::Network, "{kind}");
+        assert!(
+            ran.out.is_empty(),
+            "a failed search renders nothing: {:?}",
+            ran.out
+        );
+        let Err(error) = ran.outcome else {
+            panic!("an unreachable service is an error, not an empty result");
+        };
+        assert_eq!(error.kind(), kind);
+        assert_eq!(error.exit().code(), 3);
+        assert!(
+            error.hint().is_some_and(|hint| hint.contains("try again")),
+            "a network failure is worth retrying and has to say so: {:?}",
+            error.hint()
+        );
+    }
+}
+
+/// The same failure as the JSON error object: `code` is the process exit code, so an
+/// agent that reads the document never has to consult `$?` as well.
+#[test]
+fn the_json_error_object_of_a_network_failure_carries_code_three() {
+    let error = transport_failure();
+    let mut out = Vec::new();
+    blibs::render::json::error(&error, &mut out).expect("a vector accepts bytes");
+    let document: serde_json::Value =
+        serde_json::from_slice(&out).expect("the error envelope is one JSON document");
+    let body = &document["error"];
+
+    assert_eq!(body["code"], 3);
+    assert_eq!(body["kind"], "network");
+    assert!(
+        body["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("sru.kobv.de")),
+        "the message names the host that could not be reached: {body}"
+    );
+    assert!(
+        body["hint"].as_str().is_some_and(|hint| !hint.is_empty()),
+        "exit 3 always has a next step: {body}"
+    );
 }
 
 /// A rejected query keeps its own exit code all the way out of `run`.

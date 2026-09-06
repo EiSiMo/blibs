@@ -140,13 +140,27 @@ fn a_limit_above_fifty_is_refused_rather_than_clamped() {
         .stderr(contains("--limit must be between 1 and 50"));
 }
 
-/// A VÖBB branch routes to the second engine, which is not built yet. Until it is, that
-/// is exit 2 with a named reason — never a KOBV search that silently answers about the
-/// whole network.
+/// A VÖBB branch routes to the second engine, and voebb.de's advanced search has no
+/// index for a publisher. A flag the answering catalogue cannot honour is refused before
+/// anything is sent — a search that silently dropped `--publisher` would answer a
+/// question nobody asked.
 #[test]
-fn a_voebb_branch_is_refused_while_the_engine_is_missing() {
+fn a_flag_the_voebb_engine_has_no_index_for_is_refused() {
     blibs()
-        .args(["search", "Vorleser", "--at", "AGB"])
+        .args([
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB",
+            "--publisher",
+            "Diogenes",
+        ])
+        .assert()
+        .code(2)
+        .stderr(contains("voebb"));
+
+    blibs()
+        .args(["search", "Vorleser", "--at", "AGB", "--year", "1997"])
         .assert()
         .code(2)
         .stderr(contains("voebb"));

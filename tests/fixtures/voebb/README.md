@@ -48,6 +48,24 @@ Jede Antwort trägt eine eigene neue Sitzungskennung und `requestCount=1`.
 | `detail_online.html` | `SAK16112988` | E-Ressource/Onleihe: **`table#resptable-1` fehlt vollständig**; statt dessen eine `table.gi`-Zeile `Link zur Onleihe` mit Onleihe-URL und Leihstand im Linktext (`(Das Medium ist ausgeliehen / Vormerkung möglich)`) |
 | `detail_multivolume.html` | `SAK13927817` | Mehrbändiges Werk: `Medienart` = `[Mehrteiliges Werk]`, `table#resptable-1` ist **vorhanden, aber leer** — `<tbody>` ohne Zeilen *und ohne `<thead>`*. Der dritte Fall neben „gefüllt“ und „fehlt“; die Bände sind eigene Sätze |
 
+### Nachtrag 2026-09-06 (Phase 5.3/5.4, beim ersten Live-Lauf der Engine gefunden)
+
+Zwei Fälle, die die erste Messrunde nicht getroffen hat. Beide sind mit denselben Rezepten
+gezogen (`GET …/prod00?sp=SPROD00&sp=<SAK…>`, `-L`, Cookie-Jar, ehrlicher UA) und mit
+`slim.py` eingedampft.
+
+| Datei | Satz | Was sie belegt |
+| --- | --- | --- |
+| `detail_overdrive.html` | `SAK34672596` | **Die Onleihe ist nicht die einzige Ausleihplattform.** Dieselbe Bauart wie `detail_online`, aber die Zeile heißt `Link zu Overdrive` statt `Link zur Onleihe`, und daneben steht eine zusätzliche `URL`-Zeile. Ein Parser, der auf „Onleihe“ prüft, hält den Satz für eine kaputte Seite und bricht mit `resptable-1 matched nothing` ab — genau so ist der erste Live-Lauf gescheitert. Erkannt wird deshalb das Präfix `Link zu`, nie der Name der Plattform |
+| `detail_unknown.html` | `SAK00000000` | **Eine unbekannte Satznummer beantwortet voebb.de mit der Suchstartseite**: HTTP 200, gültiges `Form0`, **kein `table.gi`**, **kein `div#R03`** (das hat jede echte Satzseite), dafür `div#R04`/`div#R05` wie `start.html`. Das ist der einzige Weg, „diesen Satz gibt es nicht“ (Exit 1) von „die Seite hat sich geändert“ (Exit 6) zu unterscheiden — deshalb werden **zwei** positive Merkmale geprüft und nicht nur das fehlende `table.gi` |
+
+Dazu eine Falle ohne eigene Fixture, belegt an `advanced_form.html`: die Seite trägt
+**zwei** Schaltflächen mit der Beschriftung *Suchen* — die des Kopfzeilen-Suchschlitzes
+(`$Button`, `$$GFBO_1`, zuerst im Dokument) und die des Formulars selbst (`$Button$6`,
+`$$GFBO_4`). Wer die erste drückt, schickt eine leere Freitextsuche ab und wirft die
+ausgefüllten Zeilen weg. Die Engine nimmt darum bei der erweiterten Suche die **letzte**
+Schaltfläche dieser Beschriftung.
+
 ## Was gekürzt wurde
 
 Zusammen waren es 1,1 MB, davon der Löwenanteil Rahmenwerk. `slim.py` entfernt daraus
