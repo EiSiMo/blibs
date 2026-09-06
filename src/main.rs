@@ -46,10 +46,10 @@ fn dispatch(json: bool) -> ExitCode {
 /// Write an error to stderr in the requested shape and return its exit code.
 fn report(error: &Error, json: bool) -> ExitCode {
     let mut stderr = std::io::stderr().lock();
-    let _ = if json {
-        render::json::error(&mut stderr, error)
+    if json {
+        let _ = render::json::error(error, &mut stderr);
     } else {
-        render::human::error(&mut stderr, error, render::Style::detect())
-    };
+        let _ = render::human::error(error, &mut stderr, render::Style::detect());
+    }
     error.exit()
 }
