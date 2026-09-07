@@ -61,6 +61,23 @@ fn base_letter(ch: char) -> Option<&'static str> {
     })
 }
 
+/// The largest edit distance still worth offering as a suggestion, scaled to how much the
+/// user actually typed.
+///
+/// A fixed threshold is too generous for short input: at 4 characters, a distance of 3
+/// matches almost every two-to-four-letter acronym in the list, so a suggestion there
+/// would be noise, not a near miss. Short input relies on the prefix rule in
+/// [`crate::libraries::resolve::suggest`] instead, and edits are allowed only once there
+/// is enough typed for a distance to mean something.
+pub fn max_distance(len: usize) -> usize {
+    match len {
+        0..=3 => 0,
+        4..=5 => 1,
+        6..=8 => 2,
+        _ => 3,
+    }
+}
+
 /// Levenshtein distance, bounded — everything above `max` is reported as `max + 1` so the
 /// full matrix never has to be computed for obviously unrelated strings.
 ///
@@ -99,7 +116,7 @@ pub fn levenshtein(a: &str, b: &str, max: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{fold, levenshtein};
+    use super::{fold, levenshtein, max_distance};
 
     #[test]
     fn folds_german_diacritics() {
@@ -132,5 +149,19 @@ mod tests {
     fn distance_saturates_above_the_bound() {
         assert_eq!(levenshtein("stabi", "kunstbibliothek", 3), 4);
         assert_eq!(levenshtein("a", "bbbbbbbb", 3), 4);
+    }
+
+    /// The table `suggest` relies on: generous enough at real length, strict enough that
+    /// a four-letter typo cannot match every acronym in the list.
+    #[test]
+    fn max_distance_scales_with_input_length() {
+        assert_eq!(max_distance(0), 0);
+        assert_eq!(max_distance(3), 0);
+        assert_eq!(max_distance(4), 1);
+        assert_eq!(max_distance(5), 1);
+        assert_eq!(max_distance(6), 2);
+        assert_eq!(max_distance(8), 2);
+        assert_eq!(max_distance(9), 3);
+        assert_eq!(max_distance(20), 3);
     }
 }

@@ -194,7 +194,10 @@ fn resolves_the_voebb_network_itself_to_kobv() {
     }
 }
 
-/// A typo is a usage error that points somewhere, never a silent non-match.
+/// A typo is a usage error that points somewhere, never a silent non-match. `STABI2`
+/// extends `STABI` by one character, so the prefix rule catches it regardless of the
+/// distance table — and `SBB`, the Stabi's other alias, is far enough in edit distance
+/// that it must not show up as noise.
 #[test]
 fn an_unknown_entry_suggests_the_near_misses() {
     let error = resolve("STABI2").expect_err("STABI2 is not a library");
@@ -202,24 +205,84 @@ fn an_unknown_entry_suggests_the_near_misses() {
     match error {
         UsageError::UnknownLibrary { input, suggestions } => {
             assert_eq!(input, "STABI2");
-            assert!(
-                suggestions.contains(&"STABI".to_string()),
-                "expected STABI among {suggestions:?}"
-            );
-            assert!(suggestions.len() <= 3, "at most three: {suggestions:?}");
+            assert_eq!(suggestions, vec!["STABI".to_string()], "{suggestions:?}");
         }
         other => panic!("expected UnknownLibrary, got {other:?}"),
     }
 }
 
-/// Nothing resembling a library gets no invented suggestions.
+/// A truncated alias is still a prefix hit even though it is only four characters long,
+/// where the distance table alone would allow no edits at all.
 #[test]
-fn a_hopeless_entry_suggests_nothing() {
-    match resolve("qqqqqqqqzzz").expect_err("not a library") {
+fn a_short_prefix_still_suggests_its_alias() {
+    match resolve("STAB").expect_err("STAB is not a library") {
         UsageError::UnknownLibrary { suggestions, .. } => {
-            assert!(suggestions.is_empty(), "{suggestions:?}");
+            assert_eq!(suggestions, vec!["STABI".to_string()], "{suggestions:?}");
         }
         other => panic!("expected UnknownLibrary, got {other:?}"),
+    }
+}
+
+/// `HUB` is not an alias anywhere in the list, but `HU` is a prefix of it, so it must
+/// still be offered even though the input is only three characters long.
+#[test]
+fn a_prefix_of_a_two_letter_alias_is_still_offered() {
+    match resolve("HUB").expect_err("HUB is not a library") {
+        UsageError::UnknownLibrary { suggestions, .. } => {
+            assert_eq!(suggestions, vec!["HU".to_string()], "{suggestions:?}");
+        }
+        other => panic!("expected UnknownLibrary, got {other:?}"),
+    }
+}
+
+/// `AGBB` extends the VÖBB branch alias `AGB` by one letter — branch aliases are
+/// suggestion candidates on the same footing as institution aliases.
+#[test]
+fn a_branch_alias_is_offered_like_any_other() {
+    match resolve("AGBB").expect_err("AGBB is not a library") {
+        UsageError::UnknownLibrary { suggestions, .. } => {
+            assert_eq!(suggestions, vec!["AGB".to_string()], "{suggestions:?}");
+        }
+        other => panic!("expected UnknownLibrary, got {other:?}"),
+    }
+}
+
+/// Long enough input relies on the distance rule rather than the prefix rule:
+/// `CHARITEE` is one letter longer than `CHARITE`, at a length where up to two edits are
+/// allowed.
+#[test]
+fn a_longer_typo_is_still_found_by_distance() {
+    match resolve("CHARITEE").expect_err("CHARITEE is not a library") {
+        UsageError::UnknownLibrary { suggestions, .. } => {
+            assert_eq!(suggestions, vec!["CHARITE".to_string()], "{suggestions:?}");
+        }
+        other => panic!("expected UnknownLibrary, got {other:?}"),
+    }
+}
+
+/// Same again at nine characters, where up to three edits are allowed — but the prefix
+/// rule already covers a doubled trailing letter.
+#[test]
+fn a_doubled_letter_is_still_found() {
+    match resolve("VIADRINAA").expect_err("VIADRINAA is not a library") {
+        UsageError::UnknownLibrary { suggestions, .. } => {
+            assert_eq!(suggestions, vec!["VIADRINA".to_string()], "{suggestions:?}");
+        }
+        other => panic!("expected UnknownLibrary, got {other:?}"),
+    }
+}
+
+/// Nothing resembling a library gets no invented suggestions — and in particular `NOPE`
+/// must not drag in `TOPO`, `FHP` or `HNEE` the way a fixed distance-3 threshold used to.
+#[test]
+fn a_hopeless_entry_suggests_nothing() {
+    for input in ["qqqqqqqqzzz", "NOPE"] {
+        match resolve(input).expect_err("not a library") {
+            UsageError::UnknownLibrary { suggestions, .. } => {
+                assert!(suggestions.is_empty(), "{input:?}: {suggestions:?}");
+            }
+            other => panic!("expected UnknownLibrary, got {other:?}"),
+        }
     }
 }
 

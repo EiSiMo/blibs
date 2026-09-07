@@ -1,7 +1,7 @@
 //! Turning what the user typed, or what a record contained, into a library.
 
 use crate::error::UsageError;
-use crate::libraries::text::{fold, levenshtein};
+use crate::libraries::text::{fold, levenshtein, max_distance};
 use crate::libraries::{Branch, LatLon, Library, all};
 use crate::model::{BranchRef, Engine, Holding, Isil, Location};
 
@@ -19,9 +19,6 @@ pub const VOEBB_NETWORK: &str = "DE-609";
 /// `Berlin VÖBB/ZLB`, which is right for a table column and too long behind a branch.
 const VOEBB_LABEL: &str = "VÖBB";
 
-/// The largest edit distance still worth offering as a suggestion.
-const SUGGEST_MAX_DISTANCE: usize = 3;
-
 /// How many suggestions an unknown entry carries.
 const SUGGEST_LIMIT: usize = 3;
 
@@ -29,8 +26,8 @@ const SUGGEST_LIMIT: usize = 3;
 ///
 /// Aliases are tried first (case-folded), then ISILs (case-insensitively) — and the
 /// result always carries the **canonical** ISIL from the list, never the user's spelling.
-/// An unknown entry is a usage error carrying up to three suggestions within Levenshtein
-/// distance 3, never a silent non-match.
+/// An unknown entry is a usage error carrying up to three near-miss suggestions (see
+/// [`suggest`]), never a silent non-match.
 ///
 /// The engine follows from what was named: a branch under `DE-609` resolves to
 /// [`crate::model::Engine::Voebb`], an institution to
@@ -288,16 +285,33 @@ pub fn alias_for(isil: &Isil) -> Option<&'static str> {
     by_isil(isil).and_then(Library::alias)
 }
 
-/// Up to three aliases close to what the user typed, nearest first and alphabetical
-/// within one distance so the message is stable between runs.
+/// Up to three aliases close to what the user typed: prefix matches first, then the
+/// nearest edit distance, alphabetical within a tie so the message is stable between
+/// runs.
 ///
-/// Suggestions only ever *offer*; nothing here picks a library on the user's behalf.
+/// An alias is a candidate when either holds:
+///
+/// 1. **Prefix**: the folded input is a prefix of the folded alias, or the other way
+///    round (`STAB` → `STABI`, `STABI2` → `STABI`) — this is what catches a short,
+///    truncated or extended alias that a fixed edit distance would otherwise miss or
+///    swamp with noise.
+/// 2. **Distance**: the Levenshtein distance between the folded input and the folded
+///    alias is at most [`max_distance`] of the input's length — scaled so a short typo
+///    does not match half the list (`CHARITEE` → `CHARITE`, `VIADRINAA` → `VIADRINA`).
+///
+/// Branch aliases (`AGB`, `BSTB`, `PHILBIB`, …) are candidates on the same footing as
+/// institution aliases — the list has one alias namespace (`plan/libraries.md` §5, rule
+/// 9) and `suggest` does not care which kind it is offering.
+///
+/// Suggestions only ever *offer*; nothing here picks a library on the user's behalf. A
+/// name search belongs to `libraries --find`, not here — the hint text points there.
 pub fn suggest(typed: &str) -> Vec<String> {
     let wanted = fold(typed);
     if wanted.is_empty() {
         return Vec::new();
     }
-    let mut scored: Vec<(usize, &str)> = all()
+    let bound = max_distance(wanted.chars().count());
+    let mut scored: Vec<(bool, usize, &str)> = all()
         .iter()
         .flat_map(|library| {
             library
@@ -306,14 +320,20 @@ pub fn suggest(typed: &str) -> Vec<String> {
                 .chain(library.branches.iter().flat_map(|branch| &branch.aliases))
         })
         .filter_map(|alias| {
-            let distance = levenshtein(&wanted, &fold(alias), SUGGEST_MAX_DISTANCE);
-            (distance <= SUGGEST_MAX_DISTANCE).then_some((distance, alias.as_str()))
+            let folded_alias = fold(alias);
+            let is_prefix = folded_alias.starts_with(&wanted) || wanted.starts_with(&folded_alias);
+            // The distance itself is only ever used to rank, never to disqualify a
+            // prefix hit, so it is computed against a bound generous enough to be exact
+            // for anything this short rather than the (possibly stricter) `bound`.
+            let ceiling = wanted.chars().count().max(folded_alias.chars().count());
+            let distance = levenshtein(&wanted, &folded_alias, ceiling);
+            (is_prefix || distance <= bound).then_some((!is_prefix, distance, alias.as_str()))
         })
         .collect();
     scored.sort_unstable();
     scored.truncate(SUGGEST_LIMIT);
     scored
         .into_iter()
-        .map(|(_, alias)| alias.to_string())
+        .map(|(_, _, alias)| alias.to_string())
         .collect()
 }
