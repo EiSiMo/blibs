@@ -591,6 +591,10 @@ fn point(input: &str) -> Result<LatLon, UsageError> {
 /// branch in the list, including the ones no engine can search on its own. Asking
 /// [`libraries::resolve`] here refused `--near PHILBIB` with "cannot locate" although the
 /// list holds its coordinates.
+///
+/// A `<house>/<branch>` path never falls through to the geocoding answer either, whether
+/// it was ambiguous or simply wrong: nobody writes a slash meaning coordinates, so
+/// "give coordinates or a library shortcode" would answer a question that was not asked.
 fn locate(input: &str) -> Result<LatLon, UsageError> {
     match libraries::look_up(input) {
         Ok(entry) => entry
@@ -598,9 +602,12 @@ fn locate(input: &str) -> Result<LatLon, UsageError> {
             .ok_or_else(|| UsageError::NearNeedsCoordinates {
                 input: input.to_owned(),
             }),
-        Err(UsageError::UnknownLibrary { input, suggestions }) if !suggestions.is_empty() => {
+        Err(UsageError::UnknownLibrary { input, suggestions })
+            if !suggestions.is_empty() || input.contains(libraries::PATH_SEPARATOR) =>
+        {
             Err(UsageError::UnknownLibrary { input, suggestions })
         }
+        Err(ambiguous @ UsageError::AmbiguousBranch { .. }) => Err(ambiguous),
         Err(_) => Err(UsageError::NearNeedsCoordinates {
             input: input.to_owned(),
         }),

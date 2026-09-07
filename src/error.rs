@@ -369,6 +369,21 @@ pub enum UsageError {
         /// The institution to use instead.
         fallback: String,
     },
+    /// A `<house>/<branch>` path fits more than one branch of that house.
+    ///
+    /// Never resolved by picking one: two branches of the same university are two
+    /// different shelves, and guessing which was meant would answer a question nobody
+    /// asked. The candidates carry their KOBV id, which is what makes the message
+    /// actionable — every branch has one and it can be typed straight back.
+    #[error("{input:?} fits {} branches of {house}", candidates.len())]
+    AmbiguousBranch {
+        /// What the user typed, path and all.
+        input: String,
+        /// How the house was named, echoed so the message reads like the input.
+        house: String,
+        /// Every branch the path fits, as `<kobvid> (<short name>)`.
+        candidates: Vec<String>,
+    },
     /// Truncation does not exist in this catalogue (diagnostic 1/48).
     #[error("wildcards are not supported: {term:?}")]
     Wildcard {
@@ -529,6 +544,7 @@ impl UsageError {
         match self {
             UsageError::UnknownLibrary { .. } => "unknown_library",
             UsageError::BranchNotSearchable { .. } => "branch_not_searchable",
+            UsageError::AmbiguousBranch { .. } => "ambiguous_branch",
             UsageError::Wildcard { .. } => "wildcard_unsupported",
             UsageError::Range { .. } => "range_unsupported",
             UsageError::YearFormat { .. } => "invalid_year",
@@ -565,6 +581,9 @@ impl UsageError {
             }
             UsageError::BranchNotSearchable { fallback, .. } => {
                 format!("search the institution instead: --at {fallback}")
+            }
+            UsageError::AmbiguousBranch { candidates, .. } => {
+                format!("name one of them: {}", candidates.join(", "))
             }
             UsageError::Wildcard { .. } => {
                 "this catalogue cannot truncate — search for the whole word, \

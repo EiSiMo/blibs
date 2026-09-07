@@ -98,6 +98,8 @@ Examples:
   blibs libraries                    all of them, with short name, ISIL and city
   blibs libraries STABI              one house in detail
   blibs libraries AGB                one branch in detail, and how to search it
+  blibs libraries HU/Germanistik     a branch of a house that has no shorthand
+  blibs libraries SIG00036           the same, by the KOBV id blibs libraries prints
   blibs libraries --find grimm       search short names, names and cities
   blibs libraries --near HU          nearest first, measured from another library
   blibs libraries --near 52.52,13.39 nearest first, measured from a point\
@@ -260,7 +262,7 @@ pub struct SearchArgs {
     #[arg(long, value_name = "NUMBER")]
     pub isbn: Option<String>,
 
-    /// My libraries: short names or ISILs, comma-separated.
+    /// My libraries: short names, ISILs or branches, comma-separated.
     ///
     /// Short names and ISILs may be mixed and case does not matter; blibs libraries
     /// lists them all. An institution such as HU or STABI is filtered upstream, so its
@@ -268,6 +270,12 @@ pub struct SearchArgs {
     /// such as AGB is answered by voebb.de instead, because a KOBV record never says
     /// which branch holds the copy. The output is grouped into one block per location,
     /// in the order given here.
+    ///
+    /// A branch without a short name is named by its KOBV id (SIG00036), by its own ISIL
+    /// where it has one, or as a path inside its house (HU/Germanistik) — the fragment
+    /// need not be the whole name, and a fragment that fits two branches is refused with
+    /// both of them named. Commas separate entries here, so a branch name containing one
+    /// has to be named by a fragment without it.
     #[arg(long, value_name = "LIST", value_delimiter = ',')]
     pub at: Vec<String>,
 

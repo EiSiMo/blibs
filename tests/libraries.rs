@@ -545,3 +545,161 @@ fn portal_name_resolves_to_its_house() {
     assert_eq!(library.isil, "DE-11");
     assert!(by_portal_name("Stadtbibliothek Nirgendwo").is_none());
 }
+
+/// No alias may look like a KOBV id, because `--at` reads both out of one namespace.
+///
+/// The alias rules (`plan/libraries.md` §5, rule 3) keep an alias from looking like an
+/// ISIL by forbidding the hyphen. They say nothing about KOBV ids, and an eight-character
+/// id such as `SIG00036` satisfies every one of them — so this is the missing half of
+/// that rule, and it has to be an invariant of the file rather than a tie-break in the
+/// code: whichever one won, the other would silently become unaddressable.
+#[test]
+fn no_alias_is_a_kobvid() {
+    let libraries = parsed();
+    let ids: Vec<String> = libraries
+        .iter()
+        .flat_map(|library| {
+            library
+                .kobvid
+                .iter()
+                .cloned()
+                .chain(library.branches.iter().map(|branch| branch.kobvid.clone()))
+        })
+        .map(|id| id.to_lowercase())
+        .collect();
+    for library in &libraries {
+        for alias in all_aliases(library) {
+            assert!(
+                !ids.contains(&alias.to_lowercase()),
+                "alias {alias} is also a KOBV id"
+            );
+        }
+    }
+}
+
+/// A branch ISIL names one branch — unless a *house* already owns it, in which case the
+/// house wins and the branch is simply reached by its KOBV id instead.
+///
+/// `DE-109` is that case and the only one: the list gives it to the house `ZLBORG` and to
+/// both ZLB branches. Because the house is resolved one step earlier, `--at DE-109` stays
+/// the house and the duplicate is never reached — but a *new* duplicate among branches
+/// alone would make one of them unreachable without anything saying so.
+#[test]
+fn branch_isils_are_unique_unless_a_house_owns_them() {
+    let libraries = parsed();
+    let houses: Vec<String> = libraries
+        .iter()
+        .map(|library| library.isil.to_lowercase())
+        .collect();
+    let mut seen: Vec<(String, String)> = Vec::new();
+    for library in &libraries {
+        for branch in &library.branches {
+            let Some(isil) = branch.isil.as_ref().map(|isil| isil.to_lowercase()) else {
+                continue;
+            };
+            if houses.contains(&isil) {
+                continue;
+            }
+            if let Some((_, owner)) = seen.iter().find(|(existing, _)| *existing == isil) {
+                panic!(
+                    "branch ISIL {isil} is used by both {owner} and {}",
+                    branch.kobvid
+                );
+            }
+            seen.push((isil, branch.kobvid.clone()));
+        }
+    }
+}
+
+/// Every branch is addressable by its KOBV id, and 137 of them also by their own ISIL.
+///
+/// The id is the key that always exists; case does not matter, because the directory
+/// writes it upper case and nobody types it that way.
+#[test]
+fn a_branch_is_named_by_its_key() {
+    for input in ["SIG00036", "sig00036", "DE-109"] {
+        let entry = look_up(input).unwrap_or_else(|error| panic!("{input:?}: {error}"));
+        match (input, entry) {
+            // `DE-109` belongs to a house as well, and the house wins.
+            ("DE-109", Entry::Institution(library)) => assert_eq!(library.isil, "DE-109"),
+            (_, Entry::Branch { branch, .. }) => assert_eq!(branch.kobvid, "SIG00036"),
+            (_, other) => panic!("{input:?} named {other:?}"),
+        }
+    }
+    let Ok(Entry::Branch { branch, parent }) = look_up("de-11-105") else {
+        panic!("a branch ISIL must name its branch");
+    };
+    assert_eq!(parent.isil, "DE-11");
+    assert_eq!(branch.kobvid, "HUB00043");
+}
+
+/// A path names a branch inside one house, and the fragment need not be the whole name.
+#[test]
+fn a_path_names_a_branch_inside_its_house() {
+    for input in [
+        "HU/Germanistik",
+        "hu/zweigbibliothek germanistik/skandinavistik",
+        "DE-11/Germanistik",
+    ] {
+        let Ok(Entry::Branch { branch, parent }) = look_up(input) else {
+            panic!("{input:?} must name a branch");
+        };
+        assert_eq!(parent.isil, "DE-11", "{input:?}");
+        assert_eq!(branch.kobvid, "HUB00043", "{input:?}");
+    }
+}
+
+/// A fragment that fits several branches is a named error listing every one of them, with
+/// the key to type instead — never a pick between two shelves.
+#[test]
+fn an_ambiguous_path_names_every_candidate() {
+    let error = look_up("HU/Zweigbibliothek").expect_err("ten branches match");
+    match error {
+        UsageError::AmbiguousBranch {
+            input,
+            house,
+            candidates,
+        } => {
+            assert_eq!(input, "HU/Zweigbibliothek");
+            assert_eq!(house, "HU");
+            assert!(candidates.len() > 1, "{candidates:?}");
+            assert!(
+                candidates
+                    .iter()
+                    .any(|candidate| candidate.starts_with("HUB00043 (")),
+                "{candidates:?}"
+            );
+        }
+        other => panic!("expected AmbiguousBranch, got {other:?}"),
+    }
+}
+
+/// A path that names nothing suggests whole paths, so the answer can be pasted back.
+///
+/// Both halves are answered for: a mistyped house keeps the branch attached, and a
+/// mistyped branch is matched word by word, because a path is typed as a fragment and no
+/// edit distance brings `gremanistik` near `Zweigbibliothek Germanistik/Skandinavistik`.
+#[test]
+fn a_path_that_misses_suggests_whole_paths() {
+    for (input, expected) in [
+        ("HUX/Germanistik", "HU/Germanistik"),
+        (
+            "HU/Gremanistik",
+            "HU/Zweigbibliothek Germanistik/Skandinavistik",
+        ),
+    ] {
+        match look_up(input) {
+            Err(UsageError::UnknownLibrary {
+                input: echoed,
+                suggestions,
+            }) => {
+                assert_eq!(echoed, input, "the whole path is echoed, not half of it");
+                assert!(
+                    suggestions.contains(&expected.to_string()),
+                    "{suggestions:?}"
+                );
+            }
+            other => panic!("{input:?}: expected UnknownLibrary, got {other:?}"),
+        }
+    }
+}

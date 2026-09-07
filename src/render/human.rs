@@ -1227,8 +1227,25 @@ pub fn library_detail(library: &Library, out: &mut dyn Write, style: Style) -> i
     );
     if !library.branches.is_empty() {
         fields.push(("Branches".to_owned(), branch_count(&library.branches)));
-        for branch in &library.branches {
-            fields.push((String::new(), branch.short_name.clone()));
+        // The key, not only the name: this listing is the one place a branch without a
+        // shorthand becomes addressable at all, and a name with nothing to type next to
+        // it is a dead end (`plan/libraries.md` §11.9). Padded to the widest key, because
+        // the ids come in two lengths and a ragged column reads as two columns.
+        let keys: Vec<&str> = library
+            .branches
+            .iter()
+            .map(|branch| branch.alias().unwrap_or(&branch.kobvid))
+            .collect();
+        let width = keys
+            .iter()
+            .map(|key| key.chars().count())
+            .max()
+            .unwrap_or(0);
+        for (branch, key) in library.branches.iter().zip(keys) {
+            fields.push((
+                String::new(),
+                format!("{key:width$}  {}", branch.short_name),
+            ));
         }
     }
     write_fields(out, &fields, style)

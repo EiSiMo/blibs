@@ -22,6 +22,13 @@ const VOEBB_LABEL: &str = "VÖBB";
 /// How many suggestions an unknown entry carries.
 const SUGGEST_LIMIT: usize = 3;
 
+/// What separates the house from the branch in `HU/Germanistik`.
+///
+/// Split at the **first** one only: branch names carry slashes of their own
+/// (`Zweigbibliothek Germanistik/Skandinavistik`), so everything behind the first is the
+/// name being searched for.
+pub const PATH_SEPARATOR: char = '/';
+
 /// What a key the user typed named. Institutions and branches share one alias namespace
 /// (`plan/libraries.md` §5, rule 9), so one lookup answers for both.
 ///
@@ -33,8 +40,9 @@ const SUGGEST_LIMIT: usize = 3;
 pub enum Entry {
     /// A whole institution: the key was one of its aliases or its ISIL.
     Institution(&'static Library),
-    /// One branch, and the institution it belongs to. The key was a branch alias — only
-    /// the few branches that are actually spoken about have one.
+    /// One branch, and the institution it belongs to. The key was a branch alias, the
+    /// branch's KOBV id or own ISIL, or a `<house>/<branch>` path — only three of the 211
+    /// branches have an alias, so the other three ways are how the rest are named.
     Branch {
         /// The institution holding the branch.
         parent: &'static Library,
@@ -58,27 +66,48 @@ impl Entry {
     }
 }
 
-/// Look one key up: an alias, an ISIL, or a branch alias.
+/// Look one key up: an alias, an ISIL, a branch key, or a `<house>/<branch>` path.
 ///
 /// **The single lookup in the crate.** `--at` reaches it through [`resolve`] and
-/// `blibs libraries <key>` reaches it directly, so a key that names something in one
-/// cannot fail to name it in the other. Aliases are tried first (case-folded), then
-/// ISILs (case-insensitively).
+/// `blibs libraries <key>` and `--near <key>` reach it directly, so a key that names
+/// something in one cannot fail to name it in the other. Four steps, in the order of
+/// `plan/libraries.md` §6:
+///
+/// 1. an alias, of a house or of one of the few branches that have one (case-folded),
+/// 2. a house's ISIL (case-insensitively),
+/// 3. a **branch key**: its KOBV id, or its own ISIL where it has one — see
+///    [`by_branch_key`] for why the id is the one that always works,
+/// 4. a **path**, `HU/Germanistik`, matched inside the named house by [`by_path`].
 ///
 /// An unknown key is a usage error carrying up to three near-miss suggestions (see
 /// [`suggest`]), never a silent non-match and never an empty result: "there is no such
 /// library" and "you mistyped one" are different answers, and an agent that gets an empty
 /// list cannot tell them apart.
 ///
-/// Ambiguity cannot arise and is therefore not handled: aliases are unique across the
-/// whole list and never contain a hyphen, so no alias can look like an ISIL. That is an
-/// invariant of the data file, checked in `tests/libraries.rs`.
+/// Ambiguity cannot arise in the first three steps and is therefore not handled there:
+/// aliases are unique across the whole list and never contain a hyphen, so no alias can
+/// look like an ISIL; KOBV ids are unique across houses and branches alike; and a branch
+/// ISIL that is also a house's is decided by step 2 before step 3 is reached. All three
+/// are invariants of the data file, checked in `tests/libraries.rs`. The path is the one
+/// step where a name genuinely fits two branches, and it says so with
+/// [`UsageError::AmbiguousBranch`] rather than picking one.
 pub fn look_up(input: &str) -> Result<Entry, UsageError> {
     let typed = input.trim();
-    lookup(typed).ok_or_else(|| UsageError::UnknownLibrary {
+    if let Some(entry) = lookup(typed) {
+        return Ok(entry);
+    }
+    match typed.split_once(PATH_SEPARATOR) {
+        Some((house, wanted)) => by_path(typed, house.trim(), wanted.trim()),
+        None => Err(unknown(typed)),
+    }
+}
+
+/// The error for a key that names nothing, with whatever suggestions fit it.
+fn unknown(typed: &str) -> UsageError {
+    UsageError::UnknownLibrary {
         input: typed.to_string(),
         suggestions: suggest(typed),
-    })
+    }
 }
 
 /// Resolve one `--at` entry.
@@ -121,12 +150,169 @@ pub fn branch_access(
     })
 }
 
-/// Alias first, then ISIL — the order of `plan/libraries.md` §6.
+/// Alias, then house ISIL, then branch key — the order of `plan/libraries.md` §6.
+///
+/// The path step is **not** here: it can fail with an ambiguity that has to reach the
+/// user, and an `Option` has nowhere to put it. [`look_up`] runs it after this.
 fn lookup(typed: &str) -> Option<Entry> {
     if typed.is_empty() {
         return None;
     }
-    by_alias(typed).or_else(|| by_isil_ignoring_case(typed).map(Entry::Institution))
+    by_alias(typed)
+        .or_else(|| by_isil_ignoring_case(typed).map(Entry::Institution))
+        .or_else(|| by_branch_key(typed))
+}
+
+/// A branch named by its own key: the KOBV directory id, or its ISIL where it has one.
+///
+/// **The id is the key that always works.** All 211 branches carry one, it is unique
+/// across houses and branches together (`tests/libraries.rs`), and `blibs libraries`
+/// prints it — so `--at SIG00036` is something a user or an agent can always type back.
+/// Its ISIL is the friendlier key where it exists, and 137 branches have one.
+///
+/// A house's own id resolves to the house, so that the one identifier means the same
+/// thing here as in a `bibids=` link ([`by_kobvid`]). Case is ignored throughout: the ids
+/// are upper case in the directory and nobody types them that way.
+fn by_branch_key(typed: &str) -> Option<Entry> {
+    for library in all() {
+        if library
+            .kobvid
+            .as_deref()
+            .is_some_and(|kobvid| kobvid.eq_ignore_ascii_case(typed))
+        {
+            return Some(Entry::Institution(library));
+        }
+        for branch in &library.branches {
+            let isil = branch.isil.as_deref().unwrap_or_default();
+            if branch.kobvid.eq_ignore_ascii_case(typed) || isil.eq_ignore_ascii_case(typed) {
+                return Some(Entry::Branch {
+                    parent: library,
+                    branch,
+                });
+            }
+        }
+    }
+    None
+}
+
+/// One branch of a named house: `HU/Germanistik`, `VOEBB/Bruno-Lösche`.
+///
+/// The readable half of branch addressing — a key is exact but has to be looked up first,
+/// while a path can be typed from what the search output already shows.
+///
+/// The house on the left goes through [`lookup`], so it may be named any way a house can
+/// be; a branch alias on the left names its own house, which is the only reading that is
+/// never wrong. The name on the right is matched **only inside that house**, in three
+/// stages, weakest last, the same shape the voebb facet matcher uses:
+///
+/// 1. folds equal to the branch's `short_name`,
+/// 2. folds equal to its full `name`, to the part of that name behind the last separator,
+///    or to one of its aliases,
+/// 3. is contained in either name.
+///
+/// Only the substring stage is meant to be typed at: `HU/Germanistik` is a fragment, not
+/// a name. It is also the stage that repairs the list's own truncation — 60 branch short
+/// names are cut off at 60 characters, and the full name is not.
+///
+/// Several branches under one stage are [`UsageError::AmbiguousBranch`], never a pick:
+/// branch short names are *not* unique inside a house (`plan/libraries.md` §8.3).
+fn by_path(typed: &str, house: &str, name: &str) -> Result<Entry, UsageError> {
+    let parent = match lookup(house) {
+        Some(Entry::Institution(library)) => library,
+        Some(Entry::Branch { parent, .. }) => parent,
+        // The house is what is wrong, so the suggestions are houses — but each is offered
+        // with the branch still attached, so that the answer stays a whole path.
+        None => {
+            return Err(UsageError::UnknownLibrary {
+                input: typed.to_string(),
+                suggestions: suggest(house)
+                    .into_iter()
+                    .map(|alias| format!("{alias}{PATH_SEPARATOR}{name}"))
+                    .collect(),
+            });
+        }
+    };
+    let wanted = fold(name);
+    if wanted.is_empty() {
+        return Err(unknown(typed));
+    }
+    for stage in [
+        PathStage::ShortName,
+        PathStage::AlternateNames,
+        PathStage::Fragment,
+    ] {
+        let hits: Vec<&'static Branch> = parent
+            .branches
+            .iter()
+            .filter(|branch| stage.accepts(branch, &wanted))
+            .collect();
+        match hits.as_slice() {
+            [] => {}
+            [only] => {
+                return Ok(Entry::Branch {
+                    parent,
+                    branch: only,
+                });
+            }
+            several => {
+                return Err(UsageError::AmbiguousBranch {
+                    input: typed.to_string(),
+                    house: parent.alias().unwrap_or(&parent.isil).to_string(),
+                    candidates: several.iter().copied().map(candidate).collect(),
+                });
+            }
+        }
+    }
+    Err(UsageError::UnknownLibrary {
+        input: typed.to_string(),
+        suggestions: suggest_branches(parent, house, &wanted),
+    })
+}
+
+/// One branch as an ambiguity message names it: the key to type, and the name to read.
+fn candidate(branch: &Branch) -> String {
+    format!("{} ({})", branch.kobvid, branch.short_name)
+}
+
+/// One stage of [`by_path`], from strongest to weakest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PathStage {
+    /// The short name the tool prints.
+    ShortName,
+    /// The full name, its tail, and the branch's aliases.
+    AlternateNames,
+    /// A fragment of either name.
+    Fragment,
+}
+
+impl PathStage {
+    /// Whether this stage accepts a branch for an already folded query.
+    fn accepts(self, branch: &Branch, wanted: &str) -> bool {
+        match self {
+            PathStage::ShortName => fold(&branch.short_name) == wanted,
+            PathStage::AlternateNames => {
+                fold(&branch.name) == wanted
+                    || fold(name_tail(&branch.name)) == wanted
+                    || branch.aliases.iter().any(|alias| fold(alias) == wanted)
+            }
+            PathStage::Fragment => {
+                fold(&branch.short_name).contains(wanted) || fold(&branch.name).contains(wanted)
+            }
+        }
+    }
+}
+
+/// The part of a branch name behind its last ` / ` or `, `.
+///
+/// The list writes a branch under its house — `Humboldt-Universität zu Berlin,
+/// Universitätsbibliothek, Zweigbibliothek Germanistik/Skandinavistik` — and the house is
+/// already named on the left of the path, so the tail is what the user is naming.
+fn name_tail(name: &str) -> &str {
+    let cut = [" / ", ", "]
+        .into_iter()
+        .filter_map(|separator| name.rfind(separator).map(|at| at + separator.len()))
+        .max();
+    cut.map_or(name, |at| &name[at..])
 }
 
 /// The alias step, over institutions and branches alike.
@@ -386,14 +572,7 @@ pub fn suggest(typed: &str) -> Vec<String> {
                 .chain(library.branches.iter().flat_map(|branch| &branch.aliases))
         })
         .filter_map(|alias| {
-            let folded_alias = fold(alias);
-            let is_prefix = folded_alias.starts_with(&wanted) || wanted.starts_with(&folded_alias);
-            // The distance itself is only ever used to rank, never to disqualify a
-            // prefix hit, so it is computed against a bound generous enough to be exact
-            // for anything this short rather than the (possibly stricter) `bound`.
-            let ceiling = wanted.chars().count().max(folded_alias.chars().count());
-            let distance = levenshtein(&wanted, &folded_alias, ceiling);
-            (is_prefix || distance <= bound).then_some((!is_prefix, distance, alias.as_str()))
+            score(&wanted, bound, alias).map(|(rank, distance)| (rank, distance, alias.as_str()))
         })
         .collect();
     scored.sort_unstable();
@@ -402,4 +581,69 @@ pub fn suggest(typed: &str) -> Vec<String> {
         .into_iter()
         .map(|(_, _, alias)| alias.to_string())
         .collect()
+}
+
+/// How close a candidate is to what was typed, or `None` when it is not close at all.
+///
+/// The two rules of [`suggest`], in the one place both callers read them from. The first
+/// element ranks: `false` sorts before `true`, so prefix hits come first and the edit
+/// distance decides within them.
+fn score(wanted: &str, bound: usize, candidate: &str) -> Option<(bool, usize)> {
+    let folded = fold(candidate);
+    let is_prefix = folded.starts_with(wanted) || wanted.starts_with(&folded);
+    // The distance itself is only ever used to rank, never to disqualify a prefix hit, so
+    // it is computed against a bound generous enough to be exact for anything this short
+    // rather than the (possibly stricter) `bound`.
+    let ceiling = wanted.chars().count().max(folded.chars().count());
+    let distance = levenshtein(wanted, &folded, ceiling);
+    (is_prefix || distance <= bound).then_some((!is_prefix, distance))
+}
+
+/// Up to three whole paths close to a branch name that named nothing.
+///
+/// The counterpart of [`suggest`] for the one step it cannot answer for: aliases are the
+/// wrong vocabulary behind a slash, because 208 of the 211 branches have none.
+///
+/// What is scored instead are the branch's **single words**, not only its whole names: a
+/// path is typed as a fragment (`HU/Germanistik`), and comparing `gremanistik` against
+/// `Zweigbibliothek Germanistik/Skandinavistik` finds nothing at any edit distance worth
+/// having. What is *offered* is still the whole name, taken from behind the last
+/// separator, because that is the form the path step matches exactly.
+///
+/// Each suggestion is a whole path, with the house spelled the way it was typed, so that
+/// it can be pasted back without editing.
+fn suggest_branches(parent: &'static Library, house: &str, wanted: &str) -> Vec<String> {
+    let bound = max_distance(wanted.chars().count());
+    let mut scored: Vec<(bool, usize, &str)> = parent
+        .branches
+        .iter()
+        .filter_map(|branch| {
+            let name = name_tail(&branch.name);
+            let best = [branch.short_name.as_str(), name]
+                .into_iter()
+                .flat_map(words)
+                .filter_map(|word| score(wanted, bound, word))
+                .min()?;
+            Some((best.0, best.1, name))
+        })
+        .collect();
+    scored.sort_unstable();
+    scored.dedup_by(|a, b| a.2 == b.2);
+    scored.truncate(SUGGEST_LIMIT);
+    scored
+        .into_iter()
+        .map(|(_, _, name)| format!("{house}{PATH_SEPARATOR}{name}"))
+        .collect()
+}
+
+/// A name and the words in it, as things a fragment could have been aiming at.
+///
+/// The whole string comes first so that a one-word name is not scored twice, and the
+/// split is on everything that is not a letter or a digit — `Germanistik/Skandinavistik`
+/// and `Kaulsdorf - Nord` are two words each, however they are punctuated.
+fn words(name: &str) -> impl Iterator<Item = &str> {
+    std::iter::once(name).chain(
+        name.split(|character: char| !character.is_alphanumeric())
+            .filter(|word| !word.is_empty()),
+    )
 }
