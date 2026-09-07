@@ -753,3 +753,129 @@ fn a_rejected_query_keeps_exit_five() {
     assert_eq!(ran.exit(), ExitCode::Rejected);
     assert!(ran.out.is_empty());
 }
+
+/// The `filtered.xml` envelope with its first record delivered a second time — what
+/// `sru.kobv.de/k2` was measured doing on 2026-09-07 for `"Der Vorleser"`, where one id
+/// came back at two positions of a single five-record response.
+fn body_with_a_repeated_record() -> String {
+    let body = read_fixture("kobv/sru/filtered.xml");
+    let start = body
+        .find("<zs:record>")
+        .expect("the envelope has a first record");
+    let tail = "</zs:recordPosition></zs:record>";
+    let end = body.find(tail).expect("the first record ends") + tail.len();
+    format!("{}{}{}", &body[..end], &body[start..end], &body[end..])
+}
+
+/// How many availability requests went out.
+fn availability_calls(recorder: &Recorder) -> usize {
+    recorder
+        .log()
+        .iter()
+        .filter(|line| line.contains("AJAX/JSON"))
+        .count()
+}
+
+/// The catalogue repeats a record inside one window; `records[]` promises each record
+/// exactly once, so the repeat is dropped — and it must not cost a second availability
+/// request for a status already known.
+#[test]
+fn a_record_the_catalogue_repeats_is_dropped_and_asked_about_once() {
+    let fetch = FixtureFetch::new()
+        .route(
+            is_availability,
+            read_fixture("kobv/availability/mixed.json"),
+        )
+        .route(|_| true, body_with_a_repeated_record());
+    let recorder = fetch.recorder();
+    let ran = invoke(&["search", "Vorleser", "--json"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let document = ran.json();
+    let ids: Vec<&str> = document["records"]
+        .as_array()
+        .expect("records is an array")
+        .iter()
+        .map(|record| record["id"].as_str().expect("every record has an id"))
+        .collect();
+    let mut distinct = ids.clone();
+    distinct.sort_unstable();
+    distinct.dedup();
+    assert_eq!(ids.len(), distinct.len(), "a record was listed twice: {ids:?}");
+
+    assert_eq!(
+        availability_calls(&recorder),
+        ids.len(),
+        "one availability request per displayed record, no more: {:?}",
+        recorder.log()
+    );
+
+    let kinds: Vec<&str> = document["notes"]
+        .as_array()
+        .expect("the dropped repeat is stated")
+        .iter()
+        .map(|note| note["kind"].as_str().expect("every note has a kind"))
+        .collect();
+    assert!(
+        kinds.contains(&"duplicate_records_dropped"),
+        "dropping a record silently would contradict the hit count: {kinds:?}"
+    );
+}
+
+/// `window.fetched` counts what the window holds. After a repeat is dropped it holds one
+/// record fewer — otherwise `after_filter < fetched` would be true with no filter set and
+/// the footer would blame filters that never ran.
+#[test]
+fn dropping_a_repeat_does_not_read_as_a_filter_having_run() {
+    let fetch = FixtureFetch::new()
+        .route(
+            is_availability,
+            read_fixture("kobv/availability/mixed.json"),
+        )
+        .route(|_| true, body_with_a_repeated_record());
+    let ran = invoke(&["search", "Vorleser", "--json"], &fetch);
+    let window = &ran.json()["window"];
+
+    assert_eq!(
+        window["fetched"], window["after_filter"],
+        "no filter ran, so the window must not look thinned: {window}"
+    );
+    assert!(
+        !ran.out.contains("the filters saw"),
+        "no filter ran: {}",
+        ran.out
+    );
+}
+
+/// The catalogue does not order a result stably — proven against `sru.kobv.de/k2` with
+/// three identical requests. Page one cannot show the effect; from page two on the user
+/// has to be told, because `--page` can then overlap or skip.
+#[test]
+fn paging_past_the_first_page_states_that_the_order_is_unstable() {
+    let kinds = |args: &[&str]| -> Vec<String> {
+        let fetch = search_fetch();
+        let ran = invoke(args, &fetch);
+        ran.json()["notes"]
+            .as_array()
+            .map(|notes| {
+                notes
+                    .iter()
+                    .filter_map(|note| note["kind"].as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+
+    assert!(
+        !kinds(&["search", "Vorleser", "--json", "--page", "1"])
+            .iter()
+            .any(|kind| kind == "result_order_unstable"),
+        "one page cannot overlap itself"
+    );
+    assert!(
+        kinds(&["search", "Vorleser", "--json", "--page", "2"])
+            .iter()
+            .any(|kind| kind == "result_order_unstable"),
+        "from page two on the overlap is possible and has to be stated"
+    );
+}

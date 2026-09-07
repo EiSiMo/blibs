@@ -164,7 +164,35 @@ fn search_one_engine(
     };
 
     let mut search = catalog.search(&request)?;
-    let filtered = select::filter(std::mem::take(&mut search.records), &plan.filters);
+
+    // Before every count, so that `fetched`, `after_filter` and the block totals are all
+    // over distinct records — and before `fill_availability`, so a repeat never costs a
+    // second request for a status already known.
+    let (deduplicated, dropped) = select::dedup(std::mem::take(&mut search.records));
+    if dropped > 0 {
+        // `fetched` counts what the window holds, and after this it holds distinct
+        // records. Leaving the raw number would make `after_filter < fetched` true with no
+        // filter set at all, and the footer would blame filters that never ran.
+        search.fetched = search.fetched.saturating_sub(dropped);
+        search.notes.push(Note::new(
+            note_kinds::DUPLICATE_RECORDS_DROPPED,
+            format!(
+                "the catalogue delivered {} {} twice in this window; the repeats were dropped",
+                dropped,
+                if dropped == 1 { "record" } else { "records" }
+            ),
+        ));
+    }
+    if engine == Engine::Kobv && plan.page.get() > 1 {
+        search.notes.push(Note::new(
+            note_kinds::RESULT_ORDER_UNSTABLE,
+            "the KOBV catalogue does not order a result stably — two identical requests \
+             return different records, so this page may overlap the previous one or leave \
+             records out",
+        ));
+    }
+
+    let filtered = select::filter(deduplicated, &plan.filters);
     let after_filter = filtered.len();
 
     let sort_at = sort_location(locations);

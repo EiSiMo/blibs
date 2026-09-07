@@ -341,6 +341,18 @@ pub mod note_kinds {
     /// A record arrived under a `recordSchema` this tool cannot read.
     pub const RECORD_SCHEMA_UNKNOWN: &str = "record_schema_unknown";
 
+    /// The catalogue delivered the same record more than once inside one window, and the
+    /// repeats were dropped. Measured against `sru.kobv.de/k2` directly, so it is the
+    /// union catalogue's doing rather than this tool's — but `records[]` promises each
+    /// record exactly once, and that promise is kept here.
+    pub const DUPLICATE_RECORDS_DROPPED: &str = "duplicate_records_dropped";
+
+    /// The KOBV catalogue does not order a result stably: two identical requests return
+    /// different records in a different order, so consecutive pages can overlap and can
+    /// leave records out. Set from the second page on, because page one alone cannot
+    /// show the effect.
+    pub const RESULT_ORDER_UNSTABLE: &str = "result_order_unstable";
+
     /// The availability service holds no information for this record
     /// (`hasAvailability: false`); the copies come from the catalogue alone.
     pub const AVAILABILITY_NOT_STATED: &str = "availability_not_stated";
@@ -458,6 +470,8 @@ mod tests {
         let all = [
             note_kinds::RECORD_UNDELIVERED,
             note_kinds::RECORD_SCHEMA_UNKNOWN,
+            note_kinds::DUPLICATE_RECORDS_DROPPED,
+            note_kinds::RESULT_ORDER_UNSTABLE,
             note_kinds::AVAILABILITY_NOT_STATED,
             note_kinds::AVAILABILITY_UNKNOWN_STATUS,
             note_kinds::AVAILABILITY_MATCHED_BY_NAME,

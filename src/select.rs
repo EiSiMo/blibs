@@ -21,6 +21,7 @@
 //! matter how many blocks show it.
 
 use std::cmp::Reverse;
+use std::collections::HashSet;
 
 use crate::model::{
     AtBlock, Format, Holding, Item, Limit, Location, Record, RecordId, SearchResult, SortKey,
@@ -42,6 +43,28 @@ impl Filters {
     pub fn is_active(&self) -> bool {
         self.format.is_some() || self.language.is_some()
     }
+}
+
+/// Drop repeated records, keeping the first of each and the order of the rest.
+///
+/// The union catalogue delivers the same record twice inside one response — verified
+/// against `sru.kobv.de/k2` directly, so this is not a parsing artefact. Two things make
+/// that worth fixing here rather than tolerating: `records[]` promises each record exactly
+/// once, and a repeat would otherwise cost a second availability request for a status
+/// already known, against the one-request-per-*displayed*-record rule in `CLAUDE.md`.
+///
+/// Runs before filtering, sorting and paging, so every later count is over distinct
+/// records. Returns how many were dropped, because silence would make the tool disagree
+/// with a hit count the user can see.
+pub fn dedup(records: Vec<Record>) -> (Vec<Record>, usize) {
+    let mut seen: HashSet<RecordId> = HashSet::with_capacity(records.len());
+    let before = records.len();
+    let kept: Vec<Record> = records
+        .into_iter()
+        .filter(|record| seen.insert(record.id.clone()))
+        .collect();
+    let dropped = before - kept.len();
+    (kept, dropped)
 }
 
 /// Keep the records that match every active filter.
@@ -1077,6 +1100,46 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// The union catalogue really does deliver one record twice inside a single response.
+    #[test]
+    fn dedup_keeps_the_first_of_each_repeat() {
+        let records = vec![
+            record("almahu_1", "One", Some(2001)),
+            record("almahu_1", "One", Some(2001)),
+            record("almahu_2", "Two", Some(2002)),
+            record("almahu_1", "One", Some(2001)),
+        ];
+        let (kept, dropped) = dedup(records);
+        let ids: Vec<&str> = kept.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(ids, ["almahu_1", "almahu_2"]);
+        assert_eq!(dropped, 2);
+    }
+
+    /// Order is relevance and must survive: dedup keeps the first sighting, never the last.
+    #[test]
+    fn dedup_preserves_the_catalogues_order() {
+        let records = vec![
+            record("almahu_3", "Three", None),
+            record("almahu_1", "One", None),
+            record("almahu_3", "Three", None),
+            record("almahu_2", "Two", None),
+        ];
+        let (kept, dropped) = dedup(records);
+        let ids: Vec<&str> = kept.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(ids, ["almahu_3", "almahu_1", "almahu_2"]);
+        assert_eq!(dropped, 1);
+    }
+
+    /// A window without repeats must not be reported as if it had any.
+    #[test]
+    fn dedup_reports_nothing_when_there_is_nothing_to_drop() {
+        let (result, _) = result();
+        let before = result.records.len();
+        let (kept, dropped) = dedup(result.records);
+        assert_eq!(kept.len(), before);
+        assert_eq!(dropped, 0);
     }
 
     #[test]
