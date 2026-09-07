@@ -330,7 +330,8 @@ fn author(field: &Field, kind: AuthorKind) -> Option<Author> {
         kind,
         dates: dates(field, kind),
         gnd: gnd(field),
-        role: role(field),
+        role: role_text(field),
+        role_code: role_code(field),
     })
 }
 
@@ -389,20 +390,24 @@ fn gnd(field: &Field) -> Option<String> {
     })
 }
 
-/// The relator from `$4`, falling back to the free-text `$e`.
+/// The free-text relator from `$e`.
+///
+/// Free text in two languages with inconsistent full stops (`Verfasser/in`, `Übers.`).
+/// Kept apart from [`role_code`] because the two subfields can disagree, and one field
+/// having only one of them is common.
+fn role_text(field: &Field) -> Option<String> {
+    non_empty(field.sub('e')?.to_owned())
+}
+
+/// The relator code from `$4`.
 ///
 /// `$4` is sometimes the full `LoC` URI instead of the code, so the last path segment is
 /// what counts. The vocabulary is open, not an enum: `kom`, `isb`, `dgg`, `dgs` and `wac`
-/// are German extensions that no `LoC` list contains, and `$e` is free text in two
-/// languages with inconsistent full stops.
-fn role(field: &Field) -> Option<String> {
-    if let Some(code) = field.sub('4') {
-        let segment = code.rsplit('/').next().unwrap_or(code);
-        if let Some(role) = non_empty(segment.to_owned()) {
-            return Some(role);
-        }
-    }
-    non_empty(field.sub('e')?.to_owned())
+/// are German extensions that no `LoC` list contains.
+fn role_code(field: &Field) -> Option<String> {
+    let code = field.sub('4')?;
+    let segment = code.rsplit('/').next().unwrap_or(code);
+    non_empty(segment.to_owned())
 }
 
 /// The publication year: `008/07-10` first, the imprint date only as a fallback.
@@ -1142,6 +1147,7 @@ mod tests {
             dates: Some("1900-1980".to_owned()),
             gnd: Some(gnd.to_owned()),
             role: None,
+            role_code: None,
         };
         assert!(!is_repeat(&with_gnd("1"), &with_gnd("2")));
         let mut nameless = with_gnd("1");
@@ -1157,10 +1163,12 @@ mod tests {
         assert_eq!(record.authors.len(), 2, "{:?}", record.authors);
         assert_eq!(record.authors[0].name, "Maḥfūẓ, Naǧīb");
         assert_eq!(record.authors[0].gnd.as_deref(), Some("118576259"));
-        assert_eq!(record.authors[0].role.as_deref(), Some("aut"));
+        assert_eq!(record.authors[0].role, None, "only $4 on this 100, no $e");
+        assert_eq!(record.authors[0].role_code.as_deref(), Some("aut"));
         assert_eq!(record.authors[1].name, "Fähndrich, Hartmut");
         assert_eq!(record.authors[1].dates.as_deref(), Some("1944-"));
-        assert_eq!(record.authors[1].role.as_deref(), Some("trl"));
+        assert_eq!(record.authors[1].role.as_deref(), Some("Übers."));
+        assert_eq!(record.authors[1].role_code.as_deref(), Some("trl"));
     }
 
     /// `689` chains skip their `$5`-only closing link instead of emitting an empty
@@ -1197,7 +1205,8 @@ mod tests {
             "$d on a body is not life dates"
         );
         assert_eq!(record.authors[0].gnd.as_deref(), Some("5051414-3"));
-        assert_eq!(record.authors[0].role.as_deref(), Some("aut"));
+        assert_eq!(record.authors[0].role.as_deref(), Some("VerfasserIn"));
+        assert_eq!(record.authors[0].role_code.as_deref(), Some("aut"));
     }
 
     /// The doubled-angle-bracket form of the non-sorting mark, here around a nobiliary
@@ -1208,6 +1217,42 @@ mod tests {
         assert_eq!(record.authors[0].name, "Buffon, Georges Louis Le Clerc de");
         assert_eq!(record.authors[0].gnd.as_deref(), Some("118517252"));
         assert_eq!(record.authors[0].role, None, "neither $4 nor $e");
+        assert_eq!(record.authors[0].role_code, None, "neither $4 nor $e");
+    }
+
+    /// `$e` alone, no `$4` at all: `role` is filled and `role_code` stays `None` — a code
+    /// is never invented from the free text.
+    #[test]
+    fn a_role_with_only_free_text_leaves_the_code_empty() {
+        let field = Field {
+            tag: "700".to_owned(),
+            ind1: '1',
+            ind2: ' ',
+            subfields: vec![
+                ('a', "Beispiel, Autor".to_owned()),
+                ('e', "Herausgeber".to_owned()),
+            ],
+        };
+        assert_eq!(role_text(&field).as_deref(), Some("Herausgeber"));
+        assert_eq!(role_code(&field), None);
+    }
+
+    /// Both subfields present and disagreeing in spelling (`$e` German prose, `$4` the
+    /// `LoC` code): both fields are kept, independently.
+    #[test]
+    fn a_role_with_both_subfields_keeps_both_independently() {
+        let field = Field {
+            tag: "700".to_owned(),
+            ind1: '1',
+            ind2: ' ',
+            subfields: vec![
+                ('a', "Beispiel, Autor".to_owned()),
+                ('e', "HerausgeberIn".to_owned()),
+                ('4', "edt".to_owned()),
+            ],
+        };
+        assert_eq!(role_text(&field).as_deref(), Some("HerausgeberIn"));
+        assert_eq!(role_code(&field).as_deref(), Some("edt"));
     }
 
     /// `264$c` is `1413 [1992]` — a Hijri year followed by the Gregorian one. The regular

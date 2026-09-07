@@ -487,6 +487,7 @@ mod tests {
             dates: None,
             gnd: None,
             role: None,
+            role_code: None,
         }];
         detailed.publisher = Some("Diogenes".to_owned());
         detailed.subtitle = Some("Roman".to_owned());

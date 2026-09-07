@@ -670,6 +670,7 @@ mod tests {
                     dates: Some("1883-1924".to_owned()),
                     gnd: Some("118559230".to_owned()),
                     role: Some("author".to_owned()),
+                    role_code: Some("aut".to_owned()),
                 },
                 Author {
                     name: "S. Fischer Verlag".to_owned(),
@@ -677,6 +678,7 @@ mod tests {
                     dates: None,
                     gnd: None,
                     role: None,
+                    role_code: None,
                 },
             ],
             year: Some(1953),
@@ -761,6 +763,7 @@ mod tests {
                 dates: None,
                 gnd: None,
                 role: None,
+                role_code: None,
             }],
             year: Some(2008),
             publisher: None,

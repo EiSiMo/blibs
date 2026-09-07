@@ -1300,6 +1300,7 @@ mod tests {
             dates: None,
             gnd: None,
             role: None,
+            role_code: None,
         }
     }
 
@@ -1861,6 +1862,7 @@ AGB (VÖBB) · 35 results · showing 2
                 dates: Some("1883-1924".to_owned()),
                 gnd: Some("118559230".to_owned()),
                 role: Some("author".to_owned()),
+                role_code: Some("aut".to_owned()),
             },
             Author {
                 name: "Brod, Max".to_owned(),
@@ -1868,6 +1870,7 @@ AGB (VÖBB) · 35 results · showing 2
                 dates: Some("1884-1968".to_owned()),
                 gnd: Some("118515012".to_owned()),
                 role: Some("editor".to_owned()),
+                role_code: Some("edt".to_owned()),
             },
         ];
         record.publisher = Some("S. Fischer".to_owned());

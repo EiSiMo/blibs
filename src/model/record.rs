@@ -59,8 +59,15 @@ pub struct Author {
     /// GND identifier — always a **string**: check digits with `X` and hyphens occur.
     /// Only `$0` values prefixed `(DE-588)` count; other authority files are ignored.
     pub gnd: Option<String>,
-    /// Relator term, e.g. `author`, `editor`.
+    /// Relator term, free text — `$e`, e.g. `Verfasser/in`, `Übers.`.
     pub role: Option<String>,
+    /// Relator code from MARC `$4`, normalised to its last `/`-segment when the record
+    /// carries it as a `LoC` relator URI. **Not a closed vocabulary** — besides the `LoC`
+    /// relator codes it also carries German extensions with no `LoC` counterpart (`kom`,
+    /// `isb`, `dgg`, `dgs`, `wac`, seen in the wild). The voebb engine never fills this: it
+    /// exposes no relator codes at all, so `None` there means "this catalogue does not
+    /// carry codes", not a data loss relative to `kobv`.
+    pub role_code: Option<String>,
 }
 
 /// The three MARC name classes.

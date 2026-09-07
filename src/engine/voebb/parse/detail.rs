@@ -228,6 +228,8 @@ fn authors_of(bibliographic: &Bibliographic) -> Vec<Author> {
             dates: None,
             gnd: None,
             role,
+            // voebb.de states the role in words ("Verfasser"), never a MARC relator code.
+            role_code: None,
         });
     }
     authors

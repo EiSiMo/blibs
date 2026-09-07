@@ -63,14 +63,16 @@
           "kind": "person",
           "dates": "1883-1924",
           "gnd": "118559230",
-          "role": "author"
+          "role": "author",
+          "role_code": "aut"
         },
         {
           "name": "S. Fischer Verlag",
           "kind": "corporate",
           "dates": null,
           "gnd": null,
-          "role": null
+          "role": null,
+          "role_code": null
         }
       ],
       "year": 1953,
@@ -162,7 +164,8 @@
           "kind": "person",
           "dates": null,
           "gnd": null,
-          "role": null
+          "role": null,
+          "role_code": null
         }
       ],
       "year": 2008,

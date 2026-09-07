@@ -683,6 +683,7 @@ mod tests {
             dates: None,
             gnd: None,
             role: None,
+            role_code: None,
         });
         record
     }
