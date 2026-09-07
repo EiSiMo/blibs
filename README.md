@@ -188,9 +188,16 @@ JSON. A shortened `search` document:
 **Stability rule:** fields may be added over time; renaming or removing one is a breaking
 change.
 
-- `window` is `{ fetched, after_filter }` — how many records the query actually returned
-  and how many survived a client-side filter such as `--format`. Without it, "nothing
-  found" and "nothing in this window" both look like an empty result.
+- `window` is `{ fetched, after_filter, filtered }` — how many records the query actually
+  returned, how many survived a client-side filter such as `--format`, and whether such a
+  filter was set at all. Without the first two, "nothing found" and "nothing in this
+  window" both look like an empty result; `filtered` is always present because
+  `after_filter == fetched` is true both when no filter ran and when one matched
+  everything.
+- **With `--format` or `--language`, the window is the whole addressable set.** It is one
+  anchored block of 50 records and `--page` walks the *matches inside it*, so pages
+  partition those matches and no page reaches past the block. Without a filter `--page`
+  steps the result itself, as `(page - 1) * limit + 1`.
 - `window.before_available` is there only when `--available` ran, and says how many of the
   displayed records it judged. The survivors are `shown`, so the hidden ones are the
   difference; its absence is how a page that was always this short is told apart from one
@@ -239,7 +246,14 @@ Error object shape:
   journal that ran 1923–1991, `--year 1960` matches and `--year 1922` does not.
 - **`--sort`, `--format` and `--language` only see the fetched window**, not the whole
   result — the catalogue itself cannot sort or filter by material type or language. A
-  short result after `--format` is stated as a window effect, never as "none exist".
+  short result after `--format` is stated as a window effect, never as "none exist". With
+  `--format` or `--language` that window is also all `--page` can reach: it walks the
+  matches inside one anchored block of 50 records rather than stepping the result.
+- **The catalogue does not order a result stably.** Two identical requests return
+  different records in a different order — measured against `sru.kobv.de/k2` directly. So
+  consecutive pages can overlap or leave records out, and from page two on a
+  `result_order_unstable` note says so. The cache hides this: repeated identical calls
+  look stable until `--no-cache`.
 - **`--available` thins the page out, it does not reload.** The status is only asked about
   for the records that are shown, so ten hits can come back as four — use a larger
   `--limit` to see more. Reference stock does not count as available, and a record the
@@ -288,8 +302,9 @@ Architecture:
 ```
 cli            → argument parsing, flag validation, engine choice, exit codes
 render         → human (default) and JSON renderers over the same domain types
-engine/kobv/    → SRU (x-pquery), portal availability JSON; retry/backoff, cap, cache
-engine/voebb/   → session form, search POST, record page; same retry/cap/cache rules
+http            → the only I/O seam: Fetch trait, retry/backoff, per-host cap, cache
+engine/kobv/    → SRU (x-pquery), portal availability JSON; composes http, interprets nothing
+engine/voebb/   → session form, search POST, record page; composes the same http
 model           → Record, RecordId, Holding, Item, Availability, SearchResult, Engine
 select          → client-side sort/filter, and the "my libraries" match
 error           → one error enum; every variant carries actionable remediation text
