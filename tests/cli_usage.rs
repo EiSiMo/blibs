@@ -35,6 +35,25 @@ fn help_exits_zero() {
     blibs().arg("--help").assert().success();
 }
 
+/// `help` is a subcommand like `--help` is a flag — both are requests, not errors, and
+/// both must work: an agent that types `blibs help` (or `blibs help search`) rather than
+/// `--help` must not be met with a usage error.
+#[test]
+fn help_subcommand_exits_zero() {
+    blibs()
+        .arg("help")
+        .assert()
+        .success()
+        .stdout(contains("Usage: blibs"))
+        .stdout(contains("libraries"));
+
+    blibs()
+        .args(["help", "search"])
+        .assert()
+        .success()
+        .stdout(contains("Usage: blibs search"));
+}
+
 /// An unknown subcommand is a usage error, exit 2, and it points at the *top-level* help.
 #[test]
 fn unknown_subcommand_exits_two() {

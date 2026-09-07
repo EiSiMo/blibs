@@ -117,7 +117,6 @@ Examples:
                   place that knows which branch holds a copy. Which one runs follows \
                   from --at and from nothing else.",
     after_help = AFTER_HELP,
-    disable_help_subcommand = true,
     max_term_width = 100
 )]
 pub struct Cli {
@@ -189,7 +188,7 @@ pub enum Command {
 
     /// List, search and locate the libraries blibs knows.
     ///
-    /// 123 institutions and 212 branches, compiled into the binary, so this command
+    /// 123 institutions and 211 branches, compiled into the binary, so this command
     /// works offline and with a cold cache.
     ///
     /// A house may have more than one short name — STABI and SBB are the same house —

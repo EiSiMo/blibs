@@ -2846,17 +2846,6 @@
     "match": []
    },
    {
-    "kobvid": "BIB000000252",
-    "isil": null,
-    "name": "Stadtbibliothek Treptow-Koepenick / Fahrbibliothek Treptow-Köpenick Kleiner Bus",
-    "short_name": "Fahrbibliothek Treptow-Köpenick Kleiner Bus",
-    "aliases": [],
-    "lat": 52.44584,
-    "lon": 13.57879,
-    "address": "12555 Berlin",
-    "match": []
-   },
-   {
     "kobvid": "SIG00224",
     "isil": "DE-B243",
     "name": "Stadtbibliothek Treptow-Koepenick / Mittelpunktbibliothek Köpenick Alter Markt",

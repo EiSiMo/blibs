@@ -38,7 +38,7 @@ fn list_parses_with_the_expected_size() {
 
     assert_eq!(libraries.len(), 123, "institutions");
     let branches: usize = libraries.iter().map(|library| library.branches.len()).sum();
-    assert_eq!(branches, 212, "branches");
+    assert_eq!(branches, 211, "branches");
 }
 
 /// Every short name resolves to exactly one library. `--at HU` must never be ambiguous,
@@ -116,6 +116,43 @@ fn kobvids_are_unique() {
                 panic!("kobvid {id} is used by both {owner} and {}", library.isil);
             }
             seen.push((id, library.isil.clone()));
+        }
+    }
+}
+
+/// Two branches of the *same* house must never share `short_name`, coordinates **and**
+/// having no ISIL of their own — that combination means the same real-world branch was
+/// entered twice under different `kobvid`s (as `BIB000000252`/`BIB000000372` were for the
+/// Treptow-Köpenick "Kleiner Bus"), not two distinct branches.
+///
+/// None of the three alone is suspicious, and neither is any two of them: `short_name` is
+/// truncated to ~60 characters and legitimately collides; coordinates collide whenever
+/// several branches share a building; and a shared building plus a truncated name
+/// together still describe two real, separately addressable branches when each carries
+/// its own ISIL — the two Museum für Byzantinische Kunst / Skulpturensammlung entries
+/// (`DE-B11u`, `DE-B11t`) collide on both `short_name` and coordinates but must not be
+/// merged. An ISIL-less branch has no such distinguishing mark, so for those two
+/// conditions together are already the signal.
+#[test]
+fn no_house_has_a_duplicate_branch() {
+    for library in &parsed() {
+        for (i, a) in library.branches.iter().enumerate() {
+            for b in &library.branches[i + 1..] {
+                // Bit-exact on purpose: a genuine duplicate is the same decimal literal
+                // copied into two entries, not two independently measured points that
+                // happen to be close — an epsilon would blur that distinction away.
+                if a.short_name == b.short_name
+                    && a.lat.to_bits() == b.lat.to_bits()
+                    && a.lon.to_bits() == b.lon.to_bits()
+                    && a.isil.is_none()
+                    && b.isil.is_none()
+                {
+                    panic!(
+                        "{} has duplicate branches {} and {} (both {:?} at {},{}, neither has its own ISIL)",
+                        library.isil, a.kobvid, b.kobvid, a.short_name, a.lat, a.lon
+                    );
+                }
+            }
         }
     }
 }

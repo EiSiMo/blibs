@@ -1,4 +1,4 @@
-//! The library list — 123 institutions and 212 branches, compiled into the binary.
+//! The library list — 123 institutions and 211 branches, compiled into the binary.
 //!
 //! **This is data, not code.** Nothing in this crate branches on a specific ISIL. The
 //! list only ever *adds* a display name, an alias and coordinates to something that came
