@@ -9,6 +9,7 @@
 mod common;
 
 use assert_cmd::Command;
+use predicates::prelude::PredicateBooleanExt as _;
 use predicates::str::contains;
 
 fn blibs() -> Command {
@@ -252,13 +253,111 @@ fn near_a_library_starts_at_that_library() {
 }
 
 /// blibs geocodes nothing, and says so instead of quietly sending an address anywhere.
+///
+/// This is the *only* one of the four `--near` failures that "give coordinates or a
+/// library shortcode" answers, and for a while it was the answer to all four.
 #[test]
 fn near_an_address_is_a_usage_error() {
     blibs()
         .args(["libraries", "--near", "Alexanderplatz"])
         .assert()
         .code(2)
+        .stderr(contains("cannot locate"))
         .stderr(contains("--near 52.52"));
+}
+
+/// Two numbers outside the earth's ranges. Telling this user to give coordinates is
+/// absurd — they gave coordinates; what they need is the range they left.
+#[test]
+fn near_coordinates_off_the_earth_names_the_ranges() {
+    blibs()
+        .args(["libraries", "--near", "91,181"])
+        .assert()
+        .code(2)
+        .stderr(contains("not a point on the earth"))
+        .stderr(contains("-90 to 90"))
+        .stderr(contains("-180 to 180"))
+        .stderr(contains("looks up no addresses").not());
+}
+
+/// Half a pair. The comma is the whole answer.
+#[test]
+fn near_one_value_asks_for_the_second() {
+    blibs()
+        .args(["libraries", "--near", "52.52"])
+        .assert()
+        .code(2)
+        .stderr(contains("needs a latitude and a longitude"))
+        .stderr(contains("separate the two with a comma"));
+}
+
+/// A typo in a shortcode is a library question, and gets the library list's own answer —
+/// the same `did you mean` `--at` gives, rather than a lecture about coordinates.
+#[test]
+fn near_a_typo_in_a_shortcode_suggests_the_library() {
+    blibs()
+        .args(["libraries", "--near", "STABI2"])
+        .assert()
+        .code(2)
+        .stderr(contains("unknown library"))
+        .stderr(contains("did you mean"))
+        .stderr(contains("STABI"));
+}
+
+/// An unset shell variable is the likely cause, and the message says so rather than
+/// behaving as though the flag had not been given.
+#[test]
+fn an_empty_flag_value_is_a_usage_error() {
+    blibs()
+        .args(["search", "Kafka", "--title", ""])
+        .assert()
+        .code(2)
+        .stderr(contains("--title was given an empty value"))
+        .stderr(contains("shell variable"));
+    blibs()
+        .args(["search", "Kafka", "--at", ""])
+        .assert()
+        .code(2)
+        .stderr(contains("--at was given an empty value"));
+}
+
+/// The kind is what an agent switches on, and `usage` told it only that *something* was
+/// wrong. The hint was missing entirely, and the message carried the renderer's own
+/// `error:` prefix inside the data field.
+#[test]
+fn a_bad_language_code_is_a_named_kind_in_json() {
+    let output = blibs()
+        .args(["search", "Kafka", "--language", "de", "--json"])
+        .assert()
+        .code(2)
+        .get_output()
+        .stderr
+        .clone();
+    let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+    let value: serde_json::Value = serde_json::from_str(&text).expect("one JSON document");
+    assert_eq!(value["error"]["kind"], "invalid_language");
+    assert_eq!(value["error"]["code"], 2);
+    let message = value["error"]["message"].as_str().unwrap_or_default();
+    assert!(message.starts_with("--language takes"), "{message}");
+    assert!(!message.contains("error:"), "{message}");
+    let hint = value["error"]["hint"].as_str().unwrap_or_default();
+    assert!(hint.contains("--language ger"), "{hint}");
+}
+
+/// The same in human form: one `error:` prefix, not two.
+#[test]
+fn a_bad_language_code_prints_one_error_prefix() {
+    let output = blibs()
+        .args(["search", "Kafka", "--language", "de"])
+        .assert()
+        .code(2)
+        .get_output()
+        .stderr
+        .clone();
+    let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+    let first = text.lines().next().unwrap_or_default();
+    assert!(first.starts_with("error: --language takes"), "{first:?}");
+    assert_eq!(first.matches("error:").count(), 1, "{first:?}");
 }
 
 /// `libraries --json` is one array of objects, and it parses.

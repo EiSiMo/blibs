@@ -459,13 +459,26 @@ fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize) -> Outcome {
     // saying "hits exist" would be a statement about records that do not exist. The
     // per-location counts are the ones to read — with several locations there is no joint
     // total, and with only `voebb` there never was one.
-    if !plan.locations.is_empty() && counts_hits(result) {
-        return Outcome::Empty(EmptyReason::NoHoldings {
-            locations: plan
-                .locations
-                .iter()
-                .map(|location| location.key.clone())
-                .collect(),
+    //
+    // A location that counts zero is nonetheless not the same as an empty catalogue: the
+    // words were never tried anywhere else, so "try fewer or more general words" would
+    // send the user to weaken a search that may be exactly right. What that case gets is
+    // its own reason, which names the restriction and stops there — there is no
+    // unfiltered count to compare against, and asking for one would be a second request
+    // made purely to word a message.
+    if !plan.locations.is_empty() {
+        let locations = plan
+            .locations
+            .iter()
+            .map(|location| location.key.clone())
+            .collect();
+        return Outcome::Empty(if counts_hits(result) {
+            EmptyReason::NoHoldings { locations }
+        } else {
+            EmptyReason::NoHitsAtLocations {
+                terms: plan.terms_echo.clone(),
+                locations,
+            }
         });
     }
     Outcome::Empty(EmptyReason::NoHits {

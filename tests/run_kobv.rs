@@ -566,7 +566,7 @@ fn an_empty_location_search_does_not_claim_hits_exist() {
         ran.out
     );
     assert!(
-        ran.err.contains("no results for \"Zzzzz\""),
+        ran.err.contains("no results for Zzzzz at HU"),
         "{:?}",
         ran.err
     );
@@ -575,6 +575,18 @@ fn an_empty_location_search_does_not_claim_hits_exist() {
         "nothing was found, so nothing exists to be held: {:?}",
         ran.err
     );
+    // The restriction is what to loosen. Weakening the words instead is the advice the
+    // unrestricted search gets, and it would send this user to spoil a good query.
+    assert!(
+        ran.err.contains("drop it to ask the whole region"),
+        "{:?}",
+        ran.err
+    );
+    assert!(!ran.err.contains("more general words"), "{:?}", ran.err);
+    // `--at` filters upstream, so nothing here ever looked outside HU.
+    for claim in ["elsewhere", "other libraries"] {
+        assert!(!ran.err.contains(claim), "{claim:?} claimed: {:?}", ran.err);
+    }
 }
 
 /// Nothing at all upstream is the other exit 1, and it reads differently.
@@ -584,9 +596,11 @@ fn an_empty_catalogue_answer_is_no_hits() {
     let ran = invoke(&["search", "Zzzzz"], &fetch);
 
     assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(ran.err.contains("no results for Zzzzz"), "{:?}", ran.err);
+    assert!(ran.err.contains("more general words"), "{:?}", ran.err);
     assert!(
-        ran.err.contains("no results for \"Zzzzz\""),
-        "{:?}",
+        !ran.err.contains("--at"),
+        "no --at was given: {:?}",
         ran.err
     );
     assert!(ran.out.is_empty());
@@ -752,6 +766,34 @@ fn a_rejected_query_keeps_exit_five() {
 
     assert_eq!(ran.exit(), ExitCode::Rejected);
     assert!(ran.out.is_empty());
+}
+
+/// `--page 5000` is refused by the catalogue as `1/61`, and the only thing that helps is
+/// a smaller `--page`. The generic advice — "try simpler search words" — sends the user
+/// to rewrite a query that was never the problem.
+#[test]
+fn a_window_past_the_last_result_says_to_lower_the_page() {
+    let fetch = FixtureFetch::new().fallback("kobv/sru/out_of_range.xml");
+    let ran = invoke(
+        &["search", "Kafka", "--limit", "5", "--page", "5000"],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Rejected);
+    assert!(ran.out.is_empty());
+    let Err(error) = ran.outcome else {
+        panic!("a refused window is an error, not an empty result");
+    };
+    assert_eq!(error.kind(), "query_rejected");
+    assert!(
+        error
+            .to_string()
+            .contains("First record position out of range"),
+        "{error}"
+    );
+    let hint = error.hint().unwrap_or_default();
+    assert!(hint.contains("lower --page"), "{hint}");
+    assert!(!hint.contains("simpler search words"), "{hint}");
 }
 
 /// The `filtered.xml` envelope with its first record delivered a second time — what

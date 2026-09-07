@@ -438,19 +438,24 @@ fn block_heading(block: &Block<'_>, filtered: bool) -> String {
     }
 }
 
-/// `774 results for "Kafka Prozess" · showing 1-10`.
+/// `774 results for Kafka Prozess · showing 1-10`.
 ///
 /// The footer always names the true total, so that a short page does not read like a
 /// short result.
 ///
+/// The echo is printed as it was assembled and is **not** quoted again here: the quotes
+/// a phrase carries (`6913 results for "Der Prozess"`) are the only place a reader can
+/// see that it was searched as a phrase, and a second layer of them hid exactly that
+/// signal behind `"\"Der Prozess\""`.
+///
 /// After `--available` the range is dropped for a count —
-/// `774 results for "Kafka Prozess" · 3 available on this page`. The survivors are not
+/// `774 results for Kafka Prozess · 3 available on this page`. The survivors are not
 /// hits 1 to 3 but three of the ten on this page, and a range would suggest exactly the
 /// completeness `plan/cli.md` § *Für beide Formen* forbids.
 fn flat_heading(result: &SearchResult, shown: usize, filtered: bool) -> String {
     let terms = &result.query.terms;
     let total = result.total.unwrap_or(shown as u64);
-    let head = format!("{} for {terms:?}", results(total));
+    let head = format!("{} for {terms}", results(total));
     if shown == 0 {
         return head;
     }
@@ -1425,6 +1430,71 @@ mod tests {
         String::from_utf8(out).expect("the renderer writes UTF-8")
     }
 
+    fn rendered_error(error: &Error) -> String {
+        let mut out = Vec::new();
+        super::error(error, &mut out, Style::plain(WIDE)).expect("a vector accepts bytes");
+        String::from_utf8(out).expect("the renderer writes UTF-8")
+    }
+
+    /// Nothing exercised this renderer, and so `error: error: --language takes …` went
+    /// out: the prefix belongs to the renderer, and a variant whose own `Display` carries
+    /// one prints it twice.
+    ///
+    /// `UsageError::Cli` is the single exemption, and it is exempt because it never
+    /// arrives here: clap's `Display` does begin with `error:`, which is exactly why
+    /// `main::refused` lets clap print it and nothing in the library raises one.
+    #[test]
+    fn an_error_line_carries_exactly_one_prefix() {
+        for error in crate::error::every_variant_for_tests() {
+            if matches!(error, Error::Usage(crate::error::UsageError::Cli(_))) {
+                continue;
+            }
+            let rendered = rendered_error(&error);
+            let first = rendered.lines().next().unwrap_or_default();
+            let Some(rest) = first.strip_prefix("error: ") else {
+                panic!("no prefix on {first:?}");
+            };
+            assert!(!rest.starts_with("error: "), "doubled prefix on {first:?}");
+            assert!(!rest.trim().is_empty(), "empty message on {first:?}");
+        }
+    }
+
+    /// The guard above only has teeth if it fails on the shape the bug had: a variant
+    /// whose own `Display` already begins with the prefix.
+    #[test]
+    fn the_prefix_guard_catches_a_display_that_prefixes_itself() {
+        let doubled = rendered_error(&Error::Usage(crate::error::UsageError::Cli(
+            clap::Error::raw(
+                clap::error::ErrorKind::InvalidValue,
+                "--language takes a three-letter code\n",
+            ),
+        )));
+        let first = doubled.lines().next().unwrap_or_default();
+        assert!(
+            first
+                .strip_prefix("error: ")
+                .is_some_and(|rest| rest.starts_with("error: ")),
+            "{first:?}"
+        );
+    }
+
+    /// The shape of the whole thing, message and indented next step, on the variant that
+    /// used to have neither a usable kind nor a hint.
+    #[test]
+    fn an_error_prints_its_message_and_its_hint_underneath() {
+        let error: Error = crate::error::UsageError::LanguageCode {
+            input: "de".to_owned(),
+        }
+        .into();
+        assert_eq!(
+            rendered_error(&error),
+            "error: --language takes a three-letter ISO-639-2/B code as the records carry it \
+             (ger, eng, fre — not de and not German), got \"de\"\n       the records carry \
+             bibliographic codes, not the everyday ones: --language ger for German, eng for \
+             English, fre for French\n"
+        );
+    }
+
     fn rendered_show(record: &Record, locations: &[Location]) -> String {
         rendered_show_at(record, locations, WIDE)
     }
@@ -1636,7 +1706,7 @@ AGB (VÖBB) · 35 results · showing 2
         )];
         let result = result("Kafka Prozess", Some(774), vec![first, second, third]);
         let expected = "\
-774 results for \"Kafka Prozess\" · showing 1-3
+774 results for Kafka Prozess · showing 1-3
 
   1 ●  Der Prozess                             Kafka, Franz     1953  almafu_BV008885798
   2 ◐  Der Process : Roman                     Kafka, Franz     1990  b3kat_BV005550341
@@ -1757,13 +1827,13 @@ AGB (VÖBB) · 35 results · showing 2
         result.limit = 10;
 
         assert!(
-            rendered(&result, &[]).starts_with("774 results for \"Kafka Prozess\" · showing 1-3\n")
+            rendered(&result, &[]).starts_with("774 results for Kafka Prozess · showing 1-3\n")
         );
 
         result.window.before_available = Some(10);
         assert!(
             rendered(&result, &[])
-                .starts_with("774 results for \"Kafka Prozess\" · 3 available on this page\n")
+                .starts_with("774 results for Kafka Prozess · 3 available on this page\n")
         );
     }
 

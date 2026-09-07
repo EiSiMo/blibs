@@ -42,7 +42,9 @@ impl Term {
     }
 
     /// Whether the term carries no text at all. An argument of only whitespace produces
-    /// one of these, and `cli` rejects a query that is empty after they are dropped.
+    /// one of these, and `cli` refuses it outright — an empty value is nearly always a
+    /// shell variable that did not expand, and a search without it answers a different
+    /// question.
     pub fn is_empty(&self) -> bool {
         self.text().is_empty()
     }
@@ -95,7 +97,8 @@ impl QuerySpec {
     ///
     /// Checked in `cli` before the first byte goes out: an empty query is diagnostic
     /// 1/10 upstream, which would surface as exit 5 for what is plainly a usage error.
-    /// Free terms that are only whitespace do not count as content.
+    /// This is the "you gave me nothing at all" case — a value that was *given* but is
+    /// empty is refused earlier, by name, in `cli::validate`.
     pub fn is_empty(&self) -> bool {
         self.terms.iter().all(Term::is_empty)
             && self.title.is_none()

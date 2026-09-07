@@ -94,6 +94,7 @@ curl -sS -A "$UA" --compressed -G "$S" \
 | `unknown_id.xml` | `x-pquery=@attr 1=12 almafu_BV000000000`, `maximumRecords=1` | `numberOfRecords=0` — well-formed id, no such record: empty, not an error |
 | `filtered.xml` | `x-pquery=@and @attr 1=4 "Harry Potter" @attr 1=1044 DE-11`, `maximumRecords=3` | `numberOfRecords=230` (matches the A.4a measurement exactly), 3 records — evidence for the `1044` ISIL filter |
 | `pqf_diag_truncation.xml` | `x-pquery=@attr 1=4 @attr 5=1 Harr` | diagnostic `1/48` "Right truncation not supported" |
+| `out_of_range.xml` | `x-pquery=@attr 1=1016 "Kafka"`, `startRecord=24996`, `maximumRecords=5` (fetched 2026-09-07) | `numberOfRecords=13410` **and** diagnostic `1/61` "First record position out of range" — the count is stated and the window is still refused, so this is a rejection, not an empty result |
 | `not_xml.html` | **synthetic, not fetched** | minimal `<html><body><h1>502 Proxy Error</h1></body></html>` — stands in for "HTTP 200 but not XML" |
 
 ```bash

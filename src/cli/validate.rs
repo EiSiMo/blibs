@@ -9,6 +9,7 @@
 //! | `--year` not four digits | `dc.date` knows four digits |
 //! | `--isbn` with a bad check digit | the index ignores it and returns the wrong book |
 //! | empty query | diagnostic 1/10 |
+//! | an empty value for any flag | almost always a shell variable that did not expand |
 //! | query over 1000 characters | HTTP 414, returned as diagnostic 1/2 |
 //! | unknown library in `--at` | with up to three suggestions |
 //! | `--limit` outside 1..=50 | SRU caps at 50 silently |
@@ -25,7 +26,7 @@ use crate::cli::{
 };
 use crate::engine::voebb;
 use crate::error::{Error, UsageError};
-use crate::libraries::{self, Branch, LatLon, Library};
+use crate::libraries::{self, Branch, LatLon, Library, NotAPoint};
 use crate::model::{
     AvailabilityMode, Engine, FetchWindow, Format, Identifier, Limit, Location, Page, QuerySpec,
     RecordId, SortKey, Term,
@@ -117,29 +118,46 @@ pub fn validate_show(args: &ShowArgs, json: bool, cache: bool) -> Result<ShowPla
 
 /// Validate a `libraries` invocation.
 ///
-/// `--near` is the only thing that can fail: it takes coordinates or a library, and
-/// blibs geocodes nothing. Anything else — an address, a typo — is
-/// [`UsageError::NearNeedsCoordinates`], whose hint names both accepted forms. The
-/// distinction between "unknown library" and "that is an address" is not one this
-/// function can make reliably, and guessing it would only produce two ways of saying the
-/// same thing.
+/// `--near` is where most of the refusing happens: it takes coordinates or a library,
+/// blibs geocodes nothing, and [`point`] tells the four ways of missing that apart. The
+/// two text arguments are only checked for being empty — a name that matches nothing is
+/// an ordinary empty result, not a usage error.
 pub fn validate_libraries(args: &LibrariesArgs, json: bool) -> Result<LibrariesPlan, Error> {
     let near = args.near.as_deref().map(str::trim).map(point).transpose()?;
     Ok(LibrariesPlan {
-        detail: args.key.as_deref().map(str::trim).map(str::to_owned),
-        find: args.find.as_deref().map(str::trim).map(str::to_owned),
+        detail: text_argument(args.key.as_deref(), "a library name")?,
+        find: text_argument(args.find.as_deref(), "--find")?,
         near,
         near_input: args.near.clone(),
         json,
     })
 }
 
+/// A plain text argument, trimmed, refused when it carries no text.
+///
+/// `blibs libraries --find "$NAME"` with `NAME` unset used to list nothing and say "no
+/// library matched", which is a true statement about the wrong question.
+fn text_argument(value: Option<&str>, named: &str) -> Result<Option<String>, UsageError> {
+    let Some(value) = value.map(str::trim) else {
+        return Ok(None);
+    };
+    if value.is_empty() {
+        return Err(empty_value(named));
+    }
+    Ok(Some(value.to_owned()))
+}
+
 /// Resolve a `--at` list, preserving order and rejecting the first unknown entry.
 ///
 /// Duplicates are dropped rather than refused: `--at hu,STABI,HU` is a shell alias plus a
 /// habit, not a mistake, and rendering the HU block twice would be worse than quietly
-/// showing it once. Empty entries — the trailing comma in `--at HU,` — are skipped for
-/// the same reason.
+/// showing it once.
+///
+/// An **empty** entry is not the same kind of harmless: `--at "$LIBS"` with `LIBS` unset
+/// searched the whole region, and `--at "HU,,FU"` quietly searched two libraries where
+/// the user believed they had named three. Both look like an ordinary answer, so both
+/// are refused here — including the trailing comma of `--at HU,`, which comes down the
+/// same path and cannot be told apart from a variable that expanded to nothing.
 ///
 /// Everything that survives carries the **canonical** ISIL from the list. The upstream
 /// holdings filter is case-sensitive, so forwarding the user's spelling would silently
@@ -149,7 +167,7 @@ pub fn locations(entries: &[String]) -> Result<Vec<Location>, UsageError> {
     for entry in entries {
         let typed = entry.trim();
         if typed.is_empty() {
-            continue;
+            return Err(empty_value("--at"));
         }
         let location = libraries::resolve(typed)?;
         if !resolved.contains(&location) {
@@ -194,28 +212,61 @@ pub fn split_by_engine(locations: &[Location]) -> Vec<(Engine, Vec<Location>)> {
 }
 
 /// Assemble the query from the free terms and the field flags.
+///
+/// Every value is refused when it carries no text: an empty one used to be dropped on
+/// the way through, and the search that ran without it was a *different* search wearing
+/// a plausible answer. See [`empty_value`].
 fn query(args: &SearchArgs) -> Result<QuerySpec, UsageError> {
     Ok(QuerySpec {
         terms: args
             .terms
             .iter()
-            .map(String::as_str)
-            .map(Term::from_argument)
-            .filter(|term| !term.is_empty())
-            .collect(),
-        title: args.title.as_deref().map(Term::from_argument),
-        subject: args.subject.as_deref().map(Term::from_argument),
-        publisher: args.publisher.as_deref().map(Term::from_argument),
+            .map(|argument| term(argument, "a search term"))
+            .collect::<Result<Vec<_>, _>>()?,
+        title: field(args.title.as_deref(), "--title")?,
+        subject: field(args.subject.as_deref(), "--subject")?,
+        publisher: field(args.publisher.as_deref(), "--publisher")?,
         // Never a `Term`: `--author` is always a word list, never a phrase.
-        author: args
-            .author
-            .as_deref()
-            .map(str::trim)
-            .filter(|name| !name.is_empty())
-            .map(str::to_owned),
+        author: author(args.author.as_deref())?,
         year: args.year.as_deref().map(year).transpose()?,
         identifier: args.isbn.as_deref().map(identifier).transpose()?,
     })
+}
+
+/// One search word or phrase, refused when the argument holds no text.
+fn term(argument: &str, named: &str) -> Result<Term, UsageError> {
+    let term = Term::from_argument(argument);
+    if term.is_empty() {
+        return Err(empty_value(named));
+    }
+    Ok(term)
+}
+
+/// The value of a field flag that is searched as a word or a phrase.
+fn field(value: Option<&str>, flag: &str) -> Result<Option<Term>, UsageError> {
+    value.map(|value| term(value, flag)).transpose()
+}
+
+/// `--author`, kept as a raw string because it is always searched as a word list.
+fn author(value: Option<&str>) -> Result<Option<String>, UsageError> {
+    let Some(name) = value.map(str::trim) else {
+        return Ok(None);
+    };
+    if name.is_empty() {
+        return Err(empty_value("--author"));
+    }
+    Ok(Some(name.to_owned()))
+}
+
+/// A value the user gave that carries no text at all.
+///
+/// Almost always `--at "$LIBS"` or `--title "$Q"` with the variable unset. Dropping it
+/// answered a question the user did not ask, with an answer that looks right — so it is
+/// an exit 2 here, before anything goes out, and the hint names the likely cause.
+fn empty_value(flag: &str) -> UsageError {
+    UsageError::EmptyValue {
+        flag: flag.to_owned(),
+    }
 }
 
 /// Every piece of query text the user typed, in the order the flags are declared.
@@ -334,17 +385,23 @@ fn format(value: &str) -> Result<Format, UsageError> {
 ///
 /// Bibliographic codes, not the two-letter ones: the records carry `ger`, so `de` would
 /// match nothing at all and look like an empty shelf rather than a wrong flag.
+/// Its own [`UsageError`] variant rather than a `clap::Error`: the clap wrapper carries
+/// the `usage` kind and no hint at all, so an agent reading the JSON got neither a tag it
+/// could switch on nor a next step — and the terminal printed `error:` twice, once from
+/// clap's own `Display` and once from the renderer.
 fn language(value: &str) -> Result<String, UsageError> {
     let code = value.trim().to_ascii_lowercase();
+    if code.is_empty() {
+        return Err(empty_value("--language"));
+    }
     let well_formed =
         code.len() == LANGUAGE_CODE_LEN && code.chars().all(|c| c.is_ascii_lowercase());
     if well_formed {
         Ok(code)
     } else {
-        Err(invalid_value(format!(
-            "--language takes a three-letter ISO-639-2/B code as the records carry it \
-             (ger, eng, fre — not de and not German), got {value:?}"
-        )))
+        Err(UsageError::LanguageCode {
+            input: value.to_owned(),
+        })
     }
 }
 
@@ -443,11 +500,21 @@ fn check_flag_conflicts(args: &SearchArgs) -> Result<(), UsageError> {
     Ok(())
 }
 
-/// The invocation echoed back in one string.
+/// The invocation echoed back in one string, for headings and for `query.terms`.
 ///
-/// The free terms when there are any. A search built from field flags alone echoes as
-/// those flags instead — `query.terms` has to reproduce the search, and an empty string
-/// would read as "you searched for nothing" in the message for exit 1.
+/// The free terms when there are any, with the quotes that made a phrase one — those
+/// quotes are the only place a reader can see that `"Der Prozess"` was searched as a
+/// phrase and not as two and-ed words, so they stay.
+///
+/// A search built from field flags alone has no free terms, and is summarised by field
+/// instead — `title: Prozess, author: Kafka, year: 1953`. It used to be rebuilt as a
+/// command line, `--title Prozess --author Kafka`, which read as a complaint about the
+/// flags rather than as an echo of the search. This is a label, not something to paste
+/// back: the flags themselves are still in the user's shell history.
+///
+/// The fields are joined with a comma and not with the ` · ` the rest of the output uses,
+/// because the heading already puts that separator around the echo: `… · showing 1-1`
+/// would read as one more field.
 fn echo(args: &SearchArgs, query: &QuerySpec) -> String {
     let free = query.echo();
     if !free.is_empty() {
@@ -455,19 +522,12 @@ fn echo(args: &SearchArgs, query: &QuerySpec) -> String {
     }
     query_text(args)
         .into_iter()
-        .filter(|(flag, _)| !flag.is_empty())
-        .map(|(flag, value)| format!("{flag} {}", requote(value)))
+        // A free term carries no flag, and there are none left here anyway — the empty
+        // name is what distinguishes the two in `query_text`.
+        .filter_map(|(flag, value)| Some((flag.strip_prefix("--")?, value)))
+        .map(|(field, value)| format!("{field}: {value}"))
         .collect::<Vec<_>>()
-        .join(" ")
-}
-
-/// Put back the quotes the shell removed, so the echo can be pasted onto a command line.
-fn requote(value: &str) -> String {
-    if value.chars().any(char::is_whitespace) {
-        format!("\"{value}\"")
-    } else {
-        value.to_owned()
-    }
+        .join(", ")
 }
 
 /// Whether availability is fetched, from the negative flag.
@@ -481,18 +541,52 @@ fn availability(no_availability: bool) -> AvailabilityMode {
 
 /// The point `--near` names: coordinates, or the position of a library.
 ///
-/// Every failure is the same one — blibs geocodes nothing — so an address and a typo'd
-/// short name get the same answer, which names both accepted forms.
+/// Four ways to get this wrong, four answers — they used to share one, which told a user
+/// who had typed `91,181` to give coordinates. What blibs cannot do is geocode, and only
+/// the last of the four is actually that:
+///
+/// - two numbers outside the earth's ranges: name the ranges,
+/// - one number where a pair is needed: name the comma,
+/// - a shortcode with a typo: the library list's own `did you mean`,
+/// - free text: the one case where "blibs looks up no addresses" is the answer.
 fn point(input: &str) -> Result<LatLon, UsageError> {
-    if let Some(point) = LatLon::parse(input) {
-        return Ok(point);
+    if input.trim().is_empty() {
+        return Err(empty_value("--near"));
     }
-    libraries::resolve(input)
-        .ok()
-        .and_then(|location| coordinates(&location))
-        .ok_or_else(|| UsageError::NearNeedsCoordinates {
+    match LatLon::parse(input) {
+        Ok(point) => Ok(point),
+        Err(NotAPoint::OutOfRange) => Err(UsageError::NearCoordinatesOutOfRange {
             input: input.to_owned(),
-        })
+        }),
+        Err(NotAPoint::OnlyOneValue) => Err(UsageError::NearNeedsTwoValues {
+            input: input.to_owned(),
+        }),
+        Err(NotAPoint::NotCoordinates) => locate(input),
+    }
+}
+
+/// Where a library the user named sits — or why the name was not one.
+///
+/// A near-miss on a shortcode is answered with the list's own suggestions, the same
+/// `did you mean STABI?` that `--at` gives: someone who typed `STABI2` was reaching for a
+/// library, and telling them about coordinates sends them somewhere else entirely. Only
+/// when nothing in the list is close does the geocoding answer apply.
+///
+/// A library that resolves but has no usable coordinates falls through to the same
+/// answer, because from the user's side the effect is identical: this name cannot place
+/// them on the map.
+fn locate(input: &str) -> Result<LatLon, UsageError> {
+    match libraries::resolve(input) {
+        Ok(location) => coordinates(&location).ok_or_else(|| UsageError::NearNeedsCoordinates {
+            input: input.to_owned(),
+        }),
+        Err(UsageError::UnknownLibrary { input, suggestions }) if !suggestions.is_empty() => {
+            Err(UsageError::UnknownLibrary { input, suggestions })
+        }
+        Err(_) => Err(UsageError::NearNeedsCoordinates {
+            input: input.to_owned(),
+        }),
+    }
 }
 
 /// Where a resolved location sits. A branch has its own coordinates and they are the
@@ -512,23 +606,17 @@ fn coordinates(location: &Location) -> Option<LatLon> {
 /// which the tests below prevent. It is still an error rather than a panic: nothing on a
 /// path reachable from user input may panic, and a wrong value is a usage error whichever
 /// side put it there.
+///
+/// It carries its own variant rather than a fabricated `clap::Error`. Nothing in the
+/// library raises one of those: clap's `Display` already begins with `error:`, so a
+/// wrapper printed through the ordinary renderer said it twice, and its `kind` is the
+/// catch-all `usage` with no hint at all.
 fn unreachable_value(flag: &str, got: &str, expected: &[&str]) -> UsageError {
-    invalid_value(format!(
-        "{flag} does not accept {got:?}; expected one of {}",
-        expected.join(", ")
-    ))
-}
-
-/// Wrap a message as the same kind of error clap raises for a bad value, so that the
-/// terminal shows it in the shape a user already knows from every other flag.
-fn invalid_value(mut message: String) -> UsageError {
-    // clap prints the message verbatim; the trailing newline is what separates it from
-    // the usage line clap appends underneath.
-    message.push('\n');
-    UsageError::Cli(clap::Error::raw(
-        clap::error::ErrorKind::InvalidValue,
-        message,
-    ))
+    UsageError::UnsupportedValue {
+        flag: flag.to_owned(),
+        got: got.to_owned(),
+        expected: expected.join(", "),
+    }
 }
 
 #[cfg(test)]
@@ -638,7 +726,7 @@ mod tests {
             plan.query.identifier,
             Some(Identifier::Isbn("9783596294336".to_owned()))
         );
-        assert_eq!(plan.terms_echo, "--isbn 978-3-596-29433-6");
+        assert_eq!(plan.terms_echo, "isbn: 978-3-596-29433-6");
     }
 
     /// An ISSN is passed on, where the check digit is significant upstream.
@@ -651,13 +739,87 @@ mod tests {
         );
     }
 
+    /// A search made of field flags alone is *summarised*, not rebuilt as a command
+    /// line: `13 results for "--title Prozess --author Kafka --year 1953"` read as a
+    /// complaint about the flags rather than as an echo of the search.
+    #[test]
+    fn a_flags_only_search_echoes_as_a_summary_of_its_fields() {
+        let plan = search(&[
+            "search", "--title", "Prozess", "--author", "Kafka", "--year", "1953",
+        ])
+        .expect("a query made of flags");
+        assert_eq!(plan.terms_echo, "title: Prozess, author: Kafka, year: 1953");
+    }
+
+    /// The quotes a phrase carries are the only place a reader sees that it was searched
+    /// as a phrase, so the echo keeps them — and carries them exactly once. Formatting
+    /// this string again with `{:?}` produced `"\"Der Prozess\""`, which hid the very
+    /// signal the quotes are there to give.
+    #[test]
+    fn the_echo_quotes_a_phrase_once_and_a_word_not_at_all() {
+        let plan = search(&["search", "Der Prozess"]).expect("a phrase");
+        assert_eq!(plan.terms_echo, "\"Der Prozess\"");
+
+        let plan = search(&["search", "Kafka", "Prozess"]).expect("two words");
+        assert_eq!(plan.terms_echo, "Kafka Prozess");
+    }
+
     /// An empty query is diagnostic 1/10 upstream, which would surface as exit 5 for
-    /// what is plainly a usage error. Whitespace-only arguments do not count as content.
+    /// what is plainly a usage error. "Empty" here means nothing was given at all — an
+    /// argument that *was* given and holds no text is the sharper `empty_value`.
     #[test]
     fn an_empty_query_is_refused() {
         assert_eq!(usage_kind(&["search"]), "empty_query");
-        assert_eq!(usage_kind(&["search", "   "]), "empty_query");
         assert_eq!(usage_kind(&["search", "--at", "HU"]), "empty_query");
+    }
+
+    /// Every value the user can give is refused when it carries no text, whatever else
+    /// the invocation holds: dropping it left a search that ran, looked ordinary, and
+    /// answered a different question. `--year` and `--isbn` are covered by their own
+    /// stricter checks and keep those.
+    #[test]
+    fn an_empty_value_is_refused_for_every_flag_that_takes_text() {
+        let cases: [&[&str]; 7] = [
+            &["search", "   "],
+            &["search", "Kafka", ""],
+            &["search", "Kafka", "--title", ""],
+            &["search", "Kafka", "--author", " "],
+            &["search", "Kafka", "--subject", ""],
+            &["search", "Kafka", "--publisher", ""],
+            &["search", "Kafka", "--language", ""],
+        ];
+        for args in cases {
+            assert_eq!(usage_kind(args), "empty_value", "{args:?}");
+        }
+    }
+
+    /// The message has to name the flag, or a user with three of them expanded from
+    /// variables cannot tell which one was empty.
+    #[test]
+    fn an_empty_value_names_the_flag_and_the_likely_cause() {
+        let Err(error) = search(&["search", "Kafka", "--title", ""]) else {
+            panic!("an empty --title must be refused");
+        };
+        assert_eq!(error.to_string(), "--title was given an empty value");
+        let hint = error.hint().unwrap_or_default();
+        assert!(hint.contains("--title"), "{hint}");
+        assert!(hint.contains("shell variable"), "{hint}");
+    }
+
+    /// `libraries` takes text too, and an unset variable there produced "no library
+    /// matched" — a true answer to a question nobody asked.
+    #[test]
+    fn the_libraries_command_refuses_empty_text_too() {
+        for args in [
+            vec!["libraries", "--find", ""],
+            vec!["libraries", "  "],
+            vec!["libraries", "--near", " "],
+        ] {
+            let Err(error) = libraries_plan(&args) else {
+                panic!("{args:?} must be refused");
+            };
+            assert_eq!(error.kind(), "empty_value", "{args:?}");
+        }
     }
 
     #[test]
@@ -722,11 +884,18 @@ mod tests {
         assert_eq!(plan.locations[0].isil.as_str(), "DE-11");
     }
 
-    /// A trailing comma is a typo in the shell, not an unknown library.
+    /// `--at "$LIBS"` with the variable unset used to search the whole region, and
+    /// `--at HU,,FU` used to search two of the three libraries the user named. Both
+    /// answers look ordinary, which is what makes them worth refusing.
     #[test]
-    fn empty_at_entries_are_skipped() {
-        let plan = search(&["search", "Kafka", "--at", "HU,"]).expect("known libraries");
-        assert_eq!(plan.locations.len(), 1);
+    fn an_empty_at_entry_is_refused() {
+        for value in ["", "HU,,FU", "HU,", " "] {
+            assert_eq!(
+                usage_kind(&["search", "Kafka", "--at", value]),
+                "empty_value",
+                "{value:?}"
+            );
+        }
     }
 
     /// Every location belongs to exactly one engine, and mixing them runs both.
@@ -1042,15 +1211,34 @@ mod tests {
         assert!(plan.json);
     }
 
+    /// Its own kind, not clap's catch-all `usage`: an agent switches on the kind, and
+    /// `usage` told it only that *something* about the command line was wrong. The hint
+    /// is the other half — the clap wrapper had none at all.
     #[test]
     fn a_language_must_be_a_three_letter_code() {
-        for value in ["de", "german", "g3r"] {
+        for value in ["de", "german", "g3r", "GER1"] {
             assert_eq!(
                 usage_kind(&["search", "Kafka", "--language", value]),
-                "usage",
+                "invalid_language",
                 "{value}"
             );
         }
+        let Err(error) = search(&["search", "Kafka", "--language", "de"]) else {
+            panic!("a two-letter code must be refused");
+        };
+        assert!(error.to_string().contains("three-letter"), "{error}");
+        assert!(!error.to_string().contains("error:"), "{error}");
+        assert!(
+            error.hint().unwrap_or_default().contains("--language ger"),
+            "{error}"
+        );
+    }
+
+    /// The codes the records actually carry, in the case the index wants.
+    #[test]
+    fn a_three_letter_code_is_normalised_to_lowercase() {
+        let plan = search(&["search", "Kafka", "--language", "GER"]).expect("a valid code");
+        assert_eq!(plan.filters.language.as_deref(), Some("ger"));
     }
 
     /// clap and the tables in this module must not drift apart, or a legal value would
@@ -1210,10 +1398,17 @@ mod tests {
         assert!(help.contains("geocodes nothing"), "{help}");
     }
 
-    /// The one thing `unreachable_value` must do is stay an error rather than a panic.
+    /// The one thing `unreachable_value` must do is stay an error rather than a panic —
+    /// and, since it is printed through the ordinary renderer, carry a kind and a hint of
+    /// its own rather than clap's catch-all.
     #[test]
     fn a_drifted_value_is_an_error_not_a_panic() {
         let error = sort_key(Some("nonsense")).expect_err("not an advertised value");
-        assert_eq!(error.kind(), "usage");
+        assert_eq!(error.kind(), "unsupported_value");
+        assert!(error.to_string().contains("--sort"), "{error}");
+        assert!(
+            error.hint().unwrap_or_default().contains("bug in blibs"),
+            "{error}"
+        );
     }
 }

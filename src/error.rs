@@ -81,8 +81,8 @@ impl Outcome {
     }
 }
 
-/// Why a run produced no records. Never collapsed into a bare "no results": the six
-/// reasons call for six different next steps, and only `NoHits` means the catalogue
+/// Why a run produced no records. Never collapsed into a bare "no results": the seven
+/// reasons call for seven different next steps, and only `NoHits` means the catalogue
 /// really has nothing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EmptyReason {
@@ -90,6 +90,19 @@ pub enum EmptyReason {
     NoHits {
         /// The query as the user typed it, echoed back.
         terms: String,
+    },
+    /// The same, but with `--at` in play: the search that came back empty was a
+    /// *restricted* one, so widening the words is the wrong advice — widening the
+    /// locations is the right one.
+    ///
+    /// It says nothing about whether the title exists elsewhere, and must not: `--at`
+    /// filters upstream (`@attr 1=1044`), so there is no unfiltered count to compare
+    /// against and asking for one would be a second request nobody wanted.
+    NoHitsAtLocations {
+        /// The query as the user typed it, echoed back.
+        terms: String,
+        /// The `--at` locations, as the user wrote them.
+        locations: Vec<String>,
     },
     /// Records were fetched, but a client-side filter removed all of them. Carries the
     /// window size so the output can say that only the fetched records were seen.
@@ -165,9 +178,17 @@ impl EmptyReason {
     pub fn message(&self) -> String {
         match self {
             EmptyReason::NoHits { terms } => format!(
-                "no results for {terms:?}\n\
+                "no results for {terms}\n\
                  try fewer or more general words — the catalogue matches whole words, not fragments"
             ),
+            EmptyReason::NoHitsAtLocations { terms, locations } => {
+                let locations = locations.join(", ");
+                format!(
+                    "no results for {terms} at {locations}\n\
+                     the search was restricted to {locations} — name more libraries in --at, \
+                     or drop it to ask the whole region"
+                )
+            }
             EmptyReason::FilteredOut {
                 total,
                 fetched,
@@ -236,9 +257,16 @@ impl EmptyReason {
                      run the same search without --at to see who else holds it"
                 )
             }
+            // The prefixes are named because an id whose prefix is none of them is
+            // almost certainly not an id at all — and blibs cannot say so itself: an
+            // unknown prefix is routed to KOBV on purpose (`model::id`), because sources
+            // come and go and a fixed list of known ones would go stale. So the list is
+            // offered as examples, never as the complete set.
             EmptyReason::NoSuchRecord { id } => format!(
                 "no such record: {id}\n\
-                 record ids come from the search output and change when a record is merged upstream"
+                 record ids come from the search output and carry the prefix of the source \
+                 they came from — almafu_, almahu_, kobvindex_, gbv_, b3kat_ and voebb_ are \
+                 among them; they also change when a record is merged upstream"
             ),
             EmptyReason::NoLibraryMatched { query } => format!(
                 "no library matched {query:?}\n\
@@ -367,6 +395,26 @@ pub enum UsageError {
         /// Which part of the ISBN is wrong.
         problem: IsbnProblem,
     },
+    /// `--language` was given something that is not a bibliographic language code.
+    #[error(
+        "--language takes a three-letter ISO-639-2/B code as the records carry it \
+         (ger, eng, fre — not de and not German), got {input:?}"
+    )]
+    LanguageCode {
+        /// What the user typed.
+        input: String,
+    },
+    /// A flag, or a search term, was given a value with no text in it.
+    ///
+    /// Never dropped silently: an empty value almost always comes from a shell variable
+    /// that did not expand, and the search that runs without it looks plausible while
+    /// answering a different question than the one asked.
+    #[error("{flag} was given an empty value")]
+    EmptyValue {
+        /// The flag as spelled on the command line — or `a search term` for a positional
+        /// argument, which has no flag to name.
+        flag: String,
+    },
     /// An empty query is diagnostic 1/10 upstream.
     #[error("empty query")]
     EmptyQuery,
@@ -431,13 +479,46 @@ pub enum UsageError {
         /// What the user typed.
         input: String,
     },
+    /// `--near` was given two numbers that are not a place on the earth.
+    ///
+    /// Its own variant because "give coordinates" is absurd advice for someone who gave
+    /// coordinates: what they need is the range they left.
+    #[error("--near {input:?} is not a point on the earth")]
+    NearCoordinatesOutOfRange {
+        /// What the user typed.
+        input: String,
+    },
+    /// `--near` was given one number where a pair is needed — `52.52`, or `52.52,`.
+    #[error("--near needs a latitude and a longitude, got {input:?}")]
+    NearNeedsTwoValues {
+        /// What the user typed.
+        input: String,
+    },
     /// A record id that does not carry a source prefix.
     #[error("invalid record id {input:?}")]
     RecordId {
         /// What the user typed.
         input: String,
     },
+    /// A value the advertised list allows and the tables in `cli::validate` do not.
+    ///
+    /// Reachable only if the two drift apart, which the tests there prevent — so it reads
+    /// as a bug report, not as advice. It is still an error rather than a panic: nothing
+    /// on a path reachable from user input may panic.
+    #[error("{flag} does not accept {got:?}; expected one of {expected}")]
+    UnsupportedValue {
+        /// The flag, spelled as on the command line.
+        flag: String,
+        /// The value that arrived.
+        got: String,
+        /// The values the tables know, comma-separated.
+        expected: String,
+    },
     /// Anything clap itself rejected — unknown flag, unknown subcommand, missing value.
+    ///
+    /// Only ever built in `main`, from a real parse failure, and only ever printed by
+    /// clap: it is the one variant whose `Display` already carries an `error:` prefix and
+    /// whose usage line only clap can choose. Nothing inside the library raises it.
     #[error(transparent)]
     Cli(#[from] clap::Error),
 }
@@ -452,6 +533,8 @@ impl UsageError {
             UsageError::Range { .. } => "range_unsupported",
             UsageError::YearFormat { .. } => "invalid_year",
             UsageError::Isbn { .. } => "invalid_isbn",
+            UsageError::LanguageCode { .. } => "invalid_language",
+            UsageError::EmptyValue { .. } => "empty_value",
             UsageError::EmptyQuery => "empty_query",
             UsageError::QueryTooLong { .. } => "query_too_long",
             UsageError::LimitOutOfRange { .. } => "limit_out_of_range",
@@ -460,7 +543,10 @@ impl UsageError {
             UsageError::FlagUnsupportedByEngine { .. } => "unsupported_by_engine",
             UsageError::ConflictingFlags { .. } => "conflicting_flags",
             UsageError::NearNeedsCoordinates { .. } => "near_needs_coordinates",
+            UsageError::NearCoordinatesOutOfRange { .. } => "near_coordinates_out_of_range",
+            UsageError::NearNeedsTwoValues { .. } => "near_needs_two_values",
             UsageError::RecordId { .. } => "invalid_record_id",
+            UsageError::UnsupportedValue { .. } => "unsupported_value",
             UsageError::Cli(_) => "usage",
         }
     }
@@ -496,6 +582,15 @@ impl UsageError {
                     .to_string()
             }
             UsageError::Isbn { problem, .. } => problem.hint(),
+            UsageError::LanguageCode { .. } => {
+                "the records carry bibliographic codes, not the everyday ones: \
+                 --language ger for German, eng for English, fre for French"
+                    .to_string()
+            }
+            UsageError::EmptyValue { flag } => format!(
+                "an empty value is almost always a shell variable that did not expand — \
+                 check what {flag} was given, or leave it out"
+            ),
             UsageError::EmptyQuery => {
                 "give at least one search word, e.g. `blibs search Kafka Prozess`".to_string()
             }
@@ -528,11 +623,25 @@ impl UsageError {
                  or a library shortcode (--near HU)"
                     .to_string()
             }
+            UsageError::NearCoordinatesOutOfRange { .. } => {
+                "latitude runs from -90 to 90 and longitude from -180 to 180, \
+                 in that order — Berlin is around --near 52.52,13.41"
+                    .to_string()
+            }
+            UsageError::NearNeedsTwoValues { .. } => {
+                "separate the two with a comma, as in --near 52.52,13.41 — \
+                 or name a library instead, as in --near HU"
+                    .to_string()
+            }
             UsageError::RecordId { .. } => {
                 "a record id carries its catalogue prefix, e.g. almafu_BV008885798 or \
                  voebb_SAK13776205 — copy it from the search output"
                     .to_string()
             }
+            UsageError::UnsupportedValue { .. } => format!(
+                "blibs advertises a value its own tables do not accept — that is a bug in \
+                 blibs, please report it at {REPORT_URL}"
+            ),
             UsageError::Cli(_) => return None,
         };
         Some(hint)
@@ -741,6 +850,12 @@ impl RejectedError {
                 "1/48" => "this catalogue cannot truncate — search for whole words \
                            instead of using * or ?"
                     .to_string(),
+                // Nothing about the *words* is wrong here — the window is. Sending the
+                // user after simpler search words would have them rewrite a query that
+                // was fine.
+                "1/61" => "the window begins past the last result — lower --page, \
+                           or widen the search so there is more to page through"
+                    .to_string(),
                 "1/80" => format!(
                     "sorting is done in blibs over the fetched records, so the catalogue \
                      is never asked to sort — please report this at {REPORT_URL}"
@@ -943,23 +1058,33 @@ impl<'a> From<&'a Error> for ErrorEnvelope<'a> {
     }
 }
 
+/// One constructed example of every variant in the enum, split by category only so that
+/// neither half outgrows a readable function. The list is the test: a new variant that is
+/// not added here fails the uniqueness and hint checks in this module.
+///
+/// It sits outside `mod tests` so that `render` can hold its renderers to the same list.
+/// The doubled `error:` prefix on `--language de` survived a release because no test ever
+/// rendered an error at all, and a list of variants only the wording tests can see would
+/// have left that gap open.
+#[cfg(test)]
+pub fn every_variant_for_tests() -> Vec<Error> {
+    let mut all = tests::usage_variants();
+    all.extend(tests::remote_variants());
+    all
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeSet;
 
     use super::*;
 
-    /// One constructed example of every variant in the enum, split by category only so
-    /// that neither half outgrows a readable function. The list is the test: a new
-    /// variant that is not added here fails the uniqueness and hint checks below.
     fn all_variants() -> Vec<Error> {
-        let mut all = usage_variants();
-        all.extend(remote_variants());
-        all
+        every_variant_for_tests()
     }
 
     /// Everything the user can get wrong before a byte goes out.
-    fn usage_variants() -> Vec<Error> {
+    pub(super) fn usage_variants() -> Vec<Error> {
         vec![
             UsageError::UnknownLibrary {
                 input: "STABI2".to_string(),
@@ -1021,6 +1146,28 @@ mod tests {
                 input: "BV008885798".to_string(),
             }
             .into(),
+            UsageError::LanguageCode {
+                input: "de".to_string(),
+            }
+            .into(),
+            UsageError::EmptyValue {
+                flag: "--at".to_string(),
+            }
+            .into(),
+            UsageError::NearCoordinatesOutOfRange {
+                input: "91,181".to_string(),
+            }
+            .into(),
+            UsageError::NearNeedsTwoValues {
+                input: "52.52".to_string(),
+            }
+            .into(),
+            UsageError::UnsupportedValue {
+                flag: "--sort".to_string(),
+                got: "nonsense".to_string(),
+                expected: "relevance, year, title".to_string(),
+            }
+            .into(),
             UsageError::Cli(clap::Error::raw(
                 clap::error::ErrorKind::UnknownArgument,
                 "unexpected argument '--nope' found",
@@ -1030,7 +1177,7 @@ mod tests {
     }
 
     /// Everything that can go wrong once a request is on the wire.
-    fn remote_variants() -> Vec<Error> {
+    pub(super) fn remote_variants() -> Vec<Error> {
         vec![
             NetworkError::Transport {
                 host: "sru.kobv.de".to_string(),
@@ -1213,6 +1360,7 @@ mod tests {
             ("info:srw/diagnostic/1/4", "searchRetrieve"),
             ("info:srw/diagnostic/1/1", "backend gave up"),
             ("info:srw/diagnostic/1/2", "too long"),
+            ("info:srw/diagnostic/1/61", "lower --page"),
         ];
         let mut seen = BTreeSet::new();
         for (uri, expected) in cases {
@@ -1366,6 +1514,10 @@ mod tests {
             EmptyReason::NoHits {
                 terms: "Kafka Prozess".to_string(),
             },
+            EmptyReason::NoHitsAtLocations {
+                terms: "Kafka Prozess".to_string(),
+                locations: vec!["ASH".to_string()],
+            },
             EmptyReason::FilteredOut {
                 total: None,
                 fetched: 10,
@@ -1401,7 +1553,7 @@ mod tests {
             .message()
             .lines()
             .next(),
-            Some("no results for \"Kafka Prozess\"")
+            Some("no results for Kafka Prozess")
         );
         assert_eq!(
             EmptyReason::NoSuchRecord {
@@ -1412,6 +1564,47 @@ mod tests {
             .next(),
             Some("no such record: voebb_SAK13776205")
         );
+    }
+
+    /// `--at ASH` finding nothing is not the catalogue having nothing, and "try fewer or
+    /// more general words" would have the user weaken a search that may be exactly right.
+    /// What it must **not** do is claim the title exists elsewhere: `--at` filters
+    /// upstream, so nothing here ever counted the unrestricted search.
+    #[test]
+    fn an_empty_at_search_blames_the_restriction_and_claims_nothing_more() {
+        let message = EmptyReason::NoHitsAtLocations {
+            terms: "Versandhandelsmanagement".to_string(),
+            locations: vec!["ASH".to_string()],
+        }
+        .message();
+        assert!(message.starts_with("no results for Versandhandelsmanagement at ASH"));
+        assert!(message.contains("--at"), "{message}");
+        assert!(!message.contains("more general words"), "{message}");
+        for claim in ["elsewhere", "exists", "held", "other libraries"] {
+            assert!(!message.contains(claim), "{claim:?} claimed in: {message}");
+        }
+    }
+
+    /// A prefix that is none of these is almost certainly not an id at all — but the list
+    /// cannot be closed: `model::id` routes an unknown prefix to KOBV on purpose, because
+    /// sources come and go.
+    #[test]
+    fn no_such_record_names_the_prefixes_without_closing_the_list() {
+        let message = EmptyReason::NoSuchRecord {
+            id: RecordId::parse("foo_12345").expect("a prefixed id"),
+        }
+        .message();
+        for prefix in [
+            "almafu_",
+            "almahu_",
+            "kobvindex_",
+            "gbv_",
+            "b3kat_",
+            "voebb_",
+        ] {
+            assert!(message.contains(prefix), "{prefix} missing from: {message}");
+        }
+        assert!(message.contains("among them"), "{message}");
     }
 
     #[test]
