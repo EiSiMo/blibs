@@ -623,6 +623,96 @@ fn show_renders_one_record() {
     assert!(ran.out.contains("almafu_BV008885798"), "{}", ran.out);
 }
 
+/// `show --json` is a hull around the record, not the bare record: an agent reads
+/// `record`, and beside it the two things a bare record cannot state — whether copies
+/// were asked for, and what could not be said.
+#[test]
+fn the_show_document_is_a_hull_around_the_record() {
+    let fetch = FixtureFetch::new()
+        .route(
+            is_availability,
+            read_fixture("kobv/availability/mixed.json"),
+        )
+        .fallback("kobv/sru/record.xml");
+    let ran = invoke(&["--json", "show", "almafu_BV008885798"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let members: Vec<&String> = document
+        .as_object()
+        .expect("the show document is an object")
+        .keys()
+        .collect();
+    assert_eq!(members, vec!["record", "availability"]);
+    assert_eq!(document["record"]["title"], "Augenblick und Irritation");
+    assert_eq!(document["availability"], "fetched");
+}
+
+/// `--no-availability` is visible in the document. Without it an empty `items[]` means
+/// two different things — "asked and got nothing" and "never asked" — which is exactly
+/// what the mode exists to tell apart.
+#[test]
+fn a_show_that_asked_for_no_copies_says_so() {
+    let fetch = FixtureFetch::new().fallback("kobv/sru/record.xml");
+    let recorder = fetch.recorder();
+    let ran = invoke(
+        &["--json", "show", "almafu_BV008885798", "--no-availability"],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    assert_eq!(recorder.count_matching("AJAX/JSON"), 0);
+    let document = ran.json();
+    assert_eq!(document["availability"], "skipped");
+    let items: Vec<&serde_json::Value> = document["record"]["holdings"]
+        .as_array()
+        .expect("holdings is an array")
+        .iter()
+        .flat_map(|holding| holding["items"].as_array().into_iter().flatten())
+        .collect();
+    assert!(items.is_empty(), "nothing was asked: {items:?}");
+}
+
+/// A VÖBB branch in `--at` against a KOBV record is a contradiction the tool used to
+/// swallow. It is a note now — in the document and on the terminal — and never a claim
+/// that the branch does not hold the book.
+#[test]
+fn a_branch_of_the_other_catalogue_in_at_is_stated() {
+    let fetch = FixtureFetch::new()
+        .route(
+            is_availability,
+            read_fixture("kobv/availability/mixed.json"),
+        )
+        .fallback("kobv/sru/record.xml");
+    let ran = invoke(
+        &["--json", "show", "almafu_BV008885798", "--at", "AGB"],
+        &fetch,
+    );
+
+    let document = ran.json();
+    let notes = document["notes"].as_array().expect("notes is an array");
+    assert!(
+        notes
+            .iter()
+            .any(|note| note["kind"] == "location_other_catalogue"),
+        "the branch cannot narrow a KOBV record, and that is said: {notes:?}"
+    );
+
+    let fetch = FixtureFetch::new()
+        .route(
+            is_availability,
+            read_fixture("kobv/availability/mixed.json"),
+        )
+        .fallback("kobv/sru/record.xml");
+    let ran = invoke(&["show", "almafu_BV008885798", "--at", "AGB"], &fetch);
+    assert!(
+        ran.out
+            .contains("--at AGB is answered by the voebb catalogue"),
+        "{}",
+        ran.out
+    );
+}
+
 /// An id no catalogue holds is exit 1, not an error: the lookup worked.
 #[test]
 fn show_of_an_unknown_id_is_exit_one() {
@@ -633,12 +723,15 @@ fn show_of_an_unknown_id_is_exit_one() {
     assert!(ran.out.is_empty());
     assert!(ran.err.contains("no such record"), "{:?}", ran.err);
 
-    // In JSON that is the document `null`: a well-formed answer meaning "no record",
-    // never an error object.
+    // In JSON that is the hull with `record: null`: a well-formed answer meaning "no
+    // record", never an error object — and it still says whether copies were asked for,
+    // so an empty answer is as readable as a full one.
     let fetch = FixtureFetch::new().fallback("kobv/sru/unknown_id.xml");
     let ran = invoke(&["--json", "show", "almafu_BV000000000"], &fetch);
     assert_eq!(ran.exit(), ExitCode::NoResults);
-    assert_eq!(ran.json(), serde_json::Value::Null);
+    let document = ran.json();
+    assert_eq!(document["record"], serde_json::Value::Null);
+    assert_eq!(document["availability"], "fetched");
 }
 
 /// A branch in `--at` goes to the other engine, and a flag that engine has no index for

@@ -1,0 +1,114 @@
+{
+  "record": {
+    "id": "almafu_BV008885798",
+    "engine": "kobv",
+    "source": "almafu",
+    "local_id": "BV008885798",
+    "title": "Der Prozess",
+    "subtitle": "Roman",
+    "authors": [
+      {
+        "name": "Kafka, Franz",
+        "kind": "person",
+        "dates": "1883-1924",
+        "gnd": "118559230",
+        "role": "author",
+        "role_code": "aut"
+      },
+      {
+        "name": "S. Fischer Verlag",
+        "kind": "corporate",
+        "dates": null,
+        "gnd": null,
+        "role": null,
+        "role_code": null
+      }
+    ],
+    "year": 1953,
+    "publisher": "S. Fischer",
+    "place": "Frankfurt am Main",
+    "edition": "2. Auflage",
+    "extent": "345 Seiten",
+    "languages": [
+      "ger"
+    ],
+    "format": "book",
+    "online": false,
+    "isbns": [
+      "9783596294331"
+    ],
+    "subjects": [
+      "Deutsche Literatur",
+      "Roman"
+    ],
+    "urls": [
+      {
+        "url": "https://d-nb.info/930000000/04",
+        "kind": "toc",
+        "label": "Inhaltsverzeichnis"
+      }
+    ],
+    "holdings": [
+      {
+        "isil": "DE-11",
+        "alias": "HU",
+        "library": "Humboldt-Universität zu Berlin, Universitätsbibliothek",
+        "short_name": "HU Berlin",
+        "local_id": "BV008885798",
+        "mine": true,
+        "summary": "available",
+        "items": [
+          {
+            "location": "ZB Grimm-Zentrum, 7. OG / Bereich B",
+            "branch": "KOB00032",
+            "branch_name": "Grimm-Zentrum",
+            "call_number": "96 A 10064",
+            "volume": null,
+            "status": "available",
+            "order_option": null
+          },
+          {
+            "location": "ZB Grimm-Zentrum, Magazin",
+            "branch": null,
+            "branch_name": null,
+            "call_number": "96 A 10064+1",
+            "volume": "1",
+            "status": "unavailable",
+            "order_option": null
+          }
+        ]
+      },
+      {
+        "isil": "DE-Zz999",
+        "alias": null,
+        "library": "DE-Zz999",
+        "short_name": null,
+        "local_id": "275177939",
+        "mine": false,
+        "summary": "reference",
+        "items": [
+          {
+            "location": null,
+            "branch": null,
+            "branch_name": null,
+            "call_number": "A 1234",
+            "volume": null,
+            "status": "reference",
+            "order_option": null
+          }
+        ]
+      }
+    ]
+  },
+  "availability": "fetched",
+  "notes": [
+    {
+      "kind": "location_other_catalogue",
+      "message": "--at AGB is answered by the voebb catalogue and this record comes from kobv; the two are never matched against each other, so the location did not apply here — it says nothing about whether the copy stands there"
+    },
+    {
+      "kind": "loan_without_due_date",
+      "message": "a copy on loan carries no due date here — return dates and holds are only in the library's own catalogue, behind a patron login"
+    }
+  ]
+}

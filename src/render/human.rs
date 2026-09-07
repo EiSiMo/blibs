@@ -42,7 +42,7 @@ use crate::counts::{records, results};
 use crate::error::{EmptyReason, Error, UsageError};
 use crate::libraries::{Branch, Library};
 use crate::model::{
-    Format, Holding, Item, Location, Record, SearchResult, SortKey, Status, UrlKind,
+    Format, Holding, Item, Location, Note, Record, SearchResult, SortKey, Status, UrlKind,
 };
 use crate::render::Style;
 use crate::render::style::label;
@@ -137,16 +137,13 @@ const MAX_SUBJECTS: usize = 6;
 /// and never a silently empty list.
 const NO_HOLDINGS: &str = "no holdings recorded in this record";
 
-/// What `show` says for a serial. The availability service answers one traffic light for
-/// the *title*, with no volume and no shelfmark, so a green light would otherwise read as
-/// a statement about the year the user is after.
-const JOURNAL_NOTE: &str = "which volumes are held cannot be determined here — the service reports one status \
-     for the title, without years; check the library's own catalogue or the ZDB";
-
-/// What `show` says when a copy is out. Due dates and holds live behind a patron login,
-/// and this tool never signs in — so it says that once instead of suggesting a date.
-const LOAN_NOTE: &str = "a copy on loan carries no due date here — return dates and holds \
-     are only in the library's own catalogue, behind a patron login";
+/// What `show --at` says when the record states holdings, but none of them at the
+/// libraries the user named.
+///
+/// The counterpart of [`NO_HOLDINGS`] for the narrowed question: without it the section
+/// is simply empty and the reader has to infer the answer from an absence, one line above
+/// an `also at:` line that lists everybody else.
+const NO_HOLDINGS_HERE: &str = "no holdings at the libraries in --at, according to this record";
 
 /// Render a search result.
 ///
@@ -629,19 +626,45 @@ fn item_row(item: &Item, style: Style) -> Vec<Cell> {
 
 /// Where a copy stands, with its volume behind it when the record is a serial.
 ///
-/// Falls back to the branch name when the catalogue named no location, and to the volume
-/// alone when it named neither — an empty location is never a reason to drop the line.
+/// Never empty for the sake of it: with neither house nor shelf the volume alone carries
+/// the line, and an empty location is never a reason to drop a copy.
 fn item_location(item: &Item) -> String {
-    let place = item
-        .location
-        .clone()
-        .or_else(|| item.branch_name.clone())
-        .unwrap_or_default();
+    let place = place_of(
+        non_blank(item.branch_name.as_deref()),
+        non_blank(item.location.as_deref()),
+    );
     match (&place.is_empty(), &item.volume) {
         (true, Some(volume)) => volume.clone(),
         (false, Some(volume)) => format!("{place} · {volume}"),
         _ => place,
     }
+}
+
+/// The house and the shelf in one string — `Amerika-Gedenkbibliothek · Erwachsenenbereich`.
+///
+/// The branch is **prepended**, not merely substituted: a VÖBB record has one copy per
+/// house and every one of them calls its shelf `Erwachsenenbereich`, so the house is the
+/// half that tells the lines apart.
+///
+/// It is left out again when the location already carries it, which is the KOBV shape:
+/// there `branch_name` is the text of the branch *link inside* the location cell
+/// (`ZB Grimm-Zentrum` in `ZB Grimm-Zentrum, 3. OG / Bereich B`), and prepending it would
+/// print the house twice on every line.
+fn place_of(branch: Option<&str>, location: Option<&str>) -> String {
+    match (branch, location) {
+        (Some(branch), Some(location)) if !location.contains(branch) => {
+            format!("{branch} · {location}")
+        }
+        (_, Some(location)) => location.to_owned(),
+        (Some(branch), None) => branch.to_owned(),
+        (None, None) => String::new(),
+    }
+}
+
+/// A value that is present *and* says something. A cell that survived parsing as an empty
+/// string would otherwise render as a house called nothing, with a separator behind it.
+fn non_blank(value: Option<&str>) -> Option<&str> {
+    value.filter(|text| !text.trim().is_empty())
 }
 
 /// The first author's name, or nothing. Never the role and never a placeholder.
@@ -664,6 +687,7 @@ fn year(record: &Record) -> String {
 pub fn show(
     record: &Record,
     locations: &[Location],
+    notes: &[Note],
     out: &mut dyn Write,
     style: Style,
 ) -> io::Result<()> {
@@ -673,7 +697,7 @@ pub fn show(
     }
     write_author_block(out, record, style)?;
     write_field_block(out, record, style)?;
-    write_holdings(out, record, locations, style)?;
+    write_holdings(out, record, locations, notes, style)?;
     writeln!(out)?;
     writeln!(out, "{}", record.id)
 }
@@ -910,6 +934,7 @@ fn write_holdings(
     out: &mut dyn Write,
     record: &Record,
     locations: &[Location],
+    notes: &[Note],
     style: Style,
 ) -> io::Result<()> {
     writeln!(out)?;
@@ -918,10 +943,15 @@ fn write_holdings(
 
     if record.holdings.is_empty() {
         write_line(out, NO_HOLDINGS, SHOW_INDENT, style.dim(), style)?;
-        return write_show_notes(out, record, style);
+        return write_show_notes(out, notes, style);
     }
 
     let (mine, others) = split_holdings(record, locations);
+    // The record has holdings, just none of the user's: said in words rather than left as
+    // a blank between the heading and the `also at:` line.
+    if mine.is_empty() {
+        write_line(out, NO_HOLDINGS_HERE, SHOW_INDENT, style.dim(), style)?;
+    }
     // The copy columns are aligned across all of the shown holdings, not per house: one
     // ragged block per library would make the shelfmarks harder to compare than they are.
     let rows: Vec<Vec<Vec<Cell>>> = mine
@@ -944,7 +974,7 @@ fn write_holdings(
             write_row(out, &layout, row, &widths, SHOW_ITEM_INDENT, style)?;
         }
     }
-    write_show_notes(out, record, style)?;
+    write_show_notes(out, notes, style)?;
     write_also_at(out, record, &others, style)
 }
 
@@ -1038,27 +1068,20 @@ fn write_also_at(
     write_line(out, &line, SHOW_INDENT, style.dim(), style)
 }
 
-/// The two sentences `show` owes the reader about what it cannot know: holdings runs for
-/// a serial, and the due date of a copy that is out. Each is said **once**, not per copy.
-fn write_show_notes(out: &mut dyn Write, record: &Record, style: Style) -> io::Result<()> {
-    let mut notes: Vec<&str> = Vec::new();
-    if matches!(record.format, Format::Journal | Format::Ejournal) {
-        notes.push(JOURNAL_NOTE);
-    }
-    if record
-        .holdings
-        .iter()
-        .flat_map(|holding| &holding.items)
-        .any(|item| item.status == Status::Unavailable)
-    {
-        notes.push(LOAN_NOTE);
-    }
+/// What `show` owes the reader about what it cannot know — the run of a serial, the due
+/// date of a copy that is out, a `--at` the other catalogue answers for.
+///
+/// The sentences are [`crate::model::ShowResult::notes`] and are derived once, in `model`,
+/// so that the terminal and the JSON state the same limitations for one record: what is
+/// printed here an agent finds under a `kind` it can branch on. This renderer only decides
+/// where they go.
+fn write_show_notes(out: &mut dyn Write, notes: &[Note], style: Style) -> io::Result<()> {
     if notes.is_empty() {
         return Ok(());
     }
     writeln!(out)?;
     for note in notes {
-        write_line(out, note, SHOW_INDENT, style.dim(), style)?;
+        write_line(out, &note.message, SHOW_INDENT, style.dim(), style)?;
     }
     Ok(())
 }
@@ -1352,7 +1375,7 @@ mod tests {
     use super::*;
     use crate::model::{
         AtBlock, Author, AuthorKind, AvailabilityMode, BranchRef, Engine, Isil, Note, Page,
-        QueryEcho, RecordId, ResourceUrl, SortScope, SortSpec, WindowInfo,
+        QueryEcho, RecordId, ResourceUrl, ShowResult, SortScope, SortSpec, WindowInfo,
     };
     use crate::render::table::{pad_right, strip_ansi};
 
@@ -1571,9 +1594,24 @@ mod tests {
         rendered_show_at(record, locations, WIDE)
     }
 
+    /// Renders through the document `cli` builds, not past it: the notes come from
+    /// [`ShowResult::new`], so what these tests see is what `blibs show` prints.
     fn rendered_show_at(record: &Record, locations: &[Location], width: usize) -> String {
+        let result = ShowResult::new(
+            Some(record.clone()),
+            record.id.engine(),
+            locations,
+            AvailabilityMode::Fetched,
+        );
         let mut out = Vec::new();
-        show(record, locations, &mut out, Style::plain(width)).expect("a vector accepts bytes");
+        show(
+            record,
+            locations,
+            &result.notes,
+            &mut out,
+            Style::plain(width),
+        )
+        .expect("a vector accepts bytes");
         String::from_utf8(out).expect("the renderer writes UTF-8")
     }
 
@@ -2389,6 +2427,72 @@ almafu_BV008885798
         assert!(output.contains("and 3 more"));
         assert_eq!(output.matches("Thema ").count(), MAX_SUBJECTS);
         assert!(output.contains("Thema 5 · and 3 more"));
+    }
+
+    /// `--at` at a library the record does not name is an answer, not a blank: the
+    /// section says so in words, the way a record without any holdings does.
+    #[test]
+    fn a_location_the_record_does_not_name_says_so_instead_of_showing_nothing() {
+        let mut record = prozess();
+        // Keep only holdings no location below asks about.
+        record.holdings.truncate(2);
+        let output = rendered_show(&record, &[institution("AGB2", "DE-B1583", "Bibliothek")]);
+        assert!(
+            output.contains("  no holdings at the libraries in --at, according to this record\n"),
+            "{output}"
+        );
+        // The record does hold something, and the line above must not hide it.
+        assert!(output.contains("also at:"), "{output}");
+    }
+
+    /// A branch of the other catalogue on a KOBV record is stated under the holdings,
+    /// with the same sentence the JSON carries — never ignored in silence.
+    #[test]
+    fn a_branch_of_the_other_catalogue_is_printed_as_a_note() {
+        let output = rendered_show(
+            &prozess(),
+            &[branch(
+                "AGB",
+                "DE-609",
+                "SIG00036",
+                "Amerika-Gedenkbibliothek",
+            )],
+        );
+        assert!(
+            output.contains("--at AGB is answered by the voebb"),
+            "{output}"
+        );
+        assert!(
+            output.contains("says nothing about whether the copy stands there"),
+            "{output}"
+        );
+    }
+
+    /// A copy line names the house it stands in. Several copies of one VÖBB record all
+    /// call their shelf `Erwachsenenbereich`, and without the house they are one line
+    /// printed three times.
+    #[test]
+    fn a_copy_names_its_house_in_front_of_its_shelf() {
+        assert_eq!(
+            place_of(Some("Amerika-Gedenkbibliothek"), Some("Erwachsenenbereich")),
+            "Amerika-Gedenkbibliothek · Erwachsenenbereich"
+        );
+    }
+
+    /// The KOBV shape: there the branch name is the link text *inside* the location cell,
+    /// so prepending it would print the house twice on one line.
+    #[test]
+    fn a_house_already_named_in_the_location_is_not_repeated() {
+        assert_eq!(
+            place_of(
+                Some("ZB Grimm-Zentrum"),
+                Some("ZB Grimm-Zentrum, 3. OG / Bereich B")
+            ),
+            "ZB Grimm-Zentrum, 3. OG / Bereich B"
+        );
+        assert_eq!(place_of(Some("Grimm-Zentrum"), None), "Grimm-Zentrum");
+        assert_eq!(place_of(None, Some("Magazin")), "Magazin");
+        assert_eq!(place_of(None, None), "");
     }
 
     /// Without `--at` nothing is "mine": every holding is listed and there is no

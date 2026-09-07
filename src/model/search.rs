@@ -1,9 +1,9 @@
 //! What was asked, where it was asked, and what came back.
 //!
-//! [`SearchResult`] is the JSON document. Its member order is the document's member order
-//! and part of the contract in `plan/cli.md`.
+//! [`SearchResult`] and [`ShowResult`] are the two JSON documents. Their member order is
+//! the documents' member order and part of the contract in `plan/cli.md`.
 
-use crate::model::{Engine, FetchWindow, Isil, Page, Record, RecordId};
+use crate::model::{Engine, FetchWindow, Format, Isil, Page, Record, RecordId, Status};
 
 /// One search term.
 ///
@@ -416,6 +416,21 @@ pub mod note_kinds {
     /// The branch facet does not list this branch for this search, which is the site's
     /// way of saying it holds nothing matching. Not an error, and not a broken filter.
     pub const VOEBB_BRANCH_NOT_LISTED: &str = "voebb_branch_not_listed";
+
+    /// A location in `--at` is answered by the *other* catalogue than the record that was
+    /// shown. The two are never matched against each other — a KOBV record states no
+    /// branch and a voebb record no institution — so the location could not narrow this
+    /// record and was ignored. Never a statement that the record is not held there.
+    pub const LOCATION_OTHER_CATALOGUE: &str = "location_other_catalogue";
+
+    /// The record is a serial, and the availability service answers one status for the
+    /// *title* — no volume, no year, no shelfmark. Which volumes are actually held cannot
+    /// be determined from it.
+    pub const SERIAL_VOLUMES_UNKNOWN: &str = "serial_volumes_unknown";
+
+    /// A copy is on loan and carries no return date: due dates and holds live behind a
+    /// patron login, which this tool never passes.
+    pub const LOAN_WITHOUT_DUE_DATE: &str = "loan_without_due_date";
 }
 
 /// The query, echoed back so a result can be reproduced without the shell history.
@@ -465,6 +480,123 @@ pub struct SearchResult {
     pub records: Vec<Record>,
 }
 
+/// The complete result of one `show` — and the JSON document.
+///
+/// A hull around the record rather than the bare record, because `show` has the same two
+/// ambiguities [`SearchResult`] has and had nowhere to resolve them: without
+/// [`Self::availability`] an empty `items[]` cannot be told from a `--no-availability`
+/// run, and without [`Self::notes`] every limitation the search document states would be
+/// silently dropped on the way through `show`. The members are the ones `search` uses and
+/// carry the same meaning, so an agent reads both documents the same way.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct ShowResult {
+    /// The record, or `null` when the catalogue has no such record. Even then the
+    /// document is complete: `availability` still says whether copies were asked for, and
+    /// a note may still say why `--at` did not apply.
+    pub record: Option<Record>,
+    /// Whether availability was **asked for**.
+    ///
+    /// What it rules out is an empty `items[]` reading as "we did not ask". It is not a
+    /// promise in the other direction: voebb.de states the copies on the record page
+    /// itself, so a `skipped` lookup there still comes back with them — there is no
+    /// cheaper page to ask for and throwing them away would answer less for the same
+    /// request.
+    pub availability: AvailabilityMode,
+    /// Limitations that are not errors, exactly as in [`SearchResult::notes`] — same
+    /// vocabulary, same `skip_serializing_if`, so the two documents cannot grow two
+    /// styles of the same list.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub notes: Vec<Note>,
+}
+
+impl ShowResult {
+    /// Assemble the document, deriving the notes the record and the request imply.
+    ///
+    /// The derivation lives here rather than in a renderer so that the human output and
+    /// the JSON cannot state different limitations for one record: both read
+    /// [`Self::notes`], and `kind` is what an agent branches on.
+    ///
+    /// `engine` is the record id's engine — the catalogue that answered — and `locations`
+    /// is `--at` as the user wrote it, which may name a location the *other* catalogue
+    /// answers for.
+    pub fn new(
+        record: Option<Record>,
+        engine: Engine,
+        locations: &[Location],
+        availability: AvailabilityMode,
+    ) -> Self {
+        let mut notes = Vec::new();
+        notes.extend(other_catalogue_note(engine, locations));
+        if let Some(record) = &record {
+            notes.extend(record_notes(record));
+        }
+        Self {
+            record,
+            availability,
+            notes,
+        }
+    }
+}
+
+/// The note for a `--at` entry the other catalogue answers for.
+///
+/// `show voebb_SAK… --at HU` and `show almafu_BV… --at AGB` are the two shapes of it. The
+/// location cannot narrow anything — the KOBV record does not know the branch, the voebb
+/// record does not know the institution — and being ignored without a word is what makes
+/// it read as "not held there", which is the one thing it does not mean.
+fn other_catalogue_note(engine: Engine, locations: &[Location]) -> Option<Note> {
+    let elsewhere: Vec<&Location> = locations
+        .iter()
+        .filter(|location| location.engine != engine)
+        .collect();
+    let other = elsewhere.first()?.engine;
+    let keys: Vec<&str> = elsewhere
+        .iter()
+        .map(|location| location.key.as_str())
+        .collect();
+    let verb = if keys.len() == 1 { "is" } else { "are" };
+    Some(Note::new(
+        note_kinds::LOCATION_OTHER_CATALOGUE,
+        format!(
+            "--at {} {verb} answered by the {} catalogue and this record comes from {}; \
+             the two are never matched against each other, so the location did not apply \
+             here — it says nothing about whether the copy stands there",
+            keys.join(", "),
+            other.as_str(),
+            engine.as_str()
+        ),
+    ))
+}
+
+/// The two limitations a record itself implies: the run of a serial, and the due date of
+/// a copy that is out. Each is stated **once**, not per copy.
+fn record_notes(record: &Record) -> Vec<Note> {
+    let mut notes = Vec::new();
+    if matches!(record.format, Format::Journal | Format::Ejournal) {
+        notes.push(Note::new(note_kinds::SERIAL_VOLUMES_UNKNOWN, SERIAL_NOTE));
+    }
+    if record
+        .holdings
+        .iter()
+        .flat_map(|holding| &holding.items)
+        .any(|item| item.status == Status::Unavailable)
+    {
+        notes.push(Note::new(note_kinds::LOAN_WITHOUT_DUE_DATE, LOAN_NOTE));
+    }
+    notes
+}
+
+/// What a serial's holdings cannot say. The availability service reports one traffic
+/// light for the title, with no years, so a green light would otherwise read as a
+/// statement about the volume the user is after.
+const SERIAL_NOTE: &str = "which volumes are held cannot be determined here — the service reports one status \
+     for the title, without years; check the library's own catalogue or the ZDB";
+
+/// What a copy on loan cannot say. Due dates and holds live behind a patron login, and
+/// this tool never signs in — so it says that instead of suggesting a date.
+const LOAN_NOTE: &str = "a copy on loan carries no due date here — return dates and holds \
+     are only in the library's own catalogue, behind a patron login";
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -495,6 +627,9 @@ mod tests {
             note_kinds::VOEBB_FREE_TERMS_AS_TITLE,
             note_kinds::VOEBB_QUERY_TRUNCATED,
             note_kinds::VOEBB_BRANCH_NOT_LISTED,
+            note_kinds::LOCATION_OTHER_CATALOGUE,
+            note_kinds::SERIAL_VOLUMES_UNKNOWN,
+            note_kinds::LOAN_WITHOUT_DUE_DATE,
         ];
         for (index, kind) in all.iter().enumerate() {
             assert!(
@@ -927,6 +1062,141 @@ mod tests {
                 .expect("a SearchResult always serialises")
                 .contains("\"notes\"")
         );
+    }
+
+    /// The `show` document that carries every member, for the schema snapshot: a record,
+    /// a fetched availability and both shapes of note — one the request implies (a VÖBB
+    /// branch on a KOBV record) and one the record implies (a copy on loan).
+    fn full_show() -> ShowResult {
+        ShowResult::new(
+            Some(kobv_record()),
+            Engine::Kobv,
+            &[agb()],
+            AvailabilityMode::Fetched,
+        )
+    }
+
+    /// `--at AGB`: a VÖBB branch, which only the voebb engine answers for.
+    fn agb() -> Location {
+        Location {
+            key: "AGB".to_owned(),
+            isil: Isil::new("DE-609"),
+            branch: Some(BranchRef {
+                kobvid: "SIG00036".to_owned(),
+                name: "Amerika-Gedenkbibliothek".to_owned(),
+            }),
+            engine: Engine::Voebb,
+            display: "Amerika-Gedenkbibliothek".to_owned(),
+        }
+    }
+
+    /// The `show` document is a contract exactly as the search document is, and it was
+    /// not schema-tested at all until it grew a hull of its own. The snapshot is the
+    /// review gate: a diff here is a change to what agents parse.
+    #[test]
+    fn the_show_document_matches_the_committed_schema_snapshot() {
+        let rendered =
+            serde_json::to_string_pretty(&full_show()).expect("a ShowResult always serialises");
+        let expected = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/schema/show.json"
+        ));
+        assert_eq!(
+            rendered.trim_end(),
+            expected.trim_end(),
+            "the JSON schema changed; review the diff before updating \
+             tests/fixtures/schema/show.json"
+        );
+    }
+
+    /// The hull is what `show --no-availability` needs: `record: null` still says whether
+    /// anything was asked, so an empty answer is not a bare `null` an agent cannot read.
+    #[test]
+    fn a_show_without_a_record_still_states_whether_availability_was_asked() {
+        let result = ShowResult::new(None, Engine::Kobv, &[], AvailabilityMode::Skipped);
+        let json = serde_json::to_value(&result).expect("a ShowResult always serialises");
+        assert_eq!(json["record"], serde_json::Value::Null);
+        assert_eq!(json["availability"], "skipped");
+        // Same convention as the search document: an empty list is left out entirely.
+        assert!(json.get("notes").is_none(), "{json}");
+    }
+
+    /// A branch in `--at` against a record of the other catalogue is a note, never
+    /// silence — and never a claim that the branch does not hold it.
+    #[test]
+    fn a_location_of_the_other_catalogue_is_stated_as_a_note() {
+        let result = ShowResult::new(
+            Some(kobv_record()),
+            Engine::Kobv,
+            &[agb()],
+            AvailabilityMode::Fetched,
+        );
+        let note = result
+            .notes
+            .iter()
+            .find(|note| note.kind == note_kinds::LOCATION_OTHER_CATALOGUE)
+            .expect("a voebb branch on a kobv record is stated");
+        assert!(note.message.contains("--at AGB"), "{}", note.message);
+        assert!(note.message.contains("voebb"), "{}", note.message);
+    }
+
+    /// A location of the record's own catalogue is what `--at` is for, and says nothing.
+    #[test]
+    fn a_location_of_the_records_own_catalogue_says_nothing() {
+        let result = ShowResult::new(
+            Some(kobv_record()),
+            Engine::Kobv,
+            &[Location {
+                key: "HU".to_owned(),
+                isil: Isil::new("DE-11"),
+                branch: None,
+                engine: Engine::Kobv,
+                display: "Humboldt-Universität zu Berlin".to_owned(),
+            }],
+            AvailabilityMode::Fetched,
+        );
+        assert!(
+            result
+                .notes
+                .iter()
+                .all(|note| note.kind != note_kinds::LOCATION_OTHER_CATALOGUE),
+            "{:?}",
+            result.notes
+        );
+    }
+
+    /// The two sentences `show` owes the reader now carry a `kind`, so the JSON states
+    /// them as well as the terminal does — a serial's volumes and a missing due date.
+    #[test]
+    fn a_serial_and_a_copy_on_loan_each_state_their_limitation_once() {
+        let mut record = kobv_record();
+        record.format = Format::Journal;
+        let kinds: Vec<&str> =
+            ShowResult::new(Some(record), Engine::Kobv, &[], AvailabilityMode::Fetched)
+                .notes
+                .iter()
+                .map(|note| note.kind)
+                .collect();
+        assert_eq!(
+            kinds,
+            vec![
+                note_kinds::SERIAL_VOLUMES_UNKNOWN,
+                note_kinds::LOAN_WITHOUT_DUE_DATE
+            ]
+        );
+    }
+
+    /// A book whose every copy is in has nothing to add.
+    #[test]
+    fn a_book_with_no_copy_out_carries_no_notes() {
+        let mut record = kobv_record();
+        for holding in &mut record.holdings {
+            for item in &mut holding.items {
+                item.status = Status::Available;
+            }
+        }
+        let result = ShowResult::new(Some(record), Engine::Kobv, &[], AvailabilityMode::Fetched);
+        assert!(result.notes.is_empty(), "{:?}", result.notes);
     }
 
     /// A holding whose ISIL is not in the library list keeps its display name and is

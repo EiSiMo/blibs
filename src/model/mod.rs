@@ -23,5 +23,6 @@ pub use record::{Author, AuthorKind, Format, Holding, Item, Record, ResourceUrl,
 pub use search::note_kinds;
 pub use search::{
     AtBlock, AvailabilityMode, BranchRef, EngineSearch, Identifier, Location, Note, QueryEcho,
-    QuerySpec, SearchRequest, SearchResult, SortKey, SortScope, SortSpec, Term, WindowInfo,
+    QuerySpec, SearchRequest, SearchResult, ShowResult, SortKey, SortScope, SortSpec, Term,
+    WindowInfo,
 };

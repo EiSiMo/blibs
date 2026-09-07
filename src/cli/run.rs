@@ -19,14 +19,15 @@
 use std::io::{self, Write};
 
 use crate::cli::{Cli, Command, LibrariesPlan, Plan, ShowPlan, long_help, validate};
+use crate::counts::records;
 use crate::engine::kobv::Kobv;
 use crate::engine::voebb::Voebb;
 use crate::error::{EmptyReason, Error, Outcome, UnexpectedError};
 use crate::http::{Fetch, scope_map};
 use crate::libraries::{self, Branch, Library};
 use crate::model::{
-    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Location, Note, QueryEcho, Record,
-    SearchRequest, SearchResult, SortKey, SortScope, SortSpec, WindowInfo, note_kinds,
+    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Location, Note, QueryEcho,
+    SearchRequest, SearchResult, ShowResult, SortKey, SortScope, SortSpec, WindowInfo, note_kinds,
 };
 use crate::render::{self, Style};
 use crate::select;
@@ -311,15 +312,17 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>, unstated: usize) -
     let total = kobv.and_then(|outcome| outcome.search.total);
     let pqf = kobv.and_then(|outcome| outcome.search.query_echo.clone());
 
-    let mut notes = Vec::new();
-    if let Some(note) = unstated_note(unstated) {
-        notes.push(note);
-    }
+    let mut engine_notes = Vec::new();
     let mut records = Vec::new();
     for outcome in outcomes {
-        notes.extend(outcome.search.notes);
+        engine_notes.extend(outcome.search.notes);
         records.extend(outcome.search.records);
     }
+    // The engines' notes are collected first because the `--available` note reads them:
+    // what voebb.de said about an electronic title decides how the footnote is worded.
+    let mut notes = Vec::new();
+    notes.extend(unstated_note(unstated, online_only(&engine_notes)));
+    notes.extend(engine_notes);
 
     SearchResult {
         query: QueryEcho {
@@ -354,21 +357,51 @@ fn unstated_hidden(outcomes: &[EngineOutcome]) -> usize {
     outcomes.iter().map(|outcome| outcome.hidden.unstated).sum()
 }
 
+/// How many of the displayed records were electronic titles whose loan status voebb.de
+/// states only as prose.
+///
+/// Counted from the notes rather than from the records, because the note is the only
+/// place that knowledge exists: `items[]` is empty for such a record and nothing in it
+/// distinguishes "no copies on a shelf" from "no copies stated".
+fn online_only(notes: &[Note]) -> usize {
+    notes
+        .iter()
+        .filter(|note| note.kind == note_kinds::VOEBB_ONLINE_ONLY)
+        .count()
+}
+
 /// The note that keeps "nothing was said" from reading as "it is out".
 ///
 /// Only when there were such records: a note that always fires is a note nobody reads.
-/// The count is in the message for the human; an agent branches on
+/// The counts are in the message for the human; an agent branches on
 /// [`note_kinds::AVAILABILITY_FILTER_UNSTATED`] and never on the wording.
-fn unstated_note(unstated: usize) -> Option<Note> {
-    (unstated > 0).then(|| {
-        Note::new(
-            note_kinds::AVAILABILITY_FILTER_UNSTATED,
-            format!(
-                "no status was stated for {unstated} of the records --available hid; \
-                 nothing was said about their copies, so they are not known to be on loan"
-            ),
-        )
-    })
+///
+/// `online` is why the wording is not one sentence. For an electronic title voebb.de
+/// *does* state the loan status — in the running text of its `Link zu …` row, which this
+/// tool does not read (`plan/voebb.md`) — so calling that "no status was stated" would
+/// blame the catalogue for a gap that is this tool's. The record itself is still hidden
+/// either way: an unread status is not a status.
+fn unstated_note(unstated: usize, online: usize) -> Option<Note> {
+    if unstated == 0 {
+        return None;
+    }
+    // The two counts are collected independently — one per hidden record, one per note —
+    // so the smaller one is the only number that can be claimed of the hidden records.
+    let online = online.min(unstated);
+    let message = match online {
+        0 => format!(
+            "no status was stated for {unstated} of the records --available hid; \
+             nothing was said about their copies, so they are not known to be on loan"
+        ),
+        _ => format!(
+            "--available hid {} whose status was not read; {online} of them {} electronic \
+             titles, whose loan status voebb.de states only in the text of its lending \
+             link and this tool does not read — none of them is known to be on loan",
+            records(unstated),
+            if online == 1 { "is an" } else { "are" }
+        ),
+    };
+    Some(Note::new(note_kinds::AVAILABILITY_FILTER_UNSTATED, message))
 }
 
 /// The `at[]` entries, **in the order the user wrote `--at`** — not in engine order.
@@ -521,25 +554,33 @@ fn run_show(
     style: Style,
 ) -> Result<Outcome, Error> {
     let catalog = catalog_for(plan.engine(), fetch);
-    let Some(mut record) = catalog.show(&plan.id, plan.availability)? else {
+    let found = catalog.show(&plan.id, plan.availability)?;
+    let empty = found.is_none();
+    let mut result = ShowResult::new(found, plan.engine(), &plan.locations, plan.availability);
+    if let Some(record) = &mut result.record {
+        select::mark_mine(std::slice::from_mut(record), &plan.locations);
+    }
+
+    if empty {
         let reason = EmptyReason::NoSuchRecord {
             id: plan.id.clone(),
         };
         if plan.json {
-            // `null` rather than an error object: the lookup succeeded and the catalogue
-            // has no such record. Exit 1 says the same thing without parsing.
-            render::json::write(&Option::<Record>::None, out)?;
+            // The hull with `record: null` rather than a bare `null` or an error object:
+            // the lookup succeeded and the catalogue has no such record, and an agent can
+            // still read from the document whether copies were even asked for. Exit 1
+            // says the same thing without parsing.
+            render::json::write(&result, out)?;
         } else {
             render::human::empty(&reason, err).map_err(output)?;
         }
         return Ok(Outcome::Empty(reason));
-    };
+    }
 
-    select::mark_mine(std::slice::from_mut(&mut record), &plan.locations);
     if plan.json {
-        render::json::write(&record, out)?;
-    } else {
-        render::human::show(&record, &plan.locations, out, style).map_err(output)?;
+        render::json::write(&result, out)?;
+    } else if let Some(record) = &result.record {
+        render::human::show(record, &plan.locations, &result.notes, out, style).map_err(output)?;
     }
     Ok(Outcome::Found)
 }
@@ -702,4 +743,71 @@ fn empty_libraries(
 /// closed pipe as a normal end.
 fn output(source: io::Error) -> Error {
     UnexpectedError::Output { source }.into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `--available` hides what nobody judged, and the footnote has to say which kind of
+    /// silence it was. Without a voebb electronic title among them, it is the
+    /// catalogue's: nothing was stated at all.
+    #[test]
+    fn a_hidden_record_nobody_judged_says_nothing_was_stated() {
+        let note = unstated_note(3, 0).expect("three hidden records are worth a note");
+        assert_eq!(note.kind, note_kinds::AVAILABILITY_FILTER_UNSTATED);
+        assert!(
+            note.message.contains("no status was stated for 3"),
+            "{note:?}"
+        );
+    }
+
+    /// voebb.de *does* state an electronic title's loan status — in the text of its
+    /// `Link zu …` row, which this tool does not read. Calling that "no status was
+    /// stated" blames the catalogue for a gap that is this tool's, so the wording names
+    /// the e-media instead.
+    #[test]
+    fn a_hidden_electronic_title_is_named_rather_than_called_unstated() {
+        let note = unstated_note(2, 1).expect("two hidden records are worth a note");
+        assert!(!note.message.contains("no status was stated"), "{note:?}");
+        assert!(note.message.contains("2 records"), "{note:?}");
+        assert!(
+            note.message.contains("1 of them is an electronic title"),
+            "{note:?}"
+        );
+        assert!(note.message.contains("lending link"), "{note:?}");
+    }
+
+    /// The two counts are collected independently, so the message never claims more
+    /// electronic titles than there were hidden records.
+    #[test]
+    fn the_electronic_count_never_exceeds_the_hidden_count() {
+        let note = unstated_note(1, 4).expect("one hidden record is worth a note");
+        assert!(
+            note.message.contains("1 of them is an electronic"),
+            "{note:?}"
+        );
+        assert!(!note.message.contains('4'), "{note:?}");
+    }
+
+    /// A page nothing was hidden from carries no note at all: one that always fires is
+    /// one nobody reads.
+    #[test]
+    fn nothing_hidden_is_no_note() {
+        assert!(unstated_note(0, 0).is_none());
+        assert!(unstated_note(0, 2).is_none());
+    }
+
+    /// The count comes from the notes the engines returned, because `items: []` alone
+    /// cannot tell an electronic title from a record whose copies were never stated.
+    #[test]
+    fn electronic_titles_are_counted_from_the_notes_the_engine_returned() {
+        let notes = vec![
+            Note::new(note_kinds::VOEBB_ONLINE_ONLY, "an Onleihe title"),
+            Note::new(note_kinds::VOEBB_MULTIVOLUME, "a multi-part work"),
+            Note::new(note_kinds::VOEBB_ONLINE_ONLY, "an Overdrive title"),
+        ];
+        assert_eq!(online_only(&notes), 2);
+        assert_eq!(online_only(&[]), 0);
+    }
 }

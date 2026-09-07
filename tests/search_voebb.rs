@@ -358,6 +358,50 @@ fn availability_is_one_record_page_per_displayed_record() {
     );
 }
 
+/// `--available` hides the Onleihe record — its copies are not on a shelf and this tool
+/// does not read the loan status voebb.de writes into its `Link zu …` row — and the
+/// footnote has to say **that**, not that no status was stated. The catalogue said
+/// something; blibs did not read it.
+#[test]
+fn the_availability_filter_names_the_electronic_titles_it_hid() {
+    let fetch = voebb_fetch();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB",
+            "--limit",
+            "3",
+            "--available",
+        ],
+        &fetch,
+    );
+
+    let document = ran.json();
+    let notes = document["notes"].as_array().expect("notes is an array");
+    let unstated = notes
+        .iter()
+        .find(|note| note["kind"] == "availability_filter_unstated")
+        .unwrap_or_else(|| panic!("the filter hid a record it could not judge: {notes:?}"));
+    let message = unstated["message"]
+        .as_str()
+        .expect("a note carries a message");
+    assert!(
+        !message.contains("no status was stated"),
+        "voebb.de states it, this tool does not read it: {message:?}"
+    );
+    assert!(
+        message.contains("electronic title"),
+        "the footnote names the e-media: {message:?}"
+    );
+    assert!(
+        message.contains("lending link"),
+        "and says where their status stands: {message:?}"
+    );
+}
+
 /// A window that starts behind the first page is paged to with `$Toolbar=3` — one field
 /// carrying the button index as its value.
 #[test]
