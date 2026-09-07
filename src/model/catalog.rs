@@ -21,9 +21,10 @@ pub trait Catalog: Sync {
 
     /// Fetch availability for the records that will be displayed, and only those.
     ///
-    /// One request per record, run concurrently and capped at six in flight. Never
-    /// batched: the response is keyed by ISIL and two records' keys collide. Records with
-    /// no holdings are skipped rather than asked about.
+    /// One request per record, mapped over the worker pool and capped by the host it
+    /// goes to ([`crate::http::limit::cap_for`]) — six in flight for the KOBV portal, one
+    /// for voebb.de. Never batched: the response is keyed by ISIL and two records' keys
+    /// collide. Records with no holdings are skipped rather than asked about.
     ///
     /// Returns the notes for anything that was limited but not wrong.
     fn fill_availability(&self, records: &mut [Record]) -> Result<Vec<crate::model::Note>, Error>;

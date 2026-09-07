@@ -8,7 +8,8 @@
 //!
 //! Upstream etiquette is enforced here and is not configurable (`CLAUDE.md`):
 //!
-//! - at most [`limit::MAX_IN_FLIGHT_PER_HOST`] requests in flight per host,
+//! - at most [`limit::cap_for`] requests in flight per host — six by default, one for
+//!   a host that measured worse under concurrency,
 //! - an honest [`USER_AGENT`] naming the tool and its repository,
 //! - an on-disk cache so a repeated agent query does not hit the service again,
 //! - backoff on 429/503, surfaced as a distinct error rather than a generic failure.

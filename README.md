@@ -278,7 +278,9 @@ Error object shape:
 Both `k2` and `voebb.de` serve `robots.txt: Disallow: /`. `blibs` is user-initiated
 search, not crawling, so it follows the rules anyway:
 
-- At most 6 in-flight requests per host, not user-configurable.
+- At most 6 in-flight requests per host, not user-configurable — and one for `voebb.de`,
+  which answers overlapping requests in ten-second steps and is measurably faster asked
+  one at a time.
 - An honest `User-Agent` naming the tool and its repository.
 - An on-disk response cache at `~/.cache/blibs/` (or `$XDG_CACHE_HOME`), 24 hours for
   bibliographic responses. Availability is never cached — "is it in right now" is asked

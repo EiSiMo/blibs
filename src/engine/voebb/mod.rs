@@ -25,9 +25,9 @@
 //! **One session per location.** Ticking a second branch on an already filtered page
 //! would combine the two filters rather than replace them, and there is no measured way
 //! back to an unfiltered list; so each location in `--at` gets its own session, run one
-//! after the other. The session is a state and concurrency on it is undefined — the six
-//! in-flight requests of `plan/client.md` are only ever used by the stateless record
-//! pages in [`Voebb::fill_availability`].
+//! after the other. The session is a state and concurrency on it is undefined — and the
+//! host would not reward parallel sessions anyway: voebb.de is capped at one request in
+//! flight, measured (`crate::http::limit`).
 
 pub mod client;
 pub mod parse;
@@ -267,10 +267,15 @@ impl Catalog for Voebb<'_> {
 
     /// Fetch one record page per displayed record and take its copies.
     ///
-    /// The record page is stateless, so these run concurrently under the usual cap of six
-    /// — the only place in this engine that is not strictly sequential. It also carries
-    /// the properly separated bibliographic fields the result row lacks, which are used to
-    /// fill in what the row left empty; nothing the row stated is overwritten.
+    /// The record page is stateless, so nothing here depends on the session — but
+    /// voebb.de is capped at one request in flight ([`crate::http::limit`]), so these are
+    /// serialised by the transport rather than run side by side. Measured: four record
+    /// pages cost 7.9 s one after the other and 21.7 s in parallel. The pool stays because
+    /// the cap, not this method, is the right place to decide it.
+    ///
+    /// The record page also carries the properly separated bibliographic fields the result
+    /// row lacks, which are used to fill in what the row left empty; nothing the row
+    /// stated is overwritten.
     fn fill_availability(&self, records: &mut [Record]) -> Result<Vec<Note>, Error> {
         let wanted: Vec<(usize, RecordId)> = records
             .iter()

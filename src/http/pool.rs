@@ -16,6 +16,14 @@ use crate::http::lock;
 /// Map `f` over `items` on up to [`crate::http::limit::MAX_IN_FLIGHT_PER_HOST`] threads,
 /// preserving input order.
 ///
+/// That is an upper bound on the threads, not on the requests: what a host actually
+/// allows in flight is [`crate::http::limit::cap_for`], enforced inside [`Fetch`] where
+/// the host is known. A pool of six against a host capped at one therefore runs one
+/// request at a time with five threads asleep in `acquire` — the cap holds, whichever
+/// engine or mix of hosts the caller happens to be mapping over.
+///
+/// [`Fetch`]: crate::http::Fetch
+///
 /// The first error wins and the remaining work is abandoned: one failed availability
 /// call means the answer is incomplete, and an incomplete answer that looks complete is
 /// the failure mode this crate exists to avoid. "First" is by *input* position, not by
