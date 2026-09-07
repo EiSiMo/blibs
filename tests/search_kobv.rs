@@ -75,12 +75,20 @@ fn queries(recorder: &Recorder) -> Vec<String> {
 }
 
 /// The `availability_id` of every availability request, in the order they went out.
+/// The availability keys that were asked for, **sorted**.
+///
+/// Sorted because `fill_availability` fires one request per record concurrently, so the
+/// order they reach the log in is a race. Which keys were built is the contract; which of
+/// two concurrent requests won is not, and asserting on it made this test fail about once
+/// in a full suite run.
 fn availability_ids(recorder: &Recorder) -> Vec<String> {
-    recorder
+    let mut ids: Vec<String> = recorder
         .log()
         .iter()
         .filter_map(|line| line.split("availability_id=").nth(1).map(str::to_owned))
-        .collect()
+        .collect();
+    ids.sort();
+    ids
 }
 
 fn search(fetch: &FixtureFetch, request: &SearchRequest) -> blibs::model::EngineSearch {
@@ -263,9 +271,9 @@ fn availability_is_one_call_per_record_with_the_key_from_924() {
     assert_eq!(
         availability_ids(&recorder),
         vec![
-            "DE-B486;BV044513648,",
             "DE-11;BV019771323,DE-188;BV019771323,DE-521;BV019771323,\
              DE-1;48035670X,DE-517;48035670X,",
+            "DE-B486;BV044513648,",
         ]
     );
 

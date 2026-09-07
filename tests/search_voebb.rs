@@ -868,3 +868,72 @@ fn the_session_steps_are_told_apart_by_their_driving_field() {
     assert!(!has_field(&filter, "$Toolbar"));
     assert!(!has_field(&paging, "$CbTree_text"));
 }
+
+/// A search with no hits **anywhere in the network**, at a branch. The most ordinary
+/// answer a search can have, and it used to be exit 6: voebb.de drops `div#R06 p.info`
+/// entirely on such a page, `parse_results` reported the missing selector, and the user
+/// was told the scraper had broken and to file a bug. Now the page's own words —
+/// `p.wichtig` … "war erfolglos" — are read as the zero they are.
+///
+/// The branch block is still rendered: a location that holds nothing must not be missing
+/// from the output, or it cannot be told apart from one that was forgotten.
+#[test]
+fn a_search_with_no_hits_at_all_is_no_results_and_not_a_broken_selector() {
+    let fetch = FixtureFetch::new()
+        .route(
+            |request| has_field(request, "$Autosuggest"),
+            read_fixture("voebb/results_empty.html"),
+        )
+        .fallback("voebb/start.html");
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Xqzzyplkwrmf",
+            "--at",
+            "AGB",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(
+        ran.exit(),
+        ExitCode::NoResults,
+        "an empty search is exit 1, never a scraper failure: {}",
+        ran.err
+    );
+    assert!(
+        !ran.err.contains("selector"),
+        "the user must not be asked to report a bug for an empty result: {}",
+        ran.err
+    );
+    let document = ran.json();
+    assert_eq!(document["at"][0]["total"], 0);
+    assert_eq!(document["shown"], 0);
+}
+
+/// The same page without the sentence that makes it an empty result is an unknown page,
+/// and unknown still has to fail loudly. This is the direction `CLAUDE.md` fixes: a
+/// missing structure may never be rendered as an empty result.
+#[test]
+fn a_result_page_that_states_neither_hits_nor_emptiness_still_fails() {
+    let unknown = read_fixture("voebb/results_empty.html").replace("war erfolglos", "ist unklar");
+    let fetch = FixtureFetch::new()
+        .route(|request| has_field(request, "$Autosuggest"), unknown)
+        .fallback("voebb/start.html");
+    let ran = invoke(
+        &["search", "Xqzzyplkwrmf", "--at", "AGB", "--no-availability"],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Unexpected);
+    let Err(error) = ran.outcome else {
+        panic!("an unknown page must not come back as a result");
+    };
+    assert_eq!(error.kind(), "missing_selector");
+    assert!(
+        error.to_string().contains("div#R06 p.info"),
+        "the message names what was missing: {error}"
+    );
+}

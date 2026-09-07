@@ -25,6 +25,22 @@ use super::{collapse, compile};
 /// The document name used in errors from this module.
 const DOCUMENT: &str = "voebb.de result list";
 
+/// The words aDISWeb uses when a search found nothing at all.
+///
+/// Two of them, because the two search forms word it differently, and both were captured
+/// from the live site (`tests/fixtures/voebb/results_empty*.html`):
+///
+/// - the simple search: *"Ihre Suche mit \"Freie Suche = …\" in allen Suchbereichen war
+///   **erfolglos**."*
+/// - the advanced search: *"**Kein Treffer** im Suchbereich \"Bibliotheksbestand\" …"*,
+///   sometimes followed by a note that interlibrary loan has hits — which is not a
+///   holding in this region and never a hit for this tool.
+///
+/// Only the fragments are matched: the rest of each sentence quotes the query back and
+/// therefore varies with it. Nothing is guessed here — a third wording will land in
+/// [`total_hits`] as a missing selector and be captured before it is added.
+const NO_HITS_MARKERS: [&str; 2] = ["erfolglos", "Kein Treffer"];
+
 /// One row of the result list.
 ///
 /// Every field except the id and the title is optional, because every one of them was
@@ -108,16 +124,40 @@ pub fn parse_results(html: &str) -> Result<ResultPage, Error> {
     Ok(page)
 }
 
+/// Whether the page states, in so many words, that the search found nothing.
+///
+/// A search with no hits anywhere in the network does not carry `p.info` at all: aDISWeb
+/// replaces it, in the same `div#R06`, with a `p.wichtig` reading *"Ihre Suche mit … war
+/// erfolglos"*. That is a **positive** marker and this is why it has to be one — every
+/// empty result at a branch used to reach `missing_selector("div#R06 p.info")` and leave
+/// as exit 6 telling the user to report a scraper bug, which is the most ordinary answer
+/// a search can have.
+///
+/// Both halves are required. `p.wichtig` on its own is not read as "no hits": the class
+/// is aDISWeb's general one for a prominent message, so a page carrying one for some
+/// other reason must still fail loudly rather than be reported as an empty result —
+/// `CLAUDE.md` allows exactly one direction of doubt here.
+fn states_no_hits(document: &Html) -> bool {
+    document.select(&selectors().notice).any(|notice| {
+        let text = collapse(&text_of(notice));
+        NO_HITS_MARKERS.iter().any(|marker| text.contains(marker))
+    })
+}
+
 /// The hit count out of `div#R06 p.info`.
 ///
 /// Read as a number after the word `Treffer:`, never by comparing the sentence: the
 /// single-field search writes `Treffer: 71 in Bibliotheksbestand` and the advanced one
 /// `Treffer: 4 im "Bibliotheksbestand"`.
+///
+/// A page that states no hits has no count to read and is zero — see [`states_no_hits`].
 fn total_hits(document: &Html) -> Result<u64, Error> {
-    let info = document
-        .select(&selectors().info)
-        .next()
-        .ok_or_else(|| missing_selector("div#R06 p.info"))?;
+    let Some(info) = document.select(&selectors().info).next() else {
+        if states_no_hits(document) {
+            return Ok(0);
+        }
+        return Err(missing_selector("div#R06 p.info"));
+    };
     let text = collapse(&text_of(info));
     count_after_marker(&text).ok_or_else(|| {
         UnexpectedError::MissingElement {
@@ -267,6 +307,7 @@ fn check_not_truncated(page: &ResultPage) -> Result<(), Error> {
 /// be a typo in this source and nothing a user or the service can cause.
 struct Selectors {
     info: Selector,
+    notice: Selector,
     row: Selector,
     title_link: Selector,
     number: Selector,
@@ -282,6 +323,7 @@ fn selectors() -> &'static Selectors {
     static SELECTORS: OnceLock<Selectors> = OnceLock::new();
     SELECTORS.get_or_init(|| Selectors {
         info: compile("div#R06 p.info"),
+        notice: compile("div#R06 p.wichtig"),
         row: compile("div.resultlist li.rList_li"),
         title_link: compile("div.rList_titel a[href]"),
         number: compile("div.rList_num"),
@@ -309,6 +351,9 @@ mod tests {
 
     const RESULTS: &str = include_str!("../../../../tests/fixtures/voebb/results.html");
     const FILTERED: &str = include_str!("../../../../tests/fixtures/voebb/results_filtered.html");
+    const EMPTY: &str = include_str!("../../../../tests/fixtures/voebb/results_empty.html");
+    const EMPTY_ADVANCED: &str =
+        include_str!("../../../../tests/fixtures/voebb/results_empty_advanced.html");
     const PAGE2: &str =
         include_str!("../../../../tests/fixtures/voebb/results_filtered_page2.html");
     const ISBN: &str = include_str!("../../../../tests/fixtures/voebb/results_isbn.html");
@@ -439,6 +484,50 @@ mod tests {
     fn a_missing_header_names_its_selector() {
         let broken = RESULTS.replace("id=\"R06\"", "id=\"R06x\"");
         let error = parse_results(&broken).expect_err("must not be accepted");
+        assert!(error.to_string().contains("div#R06 p.info"), "{error}");
+    }
+
+    /// A search that finds nothing anywhere carries no `p.info` at all — aDISWeb writes a
+    /// `p.wichtig` saying the search "war erfolglos" instead. Every empty result at a
+    /// branch used to come out of here as `missing_selector` and exit 6, telling the user
+    /// to report a scraper bug for the most ordinary answer a search can have.
+    #[test]
+    fn a_search_that_found_nothing_is_zero_hits_and_not_an_error() {
+        let page = parsed(EMPTY);
+        assert_eq!(page.total, 0);
+        assert!(page.hits.is_empty());
+        assert!(!page.has_next);
+    }
+
+    /// The advanced form words the same emptiness differently — "Kein Treffer im
+    /// Suchbereich …" rather than "war erfolglos" — which is why the first fix left
+    /// `--title "Prometheus LernAtlas" Skelett --at AGB`, the case `plan/next.md` point 9
+    /// was reported against, still failing.
+    #[test]
+    fn the_advanced_forms_wording_for_nothing_found_is_zero_hits_too() {
+        let page = parsed(EMPTY_ADVANCED);
+        assert_eq!(page.total, 0);
+        assert!(page.hits.is_empty());
+    }
+
+    /// The advanced page adds that interlibrary loan has hits. That is not a holding in
+    /// this region and must not become one.
+    #[test]
+    fn hits_in_interlibrary_loan_are_not_hits_here() {
+        assert!(
+            EMPTY_ADVANCED.contains("Fernleihe"),
+            "the fixture is the one that mentions it"
+        );
+        assert_eq!(parsed(EMPTY_ADVANCED).total, 0);
+    }
+
+    /// The marker has to be positive on both halves. `p.wichtig` is aDISWeb's general
+    /// class for a prominent message, so one that does not say "erfolglos" is an unknown
+    /// page and must still fail loudly — never be reported as an empty result.
+    #[test]
+    fn a_prominent_message_that_is_not_the_empty_one_still_fails() {
+        let other = EMPTY.replace("war erfolglos", "wurde eingeschränkt");
+        let error = parse_results(&other).expect_err("an unknown page is not zero hits");
         assert!(error.to_string().contains("div#R06 p.info"), "{error}");
     }
 
