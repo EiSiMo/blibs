@@ -30,7 +30,7 @@ use scraper::{ElementRef, Html, Selector};
 use crate::error::{Error, UnexpectedError};
 use crate::libraries::{Branch, text};
 
-use super::form;
+use super::{collapse, compile};
 
 /// The document name used in errors from this module.
 const DOCUMENT: &str = "voebb.de branch facet";
@@ -169,14 +169,17 @@ enum Stage {
 
 impl Stage {
     /// The branch strings this stage compares against.
-    fn keys(self, branch: &Branch) -> Vec<String> {
+    ///
+    /// Borrowed from the branch: every one of them is folded before it is compared, so
+    /// copying it first would only be an allocation thrown away one line later.
+    fn keys(self, branch: &Branch) -> Vec<&str> {
         match self {
-            Stage::ShortName | Stage::Substring => vec![branch.short_name.clone()],
+            Stage::ShortName | Stage::Substring => vec![branch.short_name.as_str()],
             Stage::AlternateNames => {
-                let mut keys = vec![branch.name.clone(), after_prefix(&branch.name).to_string()];
+                let mut keys = vec![branch.name.as_str(), after_prefix(&branch.name)];
                 for matched in &branch.match_strings {
-                    keys.push(matched.clone());
-                    keys.push(after_prefix(matched).to_string());
+                    keys.push(matched.as_str());
+                    keys.push(after_prefix(matched));
                 }
                 keys
             }
@@ -369,28 +372,19 @@ struct Selectors {
 fn selectors() -> &'static Selectors {
     static SELECTORS: OnceLock<Selectors> = OnceLock::new();
     SELECTORS.get_or_init(|| Selectors {
-        tree: form::compile("div#PTL1_tree_1"),
-        rubric: form::compile("li.cbtree_branch_li"),
-        rubric_heading: form::compile("button.cbtree_branch_a"),
-        leaf: form::compile("li.cbtree_leaf_li"),
-        checkbox: form::compile("input[type=\"checkbox\"]"),
-        leaf_label: form::compile("a.cbtree_leaf_a"),
-        count: form::compile("span.count"),
+        tree: compile("div#PTL1_tree_1"),
+        rubric: compile("li.cbtree_branch_li"),
+        rubric_heading: compile("button.cbtree_branch_a"),
+        leaf: compile("li.cbtree_leaf_li"),
+        checkbox: compile("input[type=\"checkbox\"]"),
+        leaf_label: compile("a.cbtree_leaf_a"),
+        count: compile("span.count"),
     })
 }
 
-/// Collapse runs of whitespace and trim.
-fn collapse(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-/// A missing-selector error naming what stopped matching.
+/// A missing-selector error naming what stopped matching in this document.
 fn missing_selector(selector: &str) -> Error {
-    UnexpectedError::MissingSelector {
-        selector: selector.to_string(),
-        document: DOCUMENT.to_string(),
-    }
-    .into()
+    super::missing_selector(selector, DOCUMENT)
 }
 
 #[cfg(test)]

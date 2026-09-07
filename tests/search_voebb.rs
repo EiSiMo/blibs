@@ -130,22 +130,9 @@ fn advanced_fetch() -> FixtureFetch {
         .fallback("voebb/start.html")
 }
 
-/// The KOBV side, so that a mixed `--at` can be run in one invocation.
-fn is_count(request: &Request) -> bool {
-    let param = |key: &str| {
-        request
-            .query
-            .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, value)| value.as_str())
-    };
-    param("maximumRecords") == Some("0") && param("x-pquery").is_some_and(|q| q.contains("1044"))
-}
-
 /// Both catalogues behind one stub, the way one invocation sees them.
 fn both_engines_fetch() -> FixtureFetch {
     FixtureFetch::new()
-        .route(is_count, read_fixture("kobv/sru/count.xml"))
         .route(
             |request| request.base.contains("AJAX/JSON"),
             read_fixture("kobv/availability/mixed.json"),
@@ -491,8 +478,9 @@ fn a_mixed_at_runs_both_engines_and_renders_both_blocks() {
     assert_eq!(at[0]["total"], 35);
     assert_eq!(at[1]["key"], "HU");
     assert_eq!(at[1]["engine"], "kobv");
-    assert_eq!(at[1]["total"], 3718);
-    // The KOBV search's total stays the document's; the voebb count lives in at[].
+    assert_eq!(at[1]["total"], 230);
+    // The KOBV search's total stays the document's — one location, one search, one hit
+    // count; the voebb count lives in at[], where every location's does.
     assert_eq!(document["total"], 230);
 
     let engines_of_records: Vec<&str> = document["records"]
@@ -630,6 +618,45 @@ fn a_branch_block_never_shows_the_other_branchs_record() {
     assert!(!agb_block.contains("voebb_SAK99999901"), "{agb_block}");
     assert!(bstb_block.contains("voebb_SAK99999901"), "{bstb_block}");
     assert!(!bstb_block.contains("voebb_SAK15039548"), "{bstb_block}");
+}
+
+/// `--limit` is a promise per branch: two houses with `--limit 1` are one record under
+/// each heading, not one record between them — and the record pages are fetched only for
+/// what is actually shown.
+#[test]
+fn the_limit_applies_to_every_branch_on_its_own() {
+    let fetch = two_branches_fetch();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB,BSTB",
+            "--limit",
+            "1",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let at = document["at"].as_array().expect("at[] is an array");
+    let members = |index: usize| -> Vec<String> {
+        at[index]["records"]
+            .as_array()
+            .unwrap_or_else(|| panic!("at[{index}].records is an array"))
+            .iter()
+            .filter_map(|id| id.as_str().map(str::to_owned))
+            .collect()
+    };
+    assert_eq!(members(0).len(), 1, "AGB keeps a record of its own");
+    assert_eq!(members(1).len(), 1, "and so does BStB");
+    // The two branches rank different records first, so the document carries both.
+    assert_eq!(members(0), ["voebb_SAK15039548"]);
+    assert_eq!(members(1), ["voebb_SAK99999901"]);
+    assert_eq!(document["shown"], 2);
 }
 
 /// `--at AGB,HU` and `--at HU,AGB` ask the same question, so they must answer with the

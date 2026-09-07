@@ -61,28 +61,15 @@ fn invoke(args: &[&str], fetch: &dyn Fetch) -> Ran {
     }
 }
 
-/// A counting request: `maximumRecords=0` *and* the ISIL attribute. The page size is
-/// compared exactly — `10` contains `0`, and a sloppy router would answer the search with
-/// the count fixture.
-fn is_count(request: &Request) -> bool {
-    let param = |key: &str| {
-        request
-            .query
-            .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, value)| value.as_str())
-    };
-    param("maximumRecords") == Some("0") && param("x-pquery").is_some_and(|q| q.contains("1044"))
-}
-
 fn is_availability(request: &Request) -> bool {
     request.base.contains("AJAX/JSON")
 }
 
-/// Search fixture: three records, all held by DE-11, one of them also by DE-1.
+/// Search fixture: three records, all held by DE-11, one of them also by DE-1. Every
+/// location's search is answered with the same list — `--at` filters upstream, so what
+/// comes back for one ISIL is by definition that library's own result.
 fn search_fetch() -> FixtureFetch {
     FixtureFetch::new()
-        .route(is_count, read_fixture("kobv/sru/count.xml"))
         .route(
             is_availability,
             read_fixture("kobv/availability/mixed.json"),
@@ -128,9 +115,9 @@ fn two_locations_render_two_blocks_and_a_legend() {
         .find("Stabi Berlin ·")
         .unwrap_or_else(|| panic!("no Stabi block in\n{}", ran.out));
     assert!(hu < stabi, "the blocks follow --at, not the catalogue");
-    // The heading carries the location's own total, from its counting request — not the
-    // size of the joint search.
-    assert!(ran.out.contains("HU Berlin · 3718 results"), "{}", ran.out);
+    // The heading carries the location's own total — the hit count of the search that
+    // was restricted to that library, never the size of a joint one.
+    assert!(ran.out.contains("HU Berlin · 230 results"), "{}", ran.out);
     // The legend is the last thing on the page and explains what the markers meant.
     let legend = ran
         .out
@@ -157,11 +144,14 @@ fn the_json_document_carries_every_location() {
     assert_eq!(at[0]["key"], "HU");
     assert_eq!(at[0]["isil"], "DE-11");
     assert_eq!(at[0]["engine"], "kobv");
-    assert_eq!(at[0]["total"], 3718);
+    assert_eq!(at[0]["total"], 230);
     assert_eq!(at[1]["key"], "STABI");
+    assert_eq!(at[1]["total"], 230);
     assert_eq!(document["engines"], serde_json::json!(["kobv"]));
     assert_eq!(document["availability"], "fetched");
-    assert_eq!(document["total"], 230);
+    // Two locations are two searches, and no single hit count is true of both — the
+    // honest numbers are the per-location ones above.
+    assert_eq!(document["total"], serde_json::Value::Null);
     assert_eq!(document["page"], 1);
     assert_eq!(document["limit"], 10);
     assert!(
@@ -195,40 +185,78 @@ fn no_availability_makes_no_portal_request() {
     assert_eq!(ran.exit(), ExitCode::Success);
     assert_eq!(ran.json()["availability"], "skipped");
     assert_eq!(recorder.count_matching("AJAX/JSON"), 0);
-    // One search and one counting request, and nothing else.
-    assert_eq!(recorder.total(), 2);
+    // One location, one search, and nothing else at all.
+    assert_eq!(recorder.total(), 1);
 }
 
-/// The order is the whole design: search first — with `--at` already upstream — then the
-/// counting requests that make the headings honest, and only then availability, for the
-/// records that survived paging. Asking earlier would cost one request per record that is
-/// never displayed.
+/// The order is the whole design: the searches first — with `--at` already upstream, one
+/// per location — and only then availability, for the records that survived paging.
+/// Asking earlier would cost one request per record that is never displayed.
 #[test]
-fn availability_comes_after_the_search_and_the_counts() {
+fn availability_comes_after_every_location_search() {
     let fetch = search_fetch();
     let recorder = fetch.recorder();
     let ran = invoke(&["search", "Vorleser", "--at", "HU,STABI"], &fetch);
     assert_eq!(ran.exit(), ExitCode::Success);
 
     let log = recorder.log();
-    assert!(
-        log[0].contains("maximumRecords=10"),
-        "the search goes first: {log:?}"
-    );
     assert_eq!(
         log.iter()
-            .filter(|line| line.contains("maximumRecords=0"))
+            .filter(|line| line.contains("sru.kobv.de"))
             .count(),
         2,
-        "one counting request per location: {log:?}"
+        "one search per location, and no counting request: {log:?}"
     );
     assert!(
-        last_index(&recorder, "maximumRecords=0") < first_index(&recorder, "AJAX/JSON"),
-        "availability was asked before the counts were in: {log:?}"
+        last_index(&recorder, "sru.kobv.de") < first_index(&recorder, "AJAX/JSON"),
+        "availability was asked before both searches were in: {log:?}"
     );
     // Three displayed records, three availability calls — never batched, never more than
     // are shown.
     assert_eq!(recorder.count_matching("AJAX/JSON"), 3);
+}
+
+/// `--limit` is a promise **per block**: `--at HU,STABI --limit 1` is one record under
+/// each heading, not one record shared between them. A cut over the merged list would let
+/// the library that ranks better take the whole page.
+#[test]
+fn the_limit_applies_to_every_block_on_its_own() {
+    let fetch = search_fetch();
+    let ran = invoke(
+        &[
+            "--json", "search", "Vorleser", "--at", "HU,STABI", "--limit", "1",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let document = ran.json();
+    let at = document["at"].as_array().expect("at[] is an array");
+    for block in at {
+        let records = block["records"]
+            .as_array()
+            .expect("at[].records is an array");
+        assert_eq!(records.len(), 1, "{block}");
+    }
+
+    let fetch = search_fetch();
+    let ran = invoke(
+        &["search", "Vorleser", "--at", "HU,STABI", "--limit", "1"],
+        &fetch,
+    );
+    let split = ran
+        .out
+        .find("Stabi Berlin ·")
+        .unwrap_or_else(|| panic!("no Stabi block in\n{}", ran.out));
+    let (hu, stabi) = ran.out.split_at(split);
+    let records = |block: &str| -> usize {
+        block
+            .lines()
+            .filter(|line| line.contains("almahu_") || line.contains("almafu_"))
+            .count()
+    };
+    assert_eq!(records(hu), 1, "{}", ran.out);
+    assert_eq!(records(stabi), 1, "{}", ran.out);
 }
 
 /// A filter that empties the window is **not** "nothing found". Exit 1 either way, but
@@ -275,9 +303,7 @@ fn a_filter_that_matches_nothing_says_how_large_the_window_was() {
 /// says "no results", never "hits exist".
 #[test]
 fn an_empty_location_search_does_not_claim_hits_exist() {
-    let fetch = FixtureFetch::new()
-        .route(is_count, read_fixture("kobv/sru/count.xml"))
-        .fallback("kobv/sru/empty.xml");
+    let fetch = FixtureFetch::new().fallback("kobv/sru/empty.xml");
     let ran = invoke(&["search", "Zzzzz", "--at", "HU"], &fetch);
 
     assert_eq!(ran.exit(), ExitCode::NoResults);

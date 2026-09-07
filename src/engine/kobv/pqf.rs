@@ -113,15 +113,6 @@ pub fn search(spec: &QuerySpec, locations: &[Isil]) -> Result<Pqf, UsageError> {
     Pqf(query).checked()
 }
 
-/// The same query restricted to a single library, for the per-location hit count.
-///
-/// # Errors
-///
-/// As [`search`].
-pub fn count_for(spec: &QuerySpec, isil: &Isil) -> Result<Pqf, UsageError> {
-    search(spec, std::slice::from_ref(isil))
-}
-
 /// Look one record up by its id.
 ///
 /// The id is quoted like any user term although it is not free text: local ids carry
@@ -129,7 +120,7 @@ pub fn count_for(spec: &QuerySpec, isil: &Isil) -> Result<Pqf, UsageError> {
 /// `"…"` every one of those is harmless. Unquoted, a `=` or `/` in an id would be read
 /// as syntax and the lookup would fail with a diagnostic instead of a hit.
 pub fn record_lookup(id: &RecordId) -> Pqf {
-    Pqf(use_attr(ATTR_RECORD_ID, &quote(&id.as_str())))
+    Pqf(use_attr(ATTR_RECORD_ID, &quote(id.as_str())))
 }
 
 /// One clause per field of the spec, in the order they are `@and`-ed.
@@ -418,16 +409,6 @@ mod tests {
     fn a_filter_without_search_terms_is_a_query_of_its_own() {
         let query = search(&QuerySpec::default(), &[isil("DE-B1533")]).expect("valid query");
         assert_eq!(query.as_str(), "@attr 1=1044 DE-B1533");
-    }
-
-    #[test]
-    fn count_for_restricts_to_exactly_one_library() {
-        let spec = spec_with_terms(vec![word("Kafka")]);
-        let query = count_for(&spec, &isil("DE-1")).expect("valid query");
-        assert_eq!(
-            query.as_str(),
-            r#"@and @attr 1=1016 "Kafka" @attr 1=1044 DE-1"#
-        );
     }
 
     // --- refusals ---

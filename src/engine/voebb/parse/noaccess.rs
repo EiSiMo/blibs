@@ -21,7 +21,7 @@ use scraper::{Html, Selector};
 
 use crate::error::{Error, UnexpectedError};
 
-use super::form::compile;
+use super::compile;
 
 /// The sentences the page carries, in both of its languages, plus the reason it gives.
 ///

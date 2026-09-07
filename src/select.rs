@@ -6,12 +6,13 @@
 //! window — and the output must never imply otherwise. `--at` is the exception: it is an
 //! upstream filter, so location results are complete and pageable.
 //!
-//! Grouping happens in two steps, and both live here so that the terminal and the JSON
-//! cannot disagree about which location holds what. [`assign_blocks`] writes the
-//! membership into `at[].records` once the displayed records are known; [`blocks`] then
-//! derives the human grouping from a [`SearchResult`]. The second is a *view*, not a
-//! second schema: the JSON stays record-centric and a record appears once, no matter how
-//! many blocks show it.
+//! Grouping happens here too, so that the terminal and the JSON cannot disagree about
+//! which location holds what. The engine states each location's membership;
+//! [`take_page_per_location`] cuts every block to `--limit` on its own,
+//! [`assign_blocks`] restates the survivors in the order they will be printed, and
+//! [`blocks`] derives the human grouping from a [`SearchResult`]. The last is a *view*,
+//! not a second schema: the JSON stays record-centric and a record appears once, no
+//! matter how many blocks show it.
 
 use std::cmp::Reverse;
 
@@ -127,9 +128,68 @@ fn status_of(record: &Record, at: Option<&Location>) -> Status {
 /// already the right page: [`crate::model::FetchWindow::plan`] positions `startRecord`
 /// from `--page`, and it widens to 50 exactly when a client-side filter will thin the
 /// window out. Skipping here as well would page twice and drop records silently.
+///
+/// This is the form without `--at`, where there is one flat list to cut. With locations
+/// the cut is per block — [`take_page_per_location`].
 pub fn take_page(mut records: Vec<Record>, limit: Limit) -> Vec<Record> {
     records.truncate(usize::from(limit.get()));
     records
+}
+
+/// Cut **every location's block** to `limit` records and keep only what some block still
+/// shows.
+///
+/// `--limit` is a promise per block (`plan/cli.md` § *Menschliche Ausgabe*): `--at
+/// HU,STABI --limit 2` is two lines under each heading, not two lines in total shared
+/// out between them. Cutting the merged list instead would let the library that ranks
+/// better take the whole page and leave the other block empty — which reads exactly like
+/// "nothing there".
+///
+/// A record that is left in no block at all is dropped from the record list, so that
+/// availability is never fetched for a record no heading will show it under.
+pub fn take_page_per_location(
+    records: Vec<Record>,
+    at: &mut [AtBlock],
+    limit: Limit,
+) -> Vec<Record> {
+    restate(at, &records, usize::from(limit.get()));
+    let shown: Vec<&RecordId> = at.iter().flat_map(|block| &block.records).collect();
+    records
+        .into_iter()
+        .filter(|record| shown.contains(&&record.id))
+        .collect()
+}
+
+/// Restate `at[].records` over the records that will actually be shown, in their order.
+///
+/// Called once per engine, last: the list *is* the block, so it has to name exactly the
+/// records shown under the heading, in the order of `records[]`. An id `records[]` no
+/// longer carries would make the grouping unreconstructable from the JSON, and the order
+/// has to follow the final sort — `--sort availability` runs after availability was
+/// fetched, and a block whose ids still stood in the pre-sort order would contradict the
+/// list above it.
+///
+/// What it never does is *add* a record. Which records a location holds is the engine's
+/// answer — its search for that location returned them — and adding one here from a
+/// holding the availability service reported would put a record in a block whose own
+/// window never contained it, past the block's `--limit` and past its paging.
+pub fn assign_blocks(at: &mut [AtBlock], records: &[Record]) {
+    restate(at, records, usize::MAX);
+}
+
+/// The shared half of [`take_page_per_location`] and [`assign_blocks`]: intersect each
+/// block with the records, in the records' order, and keep at most `limit` of them.
+fn restate(at: &mut [AtBlock], records: &[Record], limit: usize) {
+    for block in at {
+        let stated = std::mem::take(&mut block.records);
+        block.records = records
+            .iter()
+            .map(|record| &record.id)
+            .filter(|id| stated.contains(*id))
+            .take(limit)
+            .cloned()
+            .collect();
+    }
 }
 
 /// Set `holdings[].mine` for the `--at` locations.
@@ -158,7 +218,7 @@ pub fn mark_mine(records: &mut [Record], locations: &[Location]) {
 /// which includes a holding with no copies yet: `--no-availability` was given, or the
 /// copies have not been fetched, or the link the branch id is read from was missing. That
 /// is "not stated", never "not there", so the holding is kept rather than dropped — the
-/// same rule [`items_at`] follows one level down. A holding whose copies name only
+/// same rule the copy-level match follows one level down. A holding whose copies name only
 /// *other* branches is a statement, and it is not this location's.
 ///
 /// Which records a *block* contains is a different question and is answered by
@@ -335,54 +395,6 @@ fn location_block<'a>(result: &'a SearchResult, location: &'a Location) -> Block
         total: total_at(result, location),
         records,
     }
-}
-
-/// Restate `at[].records` over the records that will actually be shown.
-///
-/// Called once per engine, after availability. The list *is* the block, so it has to name
-/// exactly the records shown under the heading, in the order of `records[]` — an id that
-/// `records[]` no longer carries would make the grouping unreconstructable from the JSON,
-/// and a missing one would hide a hit.
-///
-/// There are two sources, and which of them counts depends on the location:
-///
-/// - What the **engine** reported: which records its search for that location returned.
-///   For a branch this is the only source there is. Every VÖBB holding carries `DE-609`,
-///   so nothing in a record names the branch whose search returned it, and a record whose
-///   copies were never fetched names no branch at all.
-/// - What the **record** states: a holding at the location, by [`holding_is_at`]. For an
-///   institution this is *added* to the engine's list rather than replacing it — the
-///   upstream `1044` filter reads the catalogue's `924` fields while the availability
-///   service may name a library the record itself never did, and a block that dropped
-///   either would hide a holding. It is deliberately not consulted for a branch, where it
-///   would pull in records that branch's own window did not return and contradict both
-///   `at[].total` and the paging.
-pub fn assign_blocks(at: &mut [AtBlock], records: &[Record], locations: &[Location]) {
-    for block in at {
-        let location = locations
-            .iter()
-            .find(|location| location.key == block.key)
-            .filter(|location| location.branch.is_none());
-        let stated = std::mem::take(&mut block.records);
-        block.records = records
-            .iter()
-            .filter(|record| stated.contains(&record.id) || states_holding(record, location))
-            .map(|record| record.id.clone())
-            .collect();
-    }
-}
-
-/// Whether the record itself puts a holding at this location.
-///
-/// `None` for a branch, and for a location no `--at` entry resolved to: see
-/// [`assign_blocks`] for why a branch is never answered from the record.
-fn states_holding(record: &Record, location: Option<&Location>) -> bool {
-    location.is_some_and(|location| {
-        record
-            .holdings
-            .iter()
-            .any(|holding| holding_is_at(holding, location))
-    })
 }
 
 /// The membership `at[]` states for a location, if it states one.
@@ -674,7 +686,7 @@ mod tests {
         let (result, _) = result();
         let mut records = result.records;
         sort(&mut records, SortKey::Relevance, None);
-        let ids: Vec<String> = records.iter().map(|r| r.id.as_str()).collect();
+        let ids: Vec<&str> = records.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, ["almahu_1", "almahu_2", "almafu_3"]);
     }
 
@@ -737,11 +749,11 @@ mod tests {
         for key in [SortKey::Year, SortKey::Title, SortKey::Author] {
             let mut shuffled = records.clone();
             sort(&mut shuffled, key, None);
-            let ids: Vec<String> = shuffled.iter().map(|r| r.id.as_str()).collect();
+            let ids: Vec<&str> = shuffled.iter().map(|r| r.id.as_str()).collect();
             assert_eq!(ids, ["almahu_1", "almahu_2", "almahu_3"], "{key:?}");
         }
         sort(&mut records, SortKey::Availability, None);
-        let ids: Vec<String> = records.iter().map(|r| r.id.as_str()).collect();
+        let ids: Vec<&str> = records.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, ["almahu_1", "almahu_2", "almahu_3"]);
     }
 
@@ -750,7 +762,7 @@ mod tests {
         let (result, _) = result();
         let mut records = result.records;
         sort(&mut records, SortKey::Availability, None);
-        let ids: Vec<String> = records.iter().map(|r| r.id.as_str()).collect();
+        let ids: Vec<&str> = records.iter().map(|r| r.id.as_str()).collect();
         // 1 is available somewhere, 2 is on loan, 3 states no holdings at all.
         assert_eq!(ids, ["almahu_1", "almahu_2", "almafu_3"]);
     }
@@ -777,7 +789,7 @@ mod tests {
 
         let mut records = unsorted.clone();
         sort(&mut records, SortKey::Availability, None);
-        let ids: Vec<String> = records.iter().map(|r| r.id.as_str()).collect();
+        let ids: Vec<&str> = records.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(
             ids,
             ["almahu_1", "almafu_2"],
@@ -786,7 +798,7 @@ mod tests {
 
         let mut records = unsorted;
         sort(&mut records, SortKey::Availability, Some(&stabi));
-        let ids: Vec<String> = records.iter().map(|r| r.id.as_str()).collect();
+        let ids: Vec<&str> = records.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(
             ids,
             ["almafu_2", "almahu_1"],
@@ -823,7 +835,7 @@ mod tests {
         let (result, _) = result();
         let limit = Limit::new(2).expect("2 is in range");
         let taken = take_page(result.records.clone(), limit);
-        let ids: Vec<String> = taken.iter().map(|r| r.id.as_str()).collect();
+        let ids: Vec<&str> = taken.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, ["almahu_1", "almahu_2"]);
     }
 
@@ -1026,12 +1038,12 @@ mod tests {
     fn a_record_appears_in_every_block_that_holds_it() {
         let (result, locations) = result();
         let blocks = blocks(&result, &locations);
-        let hu: Vec<String> = blocks[0]
+        let hu: Vec<&str> = blocks[0]
             .records
             .iter()
             .map(|r| r.record.id.as_str())
             .collect();
-        let stabi: Vec<String> = blocks[1]
+        let stabi: Vec<&str> = blocks[1]
             .records
             .iter()
             .map(|r| r.record.id.as_str())
@@ -1084,12 +1096,12 @@ mod tests {
     fn two_branches_of_one_network_do_not_show_each_others_hits() {
         let (result, locations) = two_branches();
         let blocks = blocks(&result, &locations);
-        let agb: Vec<String> = blocks[0]
+        let agb: Vec<&str> = blocks[0]
             .records
             .iter()
             .map(|r| r.record.id.as_str())
             .collect();
-        let bstb: Vec<String> = blocks[1]
+        let bstb: Vec<&str> = blocks[1]
             .records
             .iter()
             .map(|r| r.record.id.as_str())
@@ -1155,18 +1167,21 @@ mod tests {
     }
 
     /// `at[].records` names exactly the records of the block, in the document's order:
-    /// ids the page no longer shows fall out, and a record whose holding only the
-    /// availability service knows about is added rather than dropped.
+    /// ids the page no longer shows fall out, and nothing is ever added.
+    ///
+    /// Adding is what the location's own search is for. A record only another location's
+    /// window returned would sit past this block's `--limit` and past its paging, however
+    /// plainly its holdings name the library.
     #[test]
-    fn an_institution_block_keeps_what_the_record_states() {
-        let (mut result, locations) = result();
+    fn a_block_is_cut_to_the_displayed_records_and_never_grows() {
+        let (mut result, _) = result();
         // As it comes back from an engine: an id that will not be displayed, and nothing
-        // for the record that only the availability service put at the Stabi.
+        // for the record whose Stabi holding only the availability service knows about.
         result.at[0].records = ids(&["almahu_1", "almahu_2", "almahu_gone"]);
         result.at[1].records = Vec::new();
-        assign_blocks(&mut result.at, &result.records, &locations);
+        assign_blocks(&mut result.at, &result.records);
 
-        let of = |index: usize| -> Vec<String> {
+        let of = |index: usize| -> Vec<&str> {
             result.at[index]
                 .records
                 .iter()
@@ -1174,11 +1189,65 @@ mod tests {
                 .collect()
         };
         assert_eq!(of(0), ["almahu_1", "almahu_2"], "the absent id falls out");
-        assert_eq!(
-            of(1),
-            ["almahu_1"],
-            "the Stabi holding puts the record in the block the engine did not list it in"
+        assert!(
+            of(1).is_empty(),
+            "a holding is not a membership: the Stabi search never returned this record"
         );
+    }
+
+    /// The order follows `records[]`, not the order the engine stated the ids in — the
+    /// second sort of `--sort availability` runs after the engine is done.
+    #[test]
+    fn a_block_is_restated_in_the_order_of_the_records() {
+        let (mut result, _) = result();
+        result.at[0].records = ids(&["almahu_2", "almahu_1"]);
+        assign_blocks(&mut result.at, &result.records);
+        let of: Vec<&str> = result.at[0].records.iter().map(RecordId::as_str).collect();
+        assert_eq!(of, ["almahu_1", "almahu_2"]);
+    }
+
+    /// `--limit` is a promise per block: each location keeps its own first `limit`
+    /// records, and the merged list is only what some block still shows.
+    #[test]
+    fn every_block_is_cut_to_the_limit_of_its_own() {
+        let (mut result, _) = result();
+        result.at[0].records = ids(&["almahu_1", "almahu_2"]);
+        result.at[1].records = ids(&["almahu_1"]);
+        let limit = Limit::new(1).expect("1 is in range");
+
+        let kept = take_page_per_location(result.records, &mut result.at, limit);
+
+        let of = |index: usize| -> Vec<&str> {
+            result.at[index]
+                .records
+                .iter()
+                .map(RecordId::as_str)
+                .collect()
+        };
+        assert_eq!(of(0), ["almahu_1"], "one record under HU");
+        assert_eq!(of(1), ["almahu_1"], "one record under STABI, the same one");
+        let shown: Vec<&str> = kept.iter().map(|record| record.id.as_str()).collect();
+        assert_eq!(
+            shown,
+            ["almahu_1"],
+            "a record no block still shows is never asked about"
+        );
+    }
+
+    /// Two locations that rank differently keep a full block each — the whole reason the
+    /// cut is per block and not over the merged list.
+    #[test]
+    fn one_locations_hits_never_crowd_out_the_others() {
+        let (mut result, _) = result();
+        result.at[0].records = ids(&["almahu_1", "almahu_2"]);
+        result.at[1].records = ids(&["almafu_3"]);
+        let limit = Limit::new(2).expect("2 is in range");
+
+        let kept = take_page_per_location(result.records, &mut result.at, limit);
+
+        assert_eq!(result.at[0].records.len(), 2);
+        assert_eq!(result.at[1].records.len(), 1);
+        assert_eq!(kept.len(), 3, "both blocks are filled, not one of them");
     }
 
     /// A branch is answered from the engine's list alone. The other branch's copies are
@@ -1186,7 +1255,7 @@ mod tests {
     /// under a heading whose own window never returned it.
     #[test]
     fn a_branch_block_is_the_engines_list_and_nothing_else() {
-        let (mut result, locations) = two_branches();
+        let (mut result, _) = two_branches();
         // Both records name both branches in their copies, as a record page does.
         for record in &mut result.records {
             record.holdings[0]
@@ -1198,8 +1267,8 @@ mod tests {
                 Status::Available,
             ));
         }
-        assign_blocks(&mut result.at, &result.records, &locations);
-        let of = |index: usize| -> Vec<String> {
+        assign_blocks(&mut result.at, &result.records);
+        let of = |index: usize| -> Vec<&str> {
             result.at[index]
                 .records
                 .iter()
@@ -1217,7 +1286,7 @@ mod tests {
         let (mut result, locations) = result();
         result.records.reverse();
         let blocks = blocks(&result, &locations);
-        let hu: Vec<String> = blocks[0]
+        let hu: Vec<&str> = blocks[0]
             .records
             .iter()
             .map(|r| r.record.id.as_str())

@@ -82,10 +82,6 @@ impl Default for Page {
 pub struct SruPageSize(u8);
 
 impl SruPageSize {
-    /// A page size of zero — the counting request, which returns `numberOfRecords` and no
-    /// records at all.
-    pub const COUNT_ONLY: SruPageSize = SruPageSize(0);
-
     /// Clamp a desired size into what SRU will actually serve.
     ///
     /// Clamping is correct here and only here: the service truncates at
@@ -190,7 +186,6 @@ mod tests {
         assert_eq!(SruPageSize::new(51).get(), MAX_SRU_PAGE_SIZE);
         assert_eq!(SruPageSize::new(1000).get(), MAX_SRU_PAGE_SIZE);
         assert_eq!(SruPageSize::new(u32::MAX).get(), MAX_SRU_PAGE_SIZE);
-        assert_eq!(SruPageSize::COUNT_ONLY.get(), 0);
     }
 
     #[test]

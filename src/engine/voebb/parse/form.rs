@@ -19,7 +19,9 @@ use std::sync::OnceLock;
 
 use scraper::{ElementRef, Html, Selector};
 
-use crate::error::{Error, UnexpectedError};
+use crate::error::Error;
+
+use super::compile;
 
 /// The form field names that do not change between pages.
 ///
@@ -199,7 +201,8 @@ impl FormState {
 /// `step` names the request that produced the page and goes into the error, because a
 /// changed form is only actionable if it says which step broke.
 ///
-/// Fails with [`UnexpectedError::MissingSelector`] when the form, its `action` or any of
+/// Fails with [`crate::error::UnexpectedError::MissingSelector`] when the form, its
+/// `action` or any of
 /// the nine fields in [`fields::HIDDEN`] is absent. It never returns a partial state: a
 /// form replayed without `identity` produces a `/noaccess` page one request later, and
 /// the cause is then invisible.
@@ -280,18 +283,10 @@ fn selectors() -> &'static Selectors {
     })
 }
 
-/// Compile one selector literal.
-pub(super) fn compile(css: &str) -> Selector {
-    Selector::parse(css).expect("every selector in this crate's voebb parsers is a literal")
-}
-
-/// A missing-selector error naming what stopped matching and where.
+/// A missing-selector error naming what stopped matching and at which step of the
+/// session — the step is what says *which* page stopped carrying the form.
 fn missing_selector(selector: &str, step: &str) -> Error {
-    UnexpectedError::MissingSelector {
-        selector: selector.to_string(),
-        document: format!("{DOCUMENT} ({step})"),
-    }
-    .into()
+    super::missing_selector(selector, &format!("{DOCUMENT} ({step})"))
 }
 
 #[cfg(test)]

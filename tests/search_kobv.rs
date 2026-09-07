@@ -7,7 +7,9 @@
 //!
 //! What is proven here, from `plan/`:
 //!
-//! - `--at HU,STABI` issues exactly one search request and two counting requests;
+//! - `--at HU,STABI` issues exactly one search request **per location** and no counting
+//!   request at all — `--limit` is a promise per block, so every block needs a window of
+//!   its own, and a location's own search already states its total;
 //! - the PQF that goes out is character-for-character what `plan/scraping.md` §A.4a
 //!   documents, with canonical ISIL spelling;
 //! - one availability request per record, a record without MARC `924` causes none, and
@@ -56,24 +58,7 @@ fn request(word: &str, locations: Vec<Location>) -> SearchRequest {
         query: query(word),
         locations,
         window: FetchWindow::plan(Limit::DEFAULT, Page::FIRST, false),
-        want_totals: true,
     }
-}
-
-/// Is this the counting request of a location? `maximumRecords=0` *and* the ISIL
-/// attribute — the two together are what a per-location count is.
-///
-/// The page size is compared exactly, not by substring: `10` contains `0`, and a router
-/// that overlooks that answers the *search* with a count fixture.
-fn is_count(request: &Request) -> bool {
-    let param = |key: &str| {
-        request
-            .query
-            .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, value)| value.as_str())
-    };
-    param("maximumRecords") == Some("0") && param("x-pquery").is_some_and(|q| q.contains("1044"))
 }
 
 fn is_availability(request: &Request) -> bool {
@@ -104,57 +89,95 @@ fn search(fetch: &FixtureFetch, request: &SearchRequest) -> blibs::model::Engine
         .unwrap_or_else(|error| panic!("the fixture search succeeds: {error}"))
 }
 
-/// Two institutions in `--at` are **one** search and one counting request each — never a
-/// search per library, and never a client-side sieve over an unfiltered result.
+/// Two institutions in `--at` are **two** searches, one per library, and nothing else —
+/// no joint `@or` search, no counting request, no client-side sieve over an unfiltered
+/// result.
+///
+/// One search per location is what `--limit` per block requires: a joint search delivers
+/// one window ranked across both libraries, and the block whose records rank lower would
+/// come out short of its limit while its catalogue holds hundreds. The total each block
+/// prints comes free with it — `numberOfRecords` of a search restricted to one ISIL is
+/// that location's own count.
 ///
 /// The PQF is asserted character for character against the measurement in
 /// `plan/scraping.md` §A.4a, including the canonical `DE-11`: the attribute is
 /// case-sensitive and `de-11` would match nothing, silently.
 #[test]
-fn two_locations_are_one_search_and_two_counts() {
-    let fetch = FixtureFetch::new()
-        .route(is_count, read_fixture("kobv/sru/count.xml"))
-        .fallback("kobv/sru/filtered.xml");
+fn two_locations_are_two_searches_and_nothing_else() {
+    let fetch = FixtureFetch::new().fallback("kobv/sru/filtered.xml");
     let recorder = fetch.recorder();
 
     let result = search(&fetch, &request("Vorleser", at(&["HU", "STABI"])));
 
     assert_eq!(
         recorder.total(),
-        3,
-        "one search and two counts: {:?}",
+        2,
+        "one search per location: {:?}",
         recorder.log()
     );
-    assert_eq!(recorder.count_matching("maximumRecords=0"), 2);
-    assert_eq!(recorder.count_matching("startRecord=1"), 1);
+    assert_eq!(
+        recorder.count_matching("maximumRecords=0"),
+        0,
+        "the counting request is gone: {:?}",
+        recorder.log()
+    );
+    assert_eq!(recorder.count_matching("startRecord=1"), 2);
     assert_eq!(
         queries(&recorder),
         vec![
-            "@and @attr 1=1016 \"Vorleser\" @or @attr 1=1044 DE-11 @attr 1=1044 DE-1",
             "@and @attr 1=1016 \"Vorleser\" @attr 1=1044 DE-11",
             "@and @attr 1=1016 \"Vorleser\" @attr 1=1044 DE-1",
         ]
     );
-    assert_eq!(
-        result.query_echo.as_deref(),
-        Some(queries(&recorder)[0].as_str())
-    );
+    // Neither of the two searches is *the* query, and neither hit count is true of the
+    // whole answer — the honest numbers are the per-location ones.
+    assert_eq!(result.query_echo, None);
+    assert_eq!(result.total, None);
     assert_eq!(result.engine, Engine::Kobv);
 }
 
-/// `at[]` carries the *location's* hit count, not the size of the joint search — that is
-/// the entire reason the counting requests are paid for. Both counts are answered with
-/// `count.xml` (3718), the search with `filtered.xml` (230), and the two numbers must not
-/// be confused.
+/// One location is one search, and then there *is* a single query and a single hit count
+/// to state.
+#[test]
+fn one_location_states_its_query_and_its_total() {
+    let fetch = FixtureFetch::new().fallback("kobv/sru/filtered.xml");
+    let recorder = fetch.recorder();
+
+    let result = search(&fetch, &request("Vorleser", at(&["HU"])));
+
+    assert_eq!(recorder.total(), 1);
+    assert_eq!(
+        result.query_echo.as_deref(),
+        Some("@and @attr 1=1016 \"Vorleser\" @attr 1=1044 DE-11")
+    );
+    assert_eq!(result.total, Some(230));
+    assert_eq!(result.at[0].total, Some(230));
+}
+
+/// Two aliases of the same institution are one search: the query and the answer would be
+/// identical, and both blocks are filled from it.
+#[test]
+fn two_aliases_of_one_isil_share_a_single_search() {
+    let fetch = FixtureFetch::new().fallback("kobv/sru/filtered.xml");
+    let recorder = fetch.recorder();
+
+    let result = search(&fetch, &request("Vorleser", at(&["HU", "DE-11"])));
+
+    assert_eq!(recorder.total(), 1, "{:?}", recorder.log());
+    assert_eq!(result.at.len(), 2);
+    assert_eq!(result.at[0].total, result.at[1].total);
+    assert_eq!(result.at[0].records, result.at[1].records);
+}
+
+/// `at[]` carries the *location's* hit count and the records that location's search
+/// returned — the membership of the block, stated by the catalogue rather than read back
+/// out of the records.
 #[test]
 fn each_location_reports_its_own_total() {
-    let fetch = FixtureFetch::new()
-        .route(is_count, read_fixture("kobv/sru/count.xml"))
-        .fallback("kobv/sru/filtered.xml");
+    let fetch = FixtureFetch::new().fallback("kobv/sru/filtered.xml");
 
     let result = search(&fetch, &request("Vorleser", at(&["HU", "STABI"])));
 
-    assert_eq!(result.total, Some(230));
     let at: Vec<(&str, &str, Option<u64>)> = result
         .at
         .iter()
@@ -162,16 +185,21 @@ fn each_location_reports_its_own_total() {
         .collect();
     assert_eq!(
         at,
-        vec![("HU", "DE-11", Some(3718)), ("STABI", "DE-1", Some(3718))]
+        vec![("HU", "DE-11", Some(230)), ("STABI", "DE-1", Some(230))]
     );
     assert!(result.at.iter().all(|block| block.engine == Engine::Kobv));
     assert!(result.at.iter().all(|block| block.branch.is_none()));
+    assert_eq!(
+        result.at[0].records.len(),
+        result.records.len(),
+        "the block is what its own search returned"
+    );
 }
 
-/// Without `--at` there is no `at[]` and no counting request — a total per location is
-/// only ever paid for when a location was named.
+/// Without `--at` there is no `at[]` and only one search — with no holdings filter, and
+/// with the whole catalogue's hit count.
 #[test]
-fn without_locations_nothing_is_counted() {
+fn without_locations_one_unfiltered_search_runs() {
     let fetch = FixtureFetch::new().fallback("kobv/sru/mono_kafka.xml");
     let recorder = fetch.recorder();
 
@@ -179,6 +207,7 @@ fn without_locations_nothing_is_counted() {
 
     assert_eq!(recorder.total(), 1);
     assert!(result.at.is_empty());
+    assert!(result.total.is_some());
     assert_eq!(queries(&recorder), vec!["@attr 1=1016 \"Prozess\""]);
 }
 

@@ -52,9 +52,14 @@ impl fmt::Display for Engine {
 /// portal export — it is taken verbatim from where it was delivered.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct RecordId {
+    /// The whole id, exactly as it is printed and typed back in. Kept as one string
+    /// rather than as two halves, so that [`RecordId::as_str`] can hand it out without
+    /// rebuilding it — it is read once per record line and once per JSON member.
+    full: Box<str>,
+    /// Byte offset of the separating `_` in `full`. Always inside the string and always
+    /// on an ASCII byte, because [`RecordId::split`] found it there.
+    separator: usize,
     engine: Engine,
-    source: Box<str>,
-    local: Box<str>,
 }
 
 impl RecordId {
@@ -95,9 +100,9 @@ impl RecordId {
             return None;
         }
         Some(Self {
+            full: Box::from(s),
+            separator: source.len(),
             engine: Self::engine_of(source),
-            source: Box::from(source),
-            local: Box::from(local),
         })
     }
 
@@ -114,10 +119,11 @@ impl RecordId {
 
     /// Build the id of a voebb.de record from its local number.
     pub fn voebb(local: &str) -> Self {
+        let source = Engine::Voebb.as_str();
         Self {
+            full: Box::from(format!("{source}_{local}")),
+            separator: source.len(),
             engine: Engine::Voebb,
-            source: Box::from("voebb"),
-            local: Box::from(local),
         }
     }
 
@@ -128,23 +134,27 @@ impl RecordId {
 
     /// The source prefix, without the separating underscore.
     pub fn source(&self) -> &str {
-        &self.source
+        // Both slices are inside the string and on the boundary the split found, so
+        // neither can be out of range or split a character in half.
+        self.full.get(..self.separator).unwrap_or_default()
     }
 
     /// The local number, without the source prefix.
     pub fn local_id(&self) -> &str {
-        &self.local
+        self.full
+            .get(self.separator.saturating_add(1)..)
+            .unwrap_or_default()
     }
 
     /// The full id, as it is printed and as it must be typed back in.
-    pub fn as_str(&self) -> String {
-        format!("{}_{}", self.source, self.local)
+    pub fn as_str(&self) -> &str {
+        &self.full
     }
 }
 
 impl fmt::Display for RecordId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}_{}", self.source, self.local)
+        f.write_str(self.as_str())
     }
 }
 
@@ -154,7 +164,7 @@ impl fmt::Display for RecordId {
 impl Serialize for RecordId {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut map = serializer.serialize_map(Some(4))?;
-        map.serialize_entry("id", &self.as_str())?;
+        map.serialize_entry("id", self.as_str())?;
         map.serialize_entry("engine", &self.engine)?;
         map.serialize_entry("source", self.source())?;
         map.serialize_entry("local_id", self.local_id())?;

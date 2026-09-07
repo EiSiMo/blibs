@@ -131,6 +131,10 @@ fn search_engines(plan: &Plan, fetch: &dyn Fetch) -> Result<Vec<EngineOutcome>, 
 /// request each. That is also why [`SortKey::Availability`] sorts twice: the first pass
 /// has no statuses to work with, and only the second one — over the page — can order by
 /// something that exists.
+///
+/// Paging is where `--at` changes the shape: `--limit` is a promise **per block**, so
+/// with locations every block is cut to it on its own and a record no block still shows
+/// is dropped before availability is asked for.
 fn search_one_engine(
     plan: &Plan,
     engine: Engine,
@@ -142,9 +146,6 @@ fn search_one_engine(
         query: plan.query.clone(),
         locations: locations.to_vec(),
         window: plan.window(),
-        // A per-location total costs one counting request; without `--at` there is no
-        // location to count for.
-        want_totals: !locations.is_empty(),
     };
 
     let mut search = catalog.search(&request)?;
@@ -154,7 +155,11 @@ fn search_one_engine(
     let sort_at = sort_location(locations);
     let mut records = filtered;
     select::sort(&mut records, plan.sort, sort_at);
-    let mut records = select::take_page(records, plan.limit);
+    let mut records = if locations.is_empty() {
+        select::take_page(records, plan.limit)
+    } else {
+        select::take_page_per_location(records, &mut search.at, plan.limit)
+    };
 
     if plan.availability == AvailabilityMode::Fetched {
         search
@@ -167,10 +172,9 @@ fn search_one_engine(
     select::mark_mine(&mut records, &plan.locations);
 
     search.records = records;
-    // Last, and after availability: `at[].records` is the block, and a record can still
-    // gain a holding here — the availability service names libraries the record's own
-    // `924` fields do not.
-    select::assign_blocks(&mut search.at, &search.records, &plan.locations);
+    // Last, and after the second sort: `at[].records` is the block, and it has to name
+    // the displayed records in the order they are printed in.
+    select::assign_blocks(&mut search.at, &search.records);
     Ok(EngineOutcome {
         search,
         after_filter,
@@ -217,9 +221,10 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>) -> SearchResult {
         after_filter: outcomes.iter().map(|o| o.after_filter).sum(),
         undelivered: outcomes.iter().map(|o| o.search.undelivered).sum(),
     };
-    // `total` and `pqf` are the KOBV search's, and `null` when only voebb ran: two
-    // catalogues have two totals, and adding them up would invent a number that is true
-    // of neither.
+    // `total` and `pqf` are the KOBV search's, and `null` when only voebb ran, or when
+    // several KOBV searches did: two catalogues have two totals, and so do two locations,
+    // and adding them up would invent a number that is true of neither. The per-location
+    // numbers are in `at[]`, where they are always true.
     let kobv = outcomes
         .iter()
         .find(|outcome| outcome.search.engine == Engine::Kobv);
@@ -304,10 +309,11 @@ fn outcome_of(plan: &Plan, result: &SearchResult) -> Outcome {
         });
     }
     // "Held nowhere in your libraries" needs hits to be held: `--at` is an *upstream*
-    // filter, so a total of zero means the catalogue has nothing for this query at these
-    // locations at all, and saying "hits exist" would be a statement about records that
-    // do not exist.
-    if !plan.locations.is_empty() && result.total.is_none_or(|total| total > 0) {
+    // filter, so a location that counts zero has nothing for this query at all, and
+    // saying "hits exist" would be a statement about records that do not exist. The
+    // per-location counts are the ones to read — with several locations there is no joint
+    // total, and with only `voebb` there never was one.
+    if !plan.locations.is_empty() && counts_hits(result) {
         return Outcome::Empty(EmptyReason::NoHoldings {
             locations: plan
                 .locations
@@ -319,6 +325,18 @@ fn outcome_of(plan: &Plan, result: &SearchResult) -> Outcome {
     Outcome::Empty(EmptyReason::NoHits {
         terms: plan.terms_echo.clone(),
     })
+}
+
+/// Whether any of the named locations reports hits at all.
+///
+/// A location whose engine could not state a count (`total: null`) is read as "might
+/// have": claiming the catalogue holds nothing on the strength of a number nobody gave
+/// is the one answer that would be worse than vague.
+fn counts_hits(result: &SearchResult) -> bool {
+    result
+        .at
+        .iter()
+        .any(|block| block.total.is_none_or(|total| total > 0))
 }
 
 /// The client-side filter that thinned the window, as flag and value.

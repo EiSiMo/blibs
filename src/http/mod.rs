@@ -148,11 +148,8 @@ impl Request {
     /// controls anyway. The port is part of it: two ports are two servers as far as the
     /// cap is concerned.
     pub fn host(&self) -> &str {
-        let after_scheme = match self.base.split_once("://") {
-            Some((_, rest)) => rest,
-            None => self.base.as_str(),
-        };
-        let authority = &after_scheme[..end_of_authority(after_scheme)];
+        let after_scheme = self.after_scheme();
+        let (authority, _) = after_scheme.split_at(end_of_authority(after_scheme));
         // Userinfo is not used anywhere in this crate, but stripping it keeps a stray
         // credential out of an error message.
         match authority.rsplit_once('@') {
@@ -164,11 +161,21 @@ impl Request {
     /// Everything after the host and before the query, e.g. `/k2`. Empty when the base
     /// names only a host.
     pub fn path(&self) -> &str {
-        let after_scheme = match self.base.split_once("://") {
+        let after_scheme = self.after_scheme();
+        let (_, path) = after_scheme.split_at(end_of_authority(after_scheme));
+        path
+    }
+
+    /// The base without its scheme, which is where both the authority and the path are.
+    ///
+    /// A base that carries no `://` is returned whole: this crate builds every base
+    /// itself, and an odd host in an error message beats a panic on a string that was
+    /// never going to be a URL.
+    fn after_scheme(&self) -> &str {
+        match self.base.split_once("://") {
             Some((_, rest)) => rest,
             None => self.base.as_str(),
-        };
-        &after_scheme[end_of_authority(after_scheme)..]
+        }
     }
 
     /// The full URL, query included and percent-encoded.

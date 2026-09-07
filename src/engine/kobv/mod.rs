@@ -25,6 +25,7 @@ use crate::model::{
 use client::KobvClient;
 use parse::sru::{RecordPayload, SruResponse};
 use parse::{availability, record, sru};
+use pqf::Pqf;
 
 /// What names the document an error message is about.
 const CONTEXT: &str = "the SRU response";
@@ -32,6 +33,31 @@ const CONTEXT: &str = "the SRU response";
 /// The KOBV engine.
 pub struct Kobv<'f> {
     client: KobvClient<'f>,
+}
+
+/// What one SRU search returned, before anything client-side touched it.
+struct Found {
+    /// The query that produced it, for the JSON echo.
+    query: Pqf,
+    /// `numberOfRecords` — the hit count of *this* search, which with an ISIL clause is
+    /// the location's own total.
+    total: u64,
+    /// The delivered, converted records.
+    records: Vec<Record>,
+    /// Announced slots that arrived as something other than a MARC record.
+    undelivered: usize,
+    /// What the envelope reported about those slots.
+    notes: Vec<Note>,
+}
+
+impl Found {
+    /// The ids this search returned, in the order the catalogue ranked them.
+    fn ids(&self) -> Vec<RecordId> {
+        self.records
+            .iter()
+            .map(|record| record.id.clone())
+            .collect()
+    }
 }
 
 impl<'f> Kobv<'f> {
@@ -47,61 +73,93 @@ impl<'f> Kobv<'f> {
         self.client.fetch()
     }
 
-    /// One `at[]` entry per location, in the order the user gave them.
-    ///
-    /// The totals are the point of the entries: "HU Berlin · 230 results" has to be the
-    /// number of HU records, not the size of the joint search. Without `want_totals` the
-    /// locations are still listed, with `total: None` — a location the user named must
-    /// appear even when its count was not paid for, because a missing block cannot be
-    /// told apart from a forgotten one.
-    ///
-    /// `records` is the membership of the block, and here it is simply which of the
-    /// fetched records carry a `924` for that ISIL — the same question the renderer used
-    /// to ask of every holding. Stating it costs nothing and is what lets the grouping be
-    /// read off the JSON for both engines alike.
-    fn at_blocks(
+    /// One SRU search: send the query, convert what came back, name the libraries.
+    fn search_once(
         &self,
-        request: &SearchRequest,
-        records: &[Record],
-    ) -> Result<Vec<AtBlock>, Error> {
-        if request.locations.is_empty() {
-            return Ok(Vec::new());
-        }
-        let totals = if request.want_totals {
-            self.totals(&request.query, &request.locations)?
-        } else {
-            vec![None; request.locations.len()]
-        };
-        Ok(request
-            .locations
-            .iter()
-            .zip(totals)
-            .map(|(location, total)| AtBlock {
-                key: location.key.clone(),
-                isil: location.isil.clone(),
-                branch: None,
-                engine: Engine::Kobv,
-                total,
-                records: held_at(records, &location.isil),
-            })
-            .collect())
+        spec: &QuerySpec,
+        isils: &[Isil],
+        window: FetchWindow,
+    ) -> Result<Found, Error> {
+        let query = pqf::search(spec, isils)?;
+        let response = self.client.search(&query, window)?;
+        let records = records(&response)?;
+        Ok(Found {
+            query,
+            total: response.number_of_records,
+            undelivered: undelivered(&response),
+            notes: sru::record_notes(&response),
+            records,
+        })
     }
 
-    /// One counting request per location, up to six at a time.
+    /// The whole catalogue, with no holdings filter: one search, one total.
+    fn search_everywhere(&self, request: &SearchRequest) -> Result<EngineSearch, Error> {
+        let found = self.search_once(&request.query, &[], request.window)?;
+        Ok(EngineSearch {
+            engine: Engine::Kobv,
+            total: Some(found.total),
+            fetched: found.records.len(),
+            undelivered: found.undelivered,
+            at: Vec::new(),
+            records: found.records,
+            query_echo: Some(found.query.as_str().to_owned()),
+            notes: found.notes,
+        })
+    }
+
+    /// One search per institution in `--at`, up to six at a time.
     ///
-    /// A failed count fails the search: a heading that silently omits one location's
-    /// number, or shows a stale one, is exactly the kind of half-answer this tool must
-    /// not give.
-    fn totals(&self, spec: &QuerySpec, locations: &[Location]) -> Result<Vec<Option<u64>>, Error> {
-        let isils: Vec<Isil> = locations
-            .iter()
-            .map(|location| location.isil.clone())
-            .collect();
-        let counts = scope_map(isils, |isil| {
-            let query = pqf::count_for(spec, &isil)?;
-            self.client.count(&query)
+    /// Not one `@or` search over all of them: `--limit` is a promise **per block**
+    /// (`plan/cli.md` § *Menschliche Ausgabe*), and a joint search can only deliver one
+    /// window of records ranked across every location — ten hits of which nine are the
+    /// first library's would leave the second block one line long while its catalogue
+    /// holds hundreds. A window per location is the only shape that can fill every block,
+    /// and it makes the counting requests unnecessary: `numberOfRecords` of a search
+    /// restricted to one ISIL *is* that location's total.
+    fn search_by_location(
+        &self,
+        request: &SearchRequest,
+        isils: &[Isil],
+    ) -> Result<EngineSearch, Error> {
+        let searches = scope_map(isils.to_vec(), |isil| {
+            self.search_once(&request.query, std::slice::from_ref(&isil), request.window)
         })?;
-        Ok(counts.into_iter().map(Some).collect())
+
+        // Stated only when exactly one search ran; otherwise there is no single query and
+        // no single hit count the whole answer came from.
+        let only = match searches.as_slice() {
+            [found] => Some(found),
+            _ => None,
+        };
+        let query_echo = only.map(|found| found.query.as_str().to_owned());
+        let total = only.map(|found| found.total);
+
+        let mut records: Vec<Record> = Vec::new();
+        let mut undelivered = 0;
+        let mut notes: Vec<Note> = Vec::new();
+        let mut per_isil: Vec<(u64, Vec<RecordId>)> = Vec::new();
+        for found in searches {
+            undelivered += found.undelivered;
+            per_isil.push((found.total, found.ids()));
+            // The same limitation reported by two location searches is one limitation.
+            for note in found.notes {
+                if !notes.contains(&note) {
+                    notes.push(note);
+                }
+            }
+            merge_records(&mut records, found.records);
+        }
+
+        Ok(EngineSearch {
+            engine: Engine::Kobv,
+            total,
+            fetched: records.len(),
+            undelivered,
+            at: at_blocks(&request.locations, isils, &per_isil),
+            records,
+            query_echo,
+            notes,
+        })
     }
 }
 
@@ -110,27 +168,27 @@ impl Catalog for Kobv<'_> {
         Engine::Kobv
     }
 
-    /// One search request, plus one counting request per `--at` location — the counts
-    /// among themselves concurrently, after the search. The counting requests use
-    /// `maximumRecords=0` and exist so that `at[].total` is the location's real hit count
-    /// and not the size of the window.
+    /// One search per location in `--at`, concurrently and capped at six — or a single
+    /// unfiltered search when no location was named.
     ///
-    /// `--at` is part of the query, not a sieve over the answer: the ISILs go out as
-    /// `@or @attr 1=1044 …`, so `total` and the paging both apply to the filtered result.
+    /// `--at` is part of the query, not a sieve over the answer: the ISIL goes out as
+    /// `@attr 1=1044`, so every location's `total` and its paging apply to the filtered
+    /// result. There is no separate counting request any more; a location's search states
+    /// its own `numberOfRecords`, so `N` locations cost `N` requests rather than `N + 1`.
+    ///
+    /// Two locations that resolve to the same ISIL share one search: the query and the
+    /// answer would be identical, and paying twice for them buys nothing.
+    ///
+    /// `total` and the PQF echo are stated only when exactly one search ran. With several
+    /// there is no joint hit count that is true of the answer as a whole, and summing the
+    /// locations would count every record two of them hold twice — the honest numbers are
+    /// the per-location ones in `at[]`.
     fn search(&self, request: &SearchRequest) -> Result<EngineSearch, Error> {
-        let query = pqf::search(&request.query, &filter_isils(&request.locations))?;
-        let response = self.client.search(&query, request.window)?;
-        let records = records(&response)?;
-        Ok(EngineSearch {
-            engine: Engine::Kobv,
-            total: Some(response.number_of_records),
-            fetched: records.len(),
-            undelivered: undelivered(&response),
-            at: self.at_blocks(request, &records)?,
-            records,
-            query_echo: Some(query.as_str().to_owned()),
-            notes: sru::record_notes(&response),
-        })
+        let isils = filter_isils(&request.locations);
+        if isils.is_empty() {
+            return self.search_everywhere(request);
+        }
+        self.search_by_location(request, &isils)
     }
 
     /// One availability call per record, concurrently, capped at six. Records with no
@@ -196,30 +254,63 @@ impl Catalog for Kobv<'_> {
     }
 }
 
-/// The ids of the records that state a holding of this ISIL.
+/// One `at[]` entry per location, in the order the user gave them.
 ///
-/// A record with no `924` at all belongs to no location — 4.9 % have none, and that is
-/// "not stated in this record", never "held everywhere".
-fn held_at(records: &[Record], isil: &Isil) -> Vec<RecordId> {
-    records
+/// The totals are the point of the entries: "HU Berlin · 230 results" has to be the number
+/// of HU records, not the size of a joint search — and it is, because the location's
+/// search asked about nothing else.
+///
+/// `records` is the block's membership, and it is what that location's own search
+/// returned. That is a stronger statement than reading the ISIL back out of the records:
+/// the upstream filter decided it, so a record is in the block because the catalogue
+/// answered it for this library.
+///
+/// Two locations with the same ISIL share the one search that was run for it; a location
+/// whose ISIL somehow has no search states nothing rather than borrowing another's
+/// numbers.
+fn at_blocks(
+    locations: &[Location],
+    isils: &[Isil],
+    per_isil: &[(u64, Vec<RecordId>)],
+) -> Vec<AtBlock> {
+    locations
         .iter()
-        .filter(|record| {
-            record
-                .holdings
+        .map(|location| {
+            let found = isils
                 .iter()
-                .any(|holding| holding.isil.as_ref() == Some(isil))
+                .position(|isil| *isil == location.isil)
+                .and_then(|index| per_isil.get(index));
+            AtBlock {
+                key: location.key.clone(),
+                isil: location.isil.clone(),
+                branch: None,
+                engine: Engine::Kobv,
+                total: found.map(|(total, _)| *total),
+                records: found.map(|(_, ids)| ids.clone()).unwrap_or_default(),
+            }
         })
-        .map(|record| record.id.clone())
         .collect()
 }
 
-/// The ISILs of the locations this engine answers for, deduplicated, in the user's order.
+/// Add one location's records to the engine's list, skipping the ones already there.
 ///
-/// Deduplicated because `@or @attr 1=1044 DE-11 @attr 1=1044 DE-11` is a longer way of
-/// writing the same query, and the query is echoed into the JSON where a doubled clause
-/// would read as a mistake. The spelling is the canonical one from the library list, put
-/// there by `libraries::resolve`: the attribute is case-sensitive and `de-11` matches
-/// nothing, silently.
+/// Two locations that both hold an edition answer with the same record, and the JSON is
+/// record-centric: a record appears once however many blocks show it. Which blocks those
+/// are is stated by `at[].records`, not by the position in this list.
+fn merge_records(records: &mut Vec<Record>, found: Vec<Record>) {
+    for record in found {
+        if !records.iter().any(|kept| kept.id == record.id) {
+            records.push(record);
+        }
+    }
+}
+
+/// The ISILs this engine has to search, deduplicated, in the user's order.
+///
+/// One search runs per entry, so deduplicating is what keeps two aliases of the same
+/// institution from being asked the same question twice. The spelling is the canonical
+/// one from the library list, put there by `libraries::resolve`: the attribute is
+/// case-sensitive and `de-11` matches nothing, silently.
 fn filter_isils(locations: &[Location]) -> Vec<Isil> {
     let mut isils: Vec<Isil> = Vec::with_capacity(locations.len());
     for location in locations {

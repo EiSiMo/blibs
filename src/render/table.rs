@@ -331,57 +331,6 @@ fn natural_width(rows: &[Vec<Cell>], index: usize) -> usize {
         .unwrap_or(0)
 }
 
-/// A set of rows laid out into aligned columns.
-#[derive(Debug, Clone, Default)]
-pub struct Table {
-    rows: Vec<Vec<Cell>>,
-    layout: Layout,
-}
-
-impl Table {
-    /// An empty table whose columns are sized to their content.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// An empty table with an explicit column plan.
-    pub fn with_layout(layout: Layout) -> Self {
-        Self {
-            rows: Vec::new(),
-            layout,
-        }
-    }
-
-    /// Append a row.
-    pub fn push(&mut self, row: Vec<Cell>) {
-        self.rows.push(row);
-    }
-
-    /// The rows added so far.
-    pub fn rows(&self) -> &[Vec<Cell>] {
-        &self.rows
-    }
-
-    /// The column plan.
-    pub fn layout(&self) -> &Layout {
-        &self.layout
-    }
-
-    /// Render the table.
-    ///
-    /// Columns are sized to their widest cell; when the total exceeds the available
-    /// width, only truncatable cells give way, and they give way from the widest column
-    /// first so that one long title does not squeeze every other column.
-    pub fn render(&self, style: Style) -> String {
-        let widths = self.layout.widths(&self.rows, style.width());
-        self.rows
-            .iter()
-            .map(|row| self.layout.render_row(row, &widths, style))
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-}
-
 /// Removes SGR sequences (`ESC [ … m`), which is all `anstyle` emits.
 ///
 /// Shared by the tests of both render modules: the claim that colour never changes the
@@ -411,6 +360,18 @@ mod tests {
 
     fn green() -> anstyle::Style {
         anstyle::Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)))
+    }
+
+    /// Lay out and render a block of rows, exactly the way [`crate::render::human`] does
+    /// it: size the columns once over all the rows, then render each row into those
+    /// widths. There is no `Table` type — a renderer that keeps its rows in a struct
+    /// would only be a second place for the widths to be computed.
+    fn render(layout: &Layout, rows: &[Vec<Cell>], style: Style) -> String {
+        let widths = layout.widths(rows, style.width());
+        rows.iter()
+            .map(|row| layout.render_row(row, &widths, style))
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     /// A terminal is asked first and believed, whatever `COLUMNS` claims.
@@ -605,11 +566,12 @@ mod tests {
 
     #[test]
     fn auto_columns_are_sized_to_their_widest_cell() {
-        let mut table = Table::with_layout(Layout::auto(2));
-        table.push(vec![Cell::new("Kafka"), Cell::new("1953")]);
-        table.push(vec![Cell::new("Schlink, Bernhard"), Cell::new("1997")]);
+        let rows = vec![
+            vec![Cell::new("Kafka"), Cell::new("1953")],
+            vec![Cell::new("Schlink, Bernhard"), Cell::new("1997")],
+        ];
         assert_eq!(
-            table.render(Style::plain(100)),
+            render(&Layout::auto(2), &rows, Style::plain(100)),
             "Kafka              1953\nSchlink, Bernhard  1997"
         );
     }
@@ -618,13 +580,12 @@ mod tests {
     #[test]
     fn the_widest_column_gives_way_first() {
         let layout = Layout::new(vec![Column::Auto, Column::Auto, Column::Last]);
-        let mut table = Table::with_layout(layout);
-        table.push(vec![
+        let rows = vec![vec![
             Cell::new("Der Prozess : Roman einer Verwandlung"),
             Cell::new("Kafka"),
             Cell::new("almafu_BV008885798").whole(),
-        ]);
-        let rendered = table.render(Style::plain(40));
+        ]];
+        let rendered = render(&layout, &rows, Style::plain(40));
         assert_eq!(rendered, "Der Prozess…   Kafka  almafu_BV008885798");
         assert_eq!(
             display_width(&rendered),
@@ -638,12 +599,11 @@ mod tests {
     #[test]
     fn the_last_column_overflows_rather_than_being_cut() {
         let layout = Layout::new(vec![Column::Flex { min: 4 }, Column::Last]);
-        let mut table = Table::with_layout(layout);
-        table.push(vec![
+        let rows = vec![vec![
             Cell::new("Der Prozess : Roman"),
             Cell::new("almafu_BV008885798").whole(),
-        ]);
-        let rendered = table.render(Style::plain(20));
+        ]];
+        let rendered = render(&layout, &rows, Style::plain(20));
         assert_eq!(rendered, "Der…  almafu_BV008885798");
         assert!(rendered.ends_with("almafu_BV008885798"));
     }
@@ -652,12 +612,11 @@ mod tests {
     #[test]
     fn a_flex_column_does_not_shrink_past_its_minimum() {
         let layout = Layout::new(vec![Column::Flex { min: 8 }, Column::Last]);
-        let mut table = Table::with_layout(layout);
-        table.push(vec![
+        let rows = vec![vec![
             Cell::new("Der Prozess : Roman einer Verwandlung"),
             Cell::new("almafu_BV008885798").whole(),
-        ]);
-        let rendered = table.render(Style::plain(10));
+        ]];
+        let rendered = render(&layout, &rows, Style::plain(10));
         assert_eq!(rendered, "Der Pro…  almafu_BV008885798");
     }
 
@@ -678,14 +637,8 @@ mod tests {
                 Cell::new("b3kat_BV005550341").whole(),
             ],
         ];
-        let mut plain = Table::with_layout(layout.clone());
-        let mut coloured = Table::with_layout(layout);
-        for row in rows {
-            plain.push(row.clone());
-            coloured.push(row);
-        }
-        let plain = plain.render(Style::plain(100));
-        let coloured = coloured.render(Style::new(true, 100));
+        let plain = render(&layout, &rows, Style::plain(100));
+        let coloured = render(&layout, &rows, Style::new(true, 100));
         assert_ne!(plain, coloured, "colour must actually have been written");
         assert_eq!(plain, strip_ansi(&coloured));
     }
@@ -703,32 +656,35 @@ mod tests {
 
     #[test]
     fn a_short_row_is_padded_but_carries_no_trailing_space() {
-        let layout = Layout::auto(3);
-        let mut table = Table::with_layout(layout);
-        table.push(vec![
-            Cell::new("Kafka"),
-            Cell::new("1953"),
-            Cell::new("almafu_BV008885798"),
-        ]);
-        table.push(vec![Cell::new("Schlink")]);
-        let rendered = table.render(Style::plain(100));
+        let rows = vec![
+            vec![
+                Cell::new("Kafka"),
+                Cell::new("1953"),
+                Cell::new("almafu_BV008885798"),
+            ],
+            vec![Cell::new("Schlink")],
+        ];
+        let rendered = render(&Layout::auto(3), &rows, Style::plain(100));
         let lines: Vec<&str> = rendered.lines().collect();
         assert_eq!(lines[1], "Schlink");
         assert!(!lines[0].ends_with(' '));
     }
 
     #[test]
-    fn an_empty_table_renders_nothing() {
-        assert_eq!(Table::new().render(Style::plain(100)), "");
-        assert!(Table::new().rows().is_empty());
+    fn no_rows_render_to_nothing() {
+        assert_eq!(render(&Layout::auto(2), &[], Style::plain(100)), "");
     }
 
+    /// A layout that names no columns at all still sizes every column to its content —
+    /// which is what makes a plain list of cells renderable without a column plan.
     #[test]
-    fn a_table_without_a_layout_sizes_every_column_to_its_content() {
-        let mut table = Table::new();
-        table.push(vec![Cell::new("a"), Cell::new("bb")]);
-        table.push(vec![Cell::new("ccc"), Cell::new("d")]);
-        assert_eq!(table.render(Style::plain(100)), "a    bb\nccc  d");
-        assert_eq!(table.layout().widths(table.rows(), 100), vec![3, 2]);
+    fn a_layout_without_columns_sizes_every_column_to_its_content() {
+        let layout = Layout::default();
+        let rows = vec![
+            vec![Cell::new("a"), Cell::new("bb")],
+            vec![Cell::new("ccc"), Cell::new("d")],
+        ];
+        assert_eq!(render(&layout, &rows, Style::plain(100)), "a    bb\nccc  d");
+        assert_eq!(layout.widths(&rows, 100), vec![3, 2]);
     }
 }

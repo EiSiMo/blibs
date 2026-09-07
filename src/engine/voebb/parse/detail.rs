@@ -38,12 +38,14 @@ use std::sync::OnceLock;
 
 use scraper::{ElementRef, Html, Selector};
 
-use crate::error::{Error, UnexpectedError};
+use crate::error::Error;
 use crate::libraries::{self, Branch, VOEBB_NETWORK, text::fold};
 use crate::model::{
     Author, AuthorKind, Format, Holding, Isil, Item, Note, Record, RecordId, ResourceUrl, Status,
     UrlKind, note_kinds,
 };
+
+use super::{collapse, compile};
 
 /// What names this document in an error message.
 const DOCUMENT: &str = "voebb detail page";
@@ -542,7 +544,9 @@ fn split_location(stated: &str) -> (Option<String>, Option<String>) {
 /// only the status column promises a loan that does not exist.
 ///
 /// A cell with neither a known class nor a known word is [`Status::Unknown`] plus a note
-/// — never a guess, and never quietly [`Status::Available`].
+/// — never a guess, and never quietly [`Status::Available`]. A cell whose class and word
+/// *contradict* each other resolves to the pessimistic one, also with a note: an
+/// unexplained conflict must not end as a promise that the copy is on the shelf.
 fn status_of(
     cell: Option<ElementRef<'_>>,
     order_option: Option<&str>,
@@ -564,6 +568,15 @@ fn status_of(
     let unavailable = class == "notavailable"
         || matches!(text.as_str(), "Ausgeliehen" | "Nicht im Regal" | "Verloren");
 
+    if available && unavailable {
+        notes.push(Note::new(
+            note_kinds::AVAILABILITY_STATUS_CONFLICT,
+            format!(
+                "voebb.de marked a copy {class:?} and called it {text:?} at the same time;                  it is reported as unavailable rather than as a loan that may not exist"
+            ),
+        ));
+        return Status::Unavailable;
+    }
     if available {
         if is_reference(order_option) {
             return Status::Reference;
@@ -880,21 +893,10 @@ fn selectors() -> &'static Selectors {
     })
 }
 
-/// Compile one selector literal.
-fn compile(css: &str) -> Selector {
-    Selector::parse(css).expect("every selector in this module is a literal and must parse")
-}
-
 /// All text below an element, whitespace collapsed. The page indents its cells over
 /// several lines and pads the order column with runs of spaces.
 fn text_of(element: ElementRef<'_>) -> String {
     collapse(&element.text().collect::<String>())
-}
-
-/// Collapse runs of whitespace and trim. `&nbsp;` counts as whitespace here, which is
-/// what turns the unlabelled permalink row into an empty label.
-fn collapse(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// `None` for an empty string, so that "the cell was blank" and "there is no such column"
@@ -903,18 +905,15 @@ fn non_empty(text: &str) -> Option<String> {
     (!text.is_empty()).then(|| text.to_string())
 }
 
-/// A missing-selector error naming what stopped matching.
+/// A missing-selector error naming what stopped matching in this document.
 fn missing_selector(selector: &str) -> Error {
-    UnexpectedError::MissingSelector {
-        selector: selector.to_string(),
-        document: DOCUMENT.to_string(),
-    }
-    .into()
+    super::missing_selector(selector, DOCUMENT)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::error::UnexpectedError;
 
     const AVAILABLE: &str = include_str!("../../../../tests/fixtures/voebb/detail_available.html");
     const ON_LOAN: &str = include_str!("../../../../tests/fixtures/voebb/detail_on_loan.html");
@@ -1327,6 +1326,26 @@ mod tests {
             page.notes
                 .iter()
                 .any(|note| note.kind == note_kinds::AVAILABILITY_UNKNOWN_STATUS),
+            "{:?}",
+            page.notes
+        );
+    }
+
+    /// Class and word contradicting each other resolves to the pessimistic status, with
+    /// the disagreement stated — a conflict must never end as "go and fetch it".
+    #[test]
+    fn a_contradicting_class_and_word_is_unavailable_and_stated() {
+        let broken = AVAILABLE.replace(
+            "<span class=\"available\">Verfügbar</span>",
+            "<span class=\"notavailable\">Verfügbar</span>",
+        );
+        let page = parse_detail(&broken, &RecordId::voebb("SAK13776205"))
+            .expect("a contradiction is not a parse failure");
+        assert_eq!(statuses(&page), vec![Status::Unavailable]);
+        assert!(
+            page.notes
+                .iter()
+                .any(|note| note.kind == note_kinds::AVAILABILITY_STATUS_CONFLICT),
             "{:?}",
             page.notes
         );

@@ -43,8 +43,10 @@ const RECORD_PARAM: &str = "sp";
 /// The product the record page belongs to.
 const RECORD_PRODUCT: &str = "SPROD00";
 
-/// How many search rows the advanced form offers.
-const ADVANCED_ROWS: usize = 4;
+/// How many search rows the advanced form offers. Derived from the field names rather
+/// than written out again: a fifth row would need a fifth `$Select$n`, and two numbers
+/// that must agree are one number too many.
+const ADVANCED_ROWS: usize = fields::ADVANCED_INDEX.len();
 
 /// What names this client in an error message.
 const DOCUMENT: &str = "voebb.de";
@@ -95,8 +97,9 @@ impl<'f> VoebbClient<'f> {
     /// (one extra request) and one row per flag is filled in, joined with `UND`.
     ///
     /// The returned notes state what the site could not be asked exactly as the user
-    /// wrote it — see [`advanced_rows`]. They are notes and not errors: the search still
-    /// ran, and silently narrowing it would be the worse answer.
+    /// wrote it: the form has no free-text index and only four rows. They are notes and
+    /// not errors — the search still ran, and silently narrowing it would be the worse
+    /// answer.
     pub fn search(
         &self,
         session: &mut Session,

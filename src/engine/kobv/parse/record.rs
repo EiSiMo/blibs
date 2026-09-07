@@ -123,7 +123,7 @@ pub fn from_marc(marc: &MarcRecord) -> Result<Record, Error> {
 /// library's own (`924$a`) and is **never** reconstructed from `001`: a quarter of them
 /// differ.
 ///
-/// An ISIL is emitted at most once. [`holdings`] already folds repeated `924` fields into
+/// An ISIL is emitted at most once. `holdings` already folds repeated `924` fields into
 /// one holding, so this is a guard rather than a case — but it is a guard worth keeping:
 /// the response is keyed by ISIL, and a key naming a library twice collides with itself,
 /// which is a wrong answer rather than a failure. The function therefore does not rely on

@@ -301,14 +301,22 @@ fn footer_notes(result: &SearchResult) -> Vec<String> {
             ),
         });
     }
-    if let Some(total) = result.total
-        && result.sort.by != SortKey::Relevance
-        && total > result.shown as u64
+    // Never conditional on knowing the total: with several locations there is no joint
+    // hit count, and a sort that silently looked complete is exactly what `plan/cli.md`
+    // forbids.
+    if result.sort.by != SortKey::Relevance
+        && result.total.is_none_or(|total| total > result.shown as u64)
     {
-        notes.push(format!(
-            "--sort ordered the {} records shown, not all {total} results",
-            result.shown
-        ));
+        notes.push(match result.total {
+            Some(total) => format!(
+                "--sort ordered the {} records shown, not all {total} results",
+                result.shown
+            ),
+            None => format!(
+                "--sort ordered the {} records shown, not the whole result",
+                result.shown
+            ),
+        });
     }
     notes
 }

@@ -7,7 +7,7 @@
 
 use crate::error::Error;
 use crate::http::{CachePolicy, Fetch, Request};
-use crate::model::{AvailabilityId, FetchWindow, SruPageSize};
+use crate::model::{AvailabilityId, FetchWindow};
 
 use super::parse::availability::{self, AvailabilityResponse};
 use super::parse::sru::{self, SruResponse};
@@ -37,34 +37,16 @@ const AVAILABILITY_METHOD: &str = "getAvailability";
 ///
 /// The query travels as `x-pquery`, never as `query`: same indexes and same counts, plus
 /// Bib-1 attribute `1044`, which is the only way to filter by holdings upstream
-/// (`plan/scraping.md` §A.4a). `maximumRecords` comes from a [`SruPageSize`] and can
-/// therefore never exceed the 50 above which the service truncates silently.
+/// (`plan/scraping.md` §A.4a). `maximumRecords` comes from a
+/// [`SruPageSize`](crate::model::SruPageSize) and can therefore never exceed the 50 above
+/// which the service truncates silently.
 pub fn search_request(query: &Pqf, window: FetchWindow) -> Request {
-    sru_request(query, window.size, Some(window.start))
-}
-
-/// Build a counting request — `maximumRecords=0`, which returns `numberOfRecords` and no
-/// records.
-///
-/// This is what makes a per-location total honest without paying for a second result set:
-/// 532 bytes and 0.12 s, measured. It carries no `startRecord`, because a request that
-/// returns no records has no offset to speak of.
-pub fn count_request(query: &Pqf) -> Request {
-    sru_request(query, SruPageSize::COUNT_ONLY, None)
-}
-
-/// The one SRU request builder, so that a search and a count cannot drift apart in
-/// anything but the two parameters that distinguish them.
-fn sru_request(query: &Pqf, size: SruPageSize, start: Option<u32>) -> Request {
-    let mut request = Request::get(SRU_BASE)
+    Request::get(SRU_BASE)
         .query("operation", OPERATION)
         .query("version", VERSION)
         .query("recordSchema", RECORD_SCHEMA)
-        .query("maximumRecords", size.get().to_string());
-    if let Some(start) = start {
-        request = request.query("startRecord", start.to_string());
-    }
-    request
+        .query("maximumRecords", window.size.get().to_string())
+        .query("startRecord", window.start.to_string())
         .query("x-pquery", query.as_str())
         .cache(CachePolicy::Normal)
 }
@@ -100,11 +82,6 @@ impl<'f> KobvClient<'f> {
     /// [`crate::error::RejectedError`] here, not an empty result.
     pub fn search(&self, query: &Pqf, window: FetchWindow) -> Result<SruResponse, Error> {
         self.envelope(&search_request(query, window))
-    }
-
-    /// Ask only for the hit count.
-    pub fn count(&self, query: &Pqf) -> Result<u64, Error> {
-        Ok(self.envelope(&count_request(query))?.number_of_records)
     }
 
     /// Fetch availability for one record.
@@ -185,32 +162,6 @@ mod tests {
                 .query
                 .contains(&("maximumRecords".to_owned(), "25".to_owned()))
         );
-    }
-
-    /// `maximumRecords=0` and no offset — the whole difference between a count and a
-    /// search, so that the two can never answer different queries.
-    #[test]
-    fn a_counting_request_asks_for_no_records_at_all() {
-        let query = query();
-        let count = count_request(&query);
-        let search = search_request(
-            &query,
-            FetchWindow::plan(Limit::DEFAULT, Page::FIRST, false),
-        );
-        assert!(
-            count
-                .query
-                .contains(&("maximumRecords".to_owned(), "0".to_owned()))
-        );
-        assert!(count.query.iter().all(|(key, _)| key != "startRecord"));
-        let pquery = |request: &Request| {
-            request
-                .query
-                .iter()
-                .find(|(key, _)| key == "x-pquery")
-                .map(|(_, value)| value.clone())
-        };
-        assert_eq!(pquery(&count), pquery(&search));
     }
 
     /// Availability is live data and session-free: never cached, never batched.

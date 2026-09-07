@@ -154,10 +154,9 @@ pub struct SearchRequest {
     pub query: QuerySpec,
     /// The locations this engine is responsible for. Empty means "no `--at`".
     pub locations: Vec<Location>,
-    /// The record window to fetch.
+    /// The record window to fetch, **per location**: `--limit` applies to every block,
+    /// so a location's search asks for a full window of its own.
     pub window: FetchWindow,
-    /// Whether per-location totals should be fetched. They cost one extra request each.
-    pub want_totals: bool,
 }
 
 /// What one engine returned, before selection and before availability.
@@ -165,7 +164,10 @@ pub struct SearchRequest {
 pub struct EngineSearch {
     /// Which engine produced this.
     pub engine: Engine,
-    /// Total hits upstream, when the service states one.
+    /// Total hits upstream, when **one** search states one. `None` as soon as an engine
+    /// ran several searches — one per location — because no single number is then true
+    /// of the whole answer, and adding them up would double-count every record two
+    /// locations both hold. The per-location counts live in [`Self::at`].
     pub total: Option<u64>,
     /// How many records were delivered.
     pub fetched: usize,
@@ -175,7 +177,9 @@ pub struct EngineSearch {
     pub at: Vec<AtBlock>,
     /// The records.
     pub records: Vec<Record>,
-    /// The query as it was sent, for the JSON echo.
+    /// The query as it was sent, for the JSON echo. `None` when the engine has no query
+    /// language (`voebb`) or sent more than one query — echoing one of several would name
+    /// a search that produced only part of the answer.
     pub query_echo: Option<String>,
     /// Limitations that are not errors.
     pub notes: Vec<Note>,
@@ -343,6 +347,11 @@ pub mod note_kinds {
     /// order won, and the disagreement is stated rather than hidden.
     pub const AVAILABILITY_MATCH_CONFLICT: &str = "availability_match_conflict";
 
+    /// The two signals a copy's loan status is read from — the marker class and the
+    /// status word — contradict each other. The pessimistic one wins, because promising
+    /// a loan that does not exist is the worse of the two mistakes.
+    pub const AVAILABILITY_STATUS_CONFLICT: &str = "availability_status_conflict";
+
     /// A block of copies could not be matched to any ISIL and is shown under the
     /// portal's own name for the library.
     pub const HOLDING_WITHOUT_ISIL: &str = "holding_without_isil";
@@ -435,6 +444,7 @@ mod tests {
             note_kinds::AVAILABILITY_UNKNOWN_STATUS,
             note_kinds::AVAILABILITY_MATCHED_BY_NAME,
             note_kinds::AVAILABILITY_MATCH_CONFLICT,
+            note_kinds::AVAILABILITY_STATUS_CONFLICT,
             note_kinds::HOLDING_WITHOUT_ISIL,
             note_kinds::VOEBB_MULTIVOLUME,
             note_kinds::VOEBB_ONLINE_ONLY,
@@ -861,7 +871,6 @@ mod tests {
                 display: "Humboldt-Universität zu Berlin".to_owned(),
             }],
             window: FetchWindow::plan(Limit::new(10).expect("10 is in range"), Page::FIRST, false),
-            want_totals: true,
         };
         assert_eq!(request.window.start, 1);
         assert_eq!(request.window.size.get(), 10);

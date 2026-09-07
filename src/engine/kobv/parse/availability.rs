@@ -105,36 +105,14 @@ pub fn parse(json: &str) -> Result<AvailabilityResponse, Error> {
         "overallAvailability",
         &mut notes,
     );
-    let by_isil = isil_availability
-        .0
-        .into_iter()
-        .map(|(isil, entry)| {
-            let field = format!("isilAvailability[{isil}]");
-            let status = colour_status(entry.color.as_deref(), &field, &mut notes);
-            (Isil::new(&isil), status)
-        })
-        .collect();
-
+    let by_isil = statuses_by_isil(isil_availability, &mut notes);
     let has_availability = data.has_availability.unwrap_or(false);
     if !has_availability {
-        notes.push(Note::new(
-            note_kinds::AVAILABILITY_NOT_STATED,
-            "the availability service holds no information for this record — \
-             the copies below come from the catalogue and may carry no status",
-        ));
+        notes.push(not_stated_note());
     }
-
     let groups = parse_fragment(&html)?;
-    if groups
-        .iter()
-        .flat_map(|group| &group.items)
-        .any(|item| item.status == Status::Unknown)
-    {
-        notes.push(Note::new(
-            note_kinds::AVAILABILITY_UNKNOWN_STATUS,
-            "some copies came back without a traffic light blibs recognises; \
-             their status is reported as unknown",
-        ));
+    if let Some(note) = unknown_status_note(&groups) {
+        notes.push(note);
     }
 
     Ok(AvailabilityResponse {
@@ -144,6 +122,53 @@ pub fn parse(json: &str) -> Result<AvailabilityResponse, Error> {
         groups,
         avail_text: non_empty(data.avail_text.unwrap_or_default().trim()),
         notes,
+    })
+}
+
+/// One traffic light per ISIL, **in the response's key order**.
+///
+/// The order is load-bearing: the shelf-table fragment carries no ISIL at all, so the
+/// blocks of copies are matched against these keys positionally (`plan/scraping.md`
+/// §B.5.1). That is why `serde_json` is built with `preserve_order`.
+fn statuses_by_isil(availability: OrderedIsils, notes: &mut Vec<Note>) -> Vec<(Isil, Status)> {
+    availability
+        .0
+        .into_iter()
+        .map(|(isil, entry)| {
+            let field = format!("isilAvailability[{isil}]");
+            let status = colour_status(entry.color.as_deref(), &field, notes);
+            (Isil::new(&isil), status)
+        })
+        .collect()
+}
+
+/// What `hasAvailability: false` means for the copies that follow.
+///
+/// The service has nothing for this record; whatever shelfmarks the fragment still
+/// carries come from the catalogue and say nothing about today.
+fn not_stated_note() -> Note {
+    Note::new(
+        note_kinds::AVAILABILITY_NOT_STATED,
+        "the availability service holds no information for this record — \
+         the copies below come from the catalogue and may carry no status",
+    )
+}
+
+/// A note when at least one copy came back with a traffic light this tool does not know.
+///
+/// One note for the whole response rather than one per copy: the fact worth reporting is
+/// that the vocabulary has moved on, and repeating it per row would bury it.
+fn unknown_status_note(groups: &[ItemGroup]) -> Option<Note> {
+    let unknown = groups
+        .iter()
+        .flat_map(|group| &group.items)
+        .any(|item| item.status == Status::Unknown);
+    unknown.then(|| {
+        Note::new(
+            note_kinds::AVAILABILITY_UNKNOWN_STATUS,
+            "some copies came back without a traffic light blibs recognises; \
+             their status is reported as unknown",
+        )
     })
 }
 

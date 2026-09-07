@@ -94,7 +94,12 @@ impl Cache {
         Some(Self { root })
     }
 
-    /// Use a specific directory. For tests.
+    /// Use a specific directory, instead of the one [`Cache::open`] would pick.
+    ///
+    /// The seam the cache's own tests need: a throwaway directory per test, and one
+    /// directory that cannot exist, so that "no usable cache" is exercised rather than
+    /// assumed.
+    #[cfg(test)]
     pub fn at(root: PathBuf) -> Self {
         Self { root }
     }
@@ -166,7 +171,9 @@ impl Cache {
         }
     }
 
-    /// The directory being used.
+    /// The directory being used. Only the cache's own tests ask — nothing in the tool
+    /// reports where the cache lives, because the cache changes latency and nothing else.
+    #[cfg(test)]
     pub fn root(&self) -> &Path {
         &self.root
     }

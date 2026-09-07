@@ -20,8 +20,9 @@ path = "src/main.rs"
 [dependencies]
 # Argument parsing. `derive` keeps the CLI contract next to the types it fills;
 # `wrap_help` reflows the long help that `blibs` prints when called without arguments.
-# `suggestions` (a default feature) turns a typo'd subcommand into a pointer, which the
-# exit-code-2 contract in plan/cli.md asks for.
+# `suggestions` turns a typo'd subcommand into a pointer, which the exit-code-2 contract in
+# plan/cli.md asks for; it is a default feature, so it is not listed here and
+# `default-features = false` would silently drop it.
 clap = { version = "4.6.6", features = ["derive", "wrap_help"] }
 
 # HTTP client. Blocking and thread-based on purpose (no async runtime, see plan/client.md);
@@ -57,11 +58,10 @@ unicode-width = "0.2.2"
 terminal_size = "0.4.4"
 
 # Colour as data: `anstyle` describes a style without deciding whether it is emitted.
+# Whether it *is* emitted is decided in `render::style` from `IsTerminal`, `NO_COLOR` and
+# `TERM` — three checks, no second crate, and the layout is computed on the uncoloured
+# text either way.
 anstyle = "1.0.14"
-
-# ... and `anstream` does the deciding — TTY detection and NO_COLOR, so that the layout is
-# byte-identical with and without colour.
-anstream = "1.0.0"
 
 [dev-dependencies]
 # Black-box CLI tests: exit codes, stdout/stderr separation, help text.

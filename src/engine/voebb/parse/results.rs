@@ -20,6 +20,7 @@ use crate::error::{Error, UnexpectedError};
 use crate::model::RecordId;
 
 use super::form::{self, FormState};
+use super::{collapse, compile};
 
 /// The document name used in errors from this module.
 const DOCUMENT: &str = "voebb.de result list";
@@ -229,7 +230,7 @@ fn icon_text(row: ElementRef<'_>, selector: &Selector) -> Option<String> {
 /// page size never changes. A page that states hits but has no toolbar at all is an
 /// error: without it, the last page and a truncated one look the same.
 fn toolbar_offers(document: &Html, id: &str, total: u64) -> Result<bool, Error> {
-    let selector = form::compile(&format!("input#{id}"));
+    let selector = compile(&format!("input#{id}"));
     match document.select(&selector).next() {
         Some(button) => Ok(button.value().attr("disabled").is_none()),
         None if total == 0 => Ok(false),
@@ -280,15 +281,15 @@ struct Selectors {
 fn selectors() -> &'static Selectors {
     static SELECTORS: OnceLock<Selectors> = OnceLock::new();
     SELECTORS.get_or_init(|| Selectors {
-        info: form::compile("div#R06 p.info"),
-        row: form::compile("div.resultlist li.rList_li"),
-        title_link: form::compile("div.rList_titel a[href]"),
-        number: form::compile("div.rList_num"),
-        name: form::compile("div.rList_name"),
-        year: form::compile("div.rList_jahr"),
-        medium: form::compile("div.rList_medium img"),
-        availability: form::compile("div.rList_availability img"),
-        shelfmark: form::compile("div.rList_signatur"),
+        info: compile("div#R06 p.info"),
+        row: compile("div.resultlist li.rList_li"),
+        title_link: compile("div.rList_titel a[href]"),
+        number: compile("div.rList_num"),
+        name: compile("div.rList_name"),
+        year: compile("div.rList_jahr"),
+        medium: compile("div.rList_medium img"),
+        availability: compile("div.rList_availability img"),
+        shelfmark: compile("div.rList_signatur"),
     })
 }
 
@@ -297,19 +298,9 @@ fn text_of(element: ElementRef<'_>) -> String {
     element.text().collect()
 }
 
-/// Collapse runs of whitespace and trim. The cells are indented over several lines and
-/// the empty ones carry a `&nbsp;`, which is whitespace here.
-fn collapse(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-/// A missing-selector error naming what stopped matching.
+/// A missing-selector error naming what stopped matching in this document.
 fn missing_selector(selector: &str) -> Error {
-    UnexpectedError::MissingSelector {
-        selector: selector.to_string(),
-        document: DOCUMENT.to_string(),
-    }
-    .into()
+    super::missing_selector(selector, DOCUMENT)
 }
 
 #[cfg(test)]

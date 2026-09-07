@@ -15,4 +15,4 @@ pub mod style;
 pub mod table;
 
 pub use style::Style;
-pub use table::{Cell, Column, Layout, Table};
+pub use table::{Cell, Column, Layout};
