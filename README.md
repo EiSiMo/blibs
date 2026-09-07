@@ -160,7 +160,6 @@ JSON. A shortened `search` document:
     { "key": "HU", "isil": "DE-11", "branch": null, "engine": "kobv", "total": 6 }
   ],
   "availability": "fetched",
-  "notes": [],
   "records": [
     {
       "id": "almafu_BV008885798",
@@ -205,20 +204,47 @@ change.
   location's true hit count, and only `at[].records` is filtered.
 - `availability` is `"fetched"` or `"skipped"` — whether the status service was asked at
   all, so an empty `items` list is never ambiguous.
-- `notes` carries footnotes such as a skipped diagnostic record; it is `[]` when there is
-  nothing to say.
+- `notes` carries footnotes such as a skipped diagnostic record. Each is
+  `{ kind, message }`; switch on `kind`, never on the wording. The whole field is
+  **absent** when there is nothing to say, rather than an empty array.
 - `at[]` gives, per `--at` location, the resolved ISIL/branch, which engine answered, and
   that location's true hit count — an agent reconstructs the grouped view from this and
   `holdings[].isil` / `items[].branch` itself; `records` stays record-centric, with each
   record listed exactly once even if it would appear in several blocks.
+- `total` is the KOBV hit count, and it is `null` in three cases: only `voebb` ran
+  (voebb.de states no figure for the whole network, only per branch), `--at` named two or
+  more KOBV institutions (each is asked separately and a sum would double-count a record
+  held in several houses), or the catalogue stated none. `at[].total` is the number to
+  trust.
+- `limit` is **per location**, so `shown` exceeds it as soon as `--at` names more than one:
+  `--at HU,AGB --limit 3` gives `limit: 3` and `shown: 6`.
+- `authors[].role` is the relator term as the record words it (`Verfasser/in`, `Übers.`),
+  `authors[].role_code` the MARC relator code (`aut`, `trl`). Neither vocabulary is
+  closed — the data carries German extensions no LoC list contains — and `voebb` never
+  states a code at all, so `null` there means "not stated in this catalogue".
+
+`show` answers with a document of its own:
+
+```json
+{
+  "record": { "id": "almafu_BV008885798", "title": "Der Prozess", "…": "…" },
+  "availability": "fetched"
+}
+```
+
+`record` is `null` when the id matched nothing, so even a miss says whether availability
+was asked for. `availability` and `notes` mean what they mean above, and `notes` is
+likewise absent when empty — it carries, for instance, an `--at` naming a branch of the
+other catalogue, which cannot apply to this record and says nothing about whether the
+copy stands there.
 
 ### Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | 0 | found at least one hit |
-| 1 | searched and found nothing; also an unknown record id or no library matched |
-| 2 | usage error — nothing was sent |
+| 1 | searched and found nothing; also an unknown record id, or `libraries --find`/`--near` matching nothing |
+| 2 | usage error — nothing was sent; includes a library shortcode that does not exist |
 | 3 | network error — DNS, TLS, connection refused, timeout |
 | 4 | service unavailable — HTTP 429/503, backoff exhausted |
 | 5 | the catalogue rejected the query |
