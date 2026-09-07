@@ -115,28 +115,38 @@ pub struct FetchWindow {
 impl FetchWindow {
     /// Work out the window for a given limit and page.
     ///
-    /// Without a client-side filter the window is exactly the limit: the user sees what
-    /// was fetched, and the tool does not pay for records it will throw away. With
-    /// `--format` or `--language` the window is widened to [`MAX_SRU_PAGE_SIZE`], because
-    /// those filters see only the fetched records and a window of 10 would report "no
-    /// hits" for a book that is on record 11. The output must always say which of the two
-    /// happened; it may never imply that a filtered result is complete.
+    /// **Without a client-side filter** the window is exactly the limit and `--page`
+    /// steps it: the user sees what was fetched, and the tool does not pay for records it
+    /// will throw away.
+    ///
+    /// **With `--format` or `--language`** the window is widened to [`MAX_SRU_PAGE_SIZE`]
+    /// — those filters see only the fetched records, and a window of 10 would report "no
+    /// hits" for a book that is on record 11 — and it stays anchored at record 1 whatever
+    /// `--page` says. The widened window *is* the addressable set, and `--page` walks the
+    /// matches inside it ([`crate::select::PageCut`]) rather than the raw records.
+    ///
+    /// Stepping the raw records instead is what this used to do, and it lost matches: a
+    /// page-1 window of 50 raw records could hold 16 matches of which 5 were shown, and
+    /// page 2 jumped to raw record 51 — the other 11 were reachable from no page at all,
+    /// under a heading that claimed to continue the count. Filters are window-bound
+    /// (`plan/cli.md` § *Das Fensterproblem*); paging them has to be window-bound too.
     pub fn plan(limit: Limit, page: Page, filtered: bool) -> Self {
-        let stride = if filtered {
-            MAX_SRU_PAGE_SIZE
-        } else {
-            limit.get()
-        };
+        if filtered {
+            return Self {
+                start: 1,
+                size: SruPageSize::new(u32::from(MAX_SRU_PAGE_SIZE)),
+            };
+        }
         // Saturating throughout: `--page 4294967295` is a legal page number, and an
         // overflow here would silently wrap round to page one.
         let start = page
             .get()
             .saturating_sub(1)
-            .saturating_mul(u32::from(stride))
+            .saturating_mul(u32::from(limit.get()))
             .saturating_add(1);
         Self {
             start,
-            size: SruPageSize::new(u32::from(stride)),
+            size: SruPageSize::new(u32::from(limit.get())),
         }
     }
 }
@@ -206,18 +216,22 @@ mod tests {
     }
 
     /// With `--format`/`--language` the filter only ever sees the fetched records, so the
-    /// window is widened to the largest one SRU serves — and the pages step by 50 too.
+    /// window is widened to the largest one SRU serves — and **anchored**: every page is
+    /// the same block of raw records, because `--page` walks the matches inside it rather
+    /// than the raw records. Stepping the raw records is what used to lose matches that no
+    /// page could reach.
     #[test]
-    fn a_filtered_window_is_widened_to_the_maximum() {
+    fn a_filtered_window_is_widened_and_stays_anchored() {
         let limit = Limit::new(10).expect("10 is in range");
         let first = FetchWindow::plan(limit, Page::FIRST, true);
         assert_eq!(first.start, 1);
         assert_eq!(first.size.get(), MAX_SRU_PAGE_SIZE);
 
-        let page = Page::new(2).expect("2 is a page");
-        let second = FetchWindow::plan(limit, page, true);
-        assert_eq!(second.start, 51);
-        assert_eq!(second.size.get(), MAX_SRU_PAGE_SIZE);
+        for number in [2, 5, 100] {
+            let page = Page::new(number).expect("a page number");
+            let later = FetchWindow::plan(limit, page, true);
+            assert_eq!(later, first, "page {number} must fetch the same block");
+        }
     }
 
     /// A legal but absurd page number must not wrap round to page one.

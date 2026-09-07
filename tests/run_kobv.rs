@@ -801,7 +801,11 @@ fn a_record_the_catalogue_repeats_is_dropped_and_asked_about_once() {
     let mut distinct = ids.clone();
     distinct.sort_unstable();
     distinct.dedup();
-    assert_eq!(ids.len(), distinct.len(), "a record was listed twice: {ids:?}");
+    assert_eq!(
+        ids.len(),
+        distinct.len(),
+        "a record was listed twice: {ids:?}"
+    );
 
     assert_eq!(
         availability_calls(&recorder),
@@ -877,5 +881,122 @@ fn paging_past_the_first_page_states_that_the_order_is_unstable() {
             .iter()
             .any(|kind| kind == "result_order_unstable"),
         "from page two on the overlap is possible and has to be stated"
+    );
+}
+
+/// Paging a client-side filter used to lose records: the window widened to 50 raw
+/// records, page 1 showed `--limit` of the matches inside it, and page 2 jumped to raw
+/// record 51 — every match between the two was reachable from no page at all, under a
+/// heading that claimed to continue the count. Now the window is anchored and `--page`
+/// walks the matches inside it, so the pages partition them.
+#[test]
+fn paging_a_filtered_result_neither_repeats_nor_loses_a_record() {
+    let page = |number: &str| -> Vec<String> {
+        let fetch = search_fetch();
+        let ran = invoke(
+            &[
+                "search",
+                "Vorleser",
+                "--language",
+                "eng",
+                "--limit",
+                "1",
+                "--page",
+                number,
+                "--no-availability",
+                "--json",
+            ],
+            &fetch,
+        );
+        ran.json()["records"]
+            .as_array()
+            .expect("records is an array")
+            .iter()
+            .map(|record| record["id"].as_str().expect("an id").to_owned())
+            .collect()
+    };
+
+    let walked: Vec<String> = ["1", "2", "3"].iter().flat_map(|n| page(n)).collect();
+    let mut distinct = walked.clone();
+    distinct.sort();
+    distinct.dedup();
+    assert_eq!(
+        walked.len(),
+        distinct.len(),
+        "the pages overlap: {walked:?}"
+    );
+    assert_eq!(
+        distinct.len(),
+        3,
+        "every match in the window has to sit on some page: {walked:?}"
+    );
+}
+
+/// The window holds three matches and a page of one, so page four is past the last of
+/// them. That is not "nothing matched" — records did — and the advice must not be to
+/// narrow a search that is working.
+#[test]
+fn a_page_past_the_last_match_says_so_instead_of_blaming_the_filter() {
+    let fetch = search_fetch();
+    let ran = invoke(
+        &[
+            "search",
+            "Vorleser",
+            "--language",
+            "eng",
+            "--limit",
+            "1",
+            "--page",
+            "4",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(
+        ran.err.contains("after the last of them"),
+        "the page is past the matches, not empty of them: {}",
+        ran.err
+    );
+    assert!(
+        ran.err.contains("pages 1 to 3"),
+        "the message says where the matches actually are: {}",
+        ran.err
+    );
+    assert!(
+        !ran.err.contains("narrow the search"),
+        "narrowing a working search is the wrong advice here: {}",
+        ran.err
+    );
+}
+
+/// A range over `total` would be a lie once a filter is active: the window is one
+/// anchored block, and no page reaches the rest of `total` at all. The heading counts
+/// what it is really ranging over.
+#[test]
+fn a_filtered_heading_counts_the_window_instead_of_ranging_over_the_total() {
+    let fetch = search_fetch();
+    let ran = invoke(
+        &[
+            "search",
+            "Vorleser",
+            "--language",
+            "eng",
+            "--limit",
+            "2",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    let heading = ran.out.lines().next().unwrap_or_default();
+    assert!(
+        heading.contains("2 of 3 matching in this window"),
+        "the heading has to say what it ranges over: {heading}"
+    );
+    assert!(
+        !heading.contains("showing"),
+        "a range implies a completeness the filter cannot have: {heading}"
     );
 }

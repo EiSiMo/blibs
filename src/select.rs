@@ -45,6 +45,48 @@ impl Filters {
     }
 }
 
+/// Which slice of the filtered records this page shows.
+///
+/// The mirror of [`crate::model::FetchWindow`]: that one says which records to ask for,
+/// this one says which of the survivors to print. The two have to be planned from the
+/// same three values or a page will claim a position it never fetched.
+///
+/// Without a filter the window already *is* the page — `--page` moved `startRecord` — so
+/// the offset is zero and this only truncates. With `--format` or `--language` the window
+/// is one anchored block of 50 raw records and `--page` walks the matches inside it, so
+/// the offset is `(page - 1) * limit`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PageCut {
+    /// How many of the filtered records to skip.
+    pub offset: usize,
+    /// How many to keep after that.
+    pub limit: usize,
+}
+
+impl PageCut {
+    /// Plan the cut from the same values [`crate::model::FetchWindow::plan`] uses.
+    pub fn plan(limit: Limit, page: crate::model::Page, filtered: bool) -> Self {
+        let limit = usize::from(limit.get());
+        let offset = if filtered {
+            (page.get() as usize)
+                .saturating_sub(1)
+                .saturating_mul(limit)
+        } else {
+            0
+        };
+        Self { offset, limit }
+    }
+
+    /// The whole of what it is given — for [`assign_blocks`], which restates rather than
+    /// cuts.
+    fn everything() -> Self {
+        Self {
+            offset: 0,
+            limit: usize::MAX,
+        }
+    }
+}
+
 /// Drop repeated records, keeping the first of each and the order of the rest.
 ///
 /// The union catalogue delivers the same record twice inside one response — verified
@@ -153,16 +195,20 @@ fn status_of(record: &Record, at: Option<&Location>) -> Status {
 
 /// Take the requested page out of the filtered, sorted records.
 ///
-/// Only the first `limit` records — never an offset. The window that was fetched is
-/// already the right page: [`crate::model::FetchWindow::plan`] positions `startRecord`
-/// from `--page`, and it widens to 50 exactly when a client-side filter will thin the
-/// window out. Skipping here as well would page twice and drop records silently.
+/// The offset comes from [`PageCut`] and is zero unless a client-side filter is active:
+/// without one the fetched window already *is* the page, and skipping here as well would
+/// page twice. With one the window is an anchored block of 50 raw records that holds
+/// several pages' worth of matches, and the offset is the only thing that reaches the
+/// ones past the first `limit`.
 ///
 /// This is the form without `--at`, where there is one flat list to cut. With locations
 /// the cut is per block — [`take_page_per_location`].
-pub fn take_page(mut records: Vec<Record>, limit: Limit) -> Vec<Record> {
-    records.truncate(usize::from(limit.get()));
+pub fn take_page(records: Vec<Record>, cut: PageCut) -> Vec<Record> {
     records
+        .into_iter()
+        .skip(cut.offset)
+        .take(cut.limit)
+        .collect()
 }
 
 /// Cut **every location's block** to `limit` records and keep only what some block still
@@ -179,9 +225,9 @@ pub fn take_page(mut records: Vec<Record>, limit: Limit) -> Vec<Record> {
 pub fn take_page_per_location(
     records: Vec<Record>,
     at: &mut [AtBlock],
-    limit: Limit,
+    cut: PageCut,
 ) -> Vec<Record> {
-    restate(at, &records, usize::from(limit.get()));
+    restate(at, &records, cut);
     let shown: Vec<&RecordId> = at.iter().flat_map(|block| &block.records).collect();
     records
         .into_iter()
@@ -203,19 +249,24 @@ pub fn take_page_per_location(
 /// holding the availability service reported would put a record in a block whose own
 /// window never contained it, past the block's `--limit` and past its paging.
 pub fn assign_blocks(at: &mut [AtBlock], records: &[Record]) {
-    restate(at, records, usize::MAX);
+    restate(at, records, PageCut::everything());
 }
 
 /// The shared half of [`take_page_per_location`] and [`assign_blocks`]: intersect each
-/// block with the records, in the records' order, and keep at most `limit` of them.
-fn restate(at: &mut [AtBlock], records: &[Record], limit: usize) {
+/// block with the records, in the records' order, and keep the [`PageCut`]'s slice.
+///
+/// The offset is applied **per block**, exactly like the limit: `--limit` is a promise
+/// per heading, so `--page` has to be one too, or a location's second page would start
+/// wherever another location's matches happened to fall.
+fn restate(at: &mut [AtBlock], records: &[Record], cut: PageCut) {
     for block in at {
         let stated = std::mem::take(&mut block.records);
         block.records = records
             .iter()
             .map(|record| &record.id)
             .filter(|id| stated.contains(*id))
-            .take(limit)
+            .skip(cut.offset)
+            .take(cut.limit)
             .cloned()
             .collect();
     }
@@ -741,6 +792,7 @@ mod tests {
             window: WindowInfo {
                 fetched: 3,
                 after_filter: 3,
+                filtered: false,
                 undelivered: 0,
                 before_available: None,
             },
@@ -1142,11 +1194,41 @@ mod tests {
         assert_eq!(dropped, 0);
     }
 
+    /// With a filter the window is one anchored block holding several pages of matches,
+    /// and the offset is the only thing that reaches the ones past the first `limit`.
+    #[test]
+    fn a_filtered_cut_walks_the_matches_inside_the_window() {
+        let limit = Limit::new(1).expect("1 is in range");
+        let page = |number: u32| {
+            let cut = PageCut::plan(limit, Page::new(number).expect("a page"), true);
+            let (result, _) = result();
+            take_page(result.records, cut)
+                .iter()
+                .map(|record| record.id.as_str().to_owned())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(page(1), ["almahu_1"]);
+        assert_eq!(page(2), ["almahu_2"]);
+        assert_eq!(page(3), ["almafu_3"]);
+        assert!(page(4).is_empty(), "past the last match, not wrapped round");
+    }
+
+    /// Without a filter the window already *is* the page — `--page` moved `startRecord` —
+    /// so cutting must not skip a second time.
+    #[test]
+    fn an_unfiltered_cut_never_skips() {
+        let limit = Limit::new(2).expect("2 is in range");
+        for number in [1, 2, 7] {
+            let cut = PageCut::plan(limit, Page::new(number).expect("a page"), false);
+            assert_eq!(cut.offset, 0, "page {number} would page twice");
+        }
+    }
+
     #[test]
     fn take_page_keeps_the_first_records_of_the_window() {
         let (result, _) = result();
-        let limit = Limit::new(2).expect("2 is in range");
-        let taken = take_page(result.records.clone(), limit);
+        let cut = PageCut::plan(Limit::new(2).expect("2 is in range"), Page::FIRST, false);
+        let taken = take_page(result.records.clone(), cut);
         let ids: Vec<&str> = taken.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, ["almahu_1", "almahu_2"]);
     }
@@ -1155,9 +1237,9 @@ mod tests {
     #[test]
     fn take_page_never_skips_and_never_pads() {
         let (result, _) = result();
-        let limit = Limit::new(50).expect("50 is in range");
-        assert_eq!(take_page(result.records, limit).len(), 3);
-        assert!(take_page(Vec::new(), limit).is_empty());
+        let cut = PageCut::plan(Limit::new(50).expect("50 is in range"), Page::FIRST, false);
+        assert_eq!(take_page(result.records, cut).len(), 3);
+        assert!(take_page(Vec::new(), cut).is_empty());
     }
 
     #[test]
@@ -1525,9 +1607,9 @@ mod tests {
         let (mut result, _) = result();
         result.at[0].records = ids(&["almahu_1", "almahu_2"]);
         result.at[1].records = ids(&["almahu_1"]);
-        let limit = Limit::new(1).expect("1 is in range");
+        let cut = PageCut::plan(Limit::new(1).expect("1 is in range"), Page::FIRST, false);
 
-        let kept = take_page_per_location(result.records, &mut result.at, limit);
+        let kept = take_page_per_location(result.records, &mut result.at, cut);
 
         let of = |index: usize| -> Vec<&str> {
             result.at[index]
@@ -1553,9 +1635,9 @@ mod tests {
         let (mut result, _) = result();
         result.at[0].records = ids(&["almahu_1", "almahu_2"]);
         result.at[1].records = ids(&["almafu_3"]);
-        let limit = Limit::new(2).expect("2 is in range");
+        let cut = PageCut::plan(Limit::new(2).expect("2 is in range"), Page::FIRST, false);
 
-        let kept = take_page_per_location(result.records, &mut result.at, limit);
+        let kept = take_page_per_location(result.records, &mut result.at, cut);
 
         assert_eq!(result.at[0].records.len(), 2);
         assert_eq!(result.at[1].records.len(), 1);

@@ -849,17 +849,19 @@ mod tests {
         );
     }
 
-    /// The measured window is the one that would be fetched, and a client-side filter
-    /// widens it to 50 a page — so the same `--page` reaches much further with one.
+    /// A client-side filter anchors the window at position 1 whatever `--page` says, so it
+    /// can never reach past voebb.de's paging depth — the depth check has nothing left to
+    /// refuse. Without the filter the same page number still steps and can still be too
+    /// deep.
     #[test]
-    fn a_filter_widens_the_window_and_with_it_the_depth() {
-        let with_filter = &[
-            "search", "Vorleser", "--at", "AGB", "--limit", "10", "--page", "6", "--format", "book",
+    fn a_filtered_window_cannot_be_too_deep() {
+        let deep = &[
+            "search", "Vorleser", "--at", "AGB", "--limit", "50", "--page", "6",
         ];
-        assert_eq!(usage_kind(with_filter), "window_too_deep");
+        assert_eq!(usage_kind(deep), "window_too_deep");
         assert!(
-            search(&with_filter[..8]).is_ok(),
-            "without the filter the same page is well inside"
+            search(&[deep.as_slice(), &["--format", "book"]].concat()).is_ok(),
+            "the filtered window is one anchored block and stays inside the depth"
         );
     }
 

@@ -446,6 +446,16 @@ fn flat_heading(result: &SearchResult, shown: usize, filtered: bool) -> String {
     if filtered {
         return format!("{head} · {shown} available on this page");
     }
+    // With `--format`/`--language` a range over `total` would be a lie: the window is one
+    // anchored block of 50 raw records, `--page` walks the matches inside it, and there is
+    // no page that reaches the rest of `total` at all. The count says what is really being
+    // ranged over, and the running numbers in the list say which of them these are.
+    if result.window.filtered {
+        return format!(
+            "{head} · {shown} of {} matching in this window",
+            result.window.after_filter
+        );
+    }
     let first = first_number(result);
     format!("{head} · showing {first}-{}", first + shown as u64 - 1)
 }
@@ -1381,6 +1391,7 @@ mod tests {
             window: WindowInfo {
                 fetched: shown,
                 after_filter: shown,
+                filtered: false,
                 undelivered: 0,
                 before_available: None,
             },
@@ -1661,6 +1672,7 @@ AGB (VÖBB) · 35 results · showing 2
         result.window = WindowInfo {
             fetched: 50,
             after_filter: 5,
+            filtered: false,
             undelivered: 0,
             before_available: None,
         };

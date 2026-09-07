@@ -121,6 +121,23 @@ pub enum EmptyReason {
         /// not hear "on loan" — it heard nothing.
         unstated: usize,
     },
+    /// A filtered window's pages ran out. Its own reason, not `FilteredOut`: records
+    /// **did** match, so "none of the fetched records matched" would be false and the
+    /// advice to narrow the search would send the user after a problem they do not have.
+    /// With a filter the window is one anchored block and `--page` walks the matches
+    /// inside it, so there is a last page and this is past it.
+    PastTheLastMatch {
+        /// How many records in the window matched the filter.
+        matched: usize,
+        /// Which flag filtered, e.g. `--format`.
+        filter: String,
+        /// The value that flag was given.
+        value: String,
+        /// The page that was asked for.
+        page: u32,
+        /// The last page that holds anything.
+        last: u32,
+    },
     /// Hits existed, but none of them is held at any of the requested locations.
     NoHoldings {
         /// The `--at` locations, as the user wrote them.
@@ -199,6 +216,19 @@ impl EmptyReason {
                      try a larger --limit, another --page, or drop --available"
                 )
             }
+            EmptyReason::PastTheLastMatch {
+                matched,
+                filter,
+                value,
+                page,
+                last,
+            } => format!(
+                "{} in the fetched window matched {filter} {value}, and page {page} begins \
+                 after the last of them\n\
+                 pages 1 to {last} hold them — a client-side filter only ever sees the \
+                 window the catalogue delivered, so there is no page beyond it",
+                counts::records(*matched)
+            ),
             EmptyReason::NoHoldings { locations } => {
                 let locations = locations.join(", ");
                 format!(

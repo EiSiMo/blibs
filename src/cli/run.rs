@@ -199,9 +199,9 @@ fn search_one_engine(
     let mut records = filtered;
     select::sort(&mut records, plan.sort, sort_at);
     let mut records = if locations.is_empty() {
-        select::take_page(records, plan.limit)
+        select::take_page(records, plan.cut())
     } else {
-        select::take_page_per_location(records, &mut search.at, plan.limit)
+        select::take_page_per_location(records, &mut search.at, plan.cut())
     };
 
     if plan.availability == AvailabilityMode::Fetched {
@@ -292,6 +292,7 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>, unstated: usize) -
     let window = WindowInfo {
         fetched: outcomes.iter().map(|o| o.search.fetched).sum(),
         after_filter: outcomes.iter().map(|o| o.after_filter).sum(),
+        filtered: plan.filters.is_active(),
         undelivered: outcomes.iter().map(|o| o.search.undelivered).sum(),
         // `None` unless some engine actually ran the filter — the renderers read the
         // field as "did `--available` run", and a zero would answer that with "yes".
@@ -420,6 +421,27 @@ fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize) -> Outcome {
             total: result.total,
             judged,
             unstated,
+        });
+    }
+    // Before `FilteredOut`, because the two are told apart by whether anything matched:
+    // records that matched but sit on an earlier page are not records that failed a
+    // filter, and the advice differs — narrowing the search would only make it worse.
+    if let Some((filter, value)) = active_filter(plan)
+        && result.window.after_filter > 0
+        && plan.cut().offset >= result.window.after_filter
+    {
+        let limit = u32::from(plan.limit.get());
+        return Outcome::Empty(EmptyReason::PastTheLastMatch {
+            matched: result.window.after_filter,
+            filter,
+            value,
+            page: plan.page.get(),
+            // The window is at most 50 records, so this always fits; saturating rather
+            // than casting keeps that a fact of the code and not of the caller.
+            last: u32::try_from(result.window.after_filter)
+                .unwrap_or(u32::MAX)
+                .div_ceil(limit)
+                .max(1),
         });
     }
     if let Some((filter, value)) = active_filter(plan)

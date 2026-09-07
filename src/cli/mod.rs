@@ -32,7 +32,7 @@ use crate::libraries::LatLon;
 use crate::model::{
     AvailabilityMode, Engine, FetchWindow, Limit, Location, Page, QuerySpec, RecordId, SortKey,
 };
-use crate::select::Filters;
+use crate::select::{Filters, PageCut};
 
 pub use run::run;
 pub use validate::{validate, validate_libraries, validate_show};
@@ -494,6 +494,15 @@ impl Plan {
     /// book sitting on record eleven.
     pub fn window(&self) -> FetchWindow {
         FetchWindow::plan(self.limit, self.page, self.filters.is_active())
+    }
+
+    /// Which slice of the surviving records this page prints.
+    ///
+    /// Planned from the same three values as [`Self::window`], and it has to stay that
+    /// way: the window says what was asked for, the cut says what is shown, and a page
+    /// that cuts by a rule the window did not follow claims a position it never fetched.
+    pub fn cut(&self) -> PageCut {
+        PageCut::plan(self.limit, self.page, self.filters.is_active())
     }
 }
 

@@ -694,7 +694,12 @@ mod tests {
             let served_from_cache = !*lock(&self.forgotten);
             Ok(Response {
                 status: 200,
-                body: if served_from_cache { "garbage" } else { "<sru/>" }.to_owned(),
+                body: if served_from_cache {
+                    "garbage"
+                } else {
+                    "<sru/>"
+                }
+                .to_owned(),
                 content_type: None,
                 from_cache: served_from_cache,
             })

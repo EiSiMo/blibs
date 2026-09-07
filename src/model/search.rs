@@ -245,6 +245,14 @@ pub struct WindowInfo {
     pub fetched: usize,
     /// How many were left after `--format`/`--language`.
     pub after_filter: usize,
+    /// Whether `--format` or `--language` was set at all.
+    ///
+    /// Always present, never skipped: `after_filter == fetched` is true both when no
+    /// filter ran and when one ran and matched everything, and an agent that cannot tell
+    /// those apart cannot tell whether this window is the whole addressable set. When it
+    /// is true the window is one anchored block of 50 raw records and `--page` walks the
+    /// matches inside it, so `total` is out of reach past that block.
+    pub filtered: bool,
     /// How many the envelope announced but did not deliver.
     #[serde(skip_serializing_if = "is_zero")]
     pub undelivered: usize,
@@ -616,6 +624,7 @@ mod tests {
             window: WindowInfo {
                 fetched: 50,
                 after_filter: 2,
+                filtered: false,
                 undelivered: 0,
                 before_available: None,
             },
@@ -847,20 +856,25 @@ mod tests {
         let quiet = serde_json::to_string(&WindowInfo {
             fetched: 50,
             after_filter: 2,
+            filtered: false,
             undelivered: 0,
             before_available: None,
         })
         .expect("WindowInfo serialises");
-        assert_eq!(quiet, r#"{"fetched":50,"after_filter":2}"#);
+        assert_eq!(quiet, r#"{"fetched":50,"after_filter":2,"filtered":false}"#);
 
         let loud = serde_json::to_string(&WindowInfo {
             fetched: 48,
             after_filter: 2,
+            filtered: false,
             undelivered: 2,
             before_available: None,
         })
         .expect("WindowInfo serialises");
-        assert_eq!(loud, r#"{"fetched":48,"after_filter":2,"undelivered":2}"#);
+        assert_eq!(
+            loud,
+            r#"{"fetched":48,"after_filter":2,"filtered":false,"undelivered":2}"#
+        );
     }
 
     /// `before_available` is additive too, and its absence is the signal that
@@ -871,22 +885,27 @@ mod tests {
         let unfiltered = serde_json::to_string(&WindowInfo {
             fetched: 10,
             after_filter: 10,
+            filtered: false,
             undelivered: 0,
             before_available: None,
         })
         .expect("WindowInfo serialises");
-        assert_eq!(unfiltered, r#"{"fetched":10,"after_filter":10}"#);
+        assert_eq!(
+            unfiltered,
+            r#"{"fetched":10,"after_filter":10,"filtered":false}"#
+        );
 
         let filtered = serde_json::to_string(&WindowInfo {
             fetched: 10,
             after_filter: 10,
+            filtered: false,
             undelivered: 0,
             before_available: Some(10),
         })
         .expect("WindowInfo serialises");
         assert_eq!(
             filtered,
-            r#"{"fetched":10,"after_filter":10,"before_available":10}"#
+            r#"{"fetched":10,"after_filter":10,"filtered":false,"before_available":10}"#
         );
     }
 
