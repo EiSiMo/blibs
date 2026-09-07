@@ -6,6 +6,12 @@
 //! window — and the output must never imply otherwise. `--at` is the exception: it is an
 //! upstream filter, so location results are complete and pageable.
 //!
+//! `--available` ([`keep_available`], [`keep_available_per_location`]) is the one filter
+//! that runs *after* the page has been cut, because the status it judges only exists once
+//! availability has been fetched — and that is fetched for the page alone. So it sees the
+//! records of this page and no others: it **thins the page out rather than refilling it**,
+//! and the renderers have to say so.
+//!
 //! Grouping happens here too, so that the terminal and the JSON cannot disagree about
 //! which location holds what. The engine states each location's membership;
 //! [`take_page_per_location`] cuts every block to `--limit` on its own,
@@ -190,6 +196,134 @@ fn restate(at: &mut [AtBlock], records: &[Record], limit: usize) {
             .cloned()
             .collect();
     }
+}
+
+/// How many records `--available` removed, and how many of those said nothing at all.
+///
+/// The split *is* the feature. Once a record is gone from the page, "it is on loan" and
+/// "no status was stated about it" look exactly alike, and only `unstated` keeps them
+/// apart — it feeds the note in the JSON and the sentence printed when the filter empties
+/// the page. `unstated` counts the drops that carried [`Status::Unknown`] or
+/// [`Status::PossiblyAvailable`], the two non-statements, and is therefore never larger
+/// than `total`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Hidden {
+    /// Records the filter removed from the page.
+    pub total: usize,
+    /// How many of them were removed for a status nobody stated.
+    pub unstated: usize,
+}
+
+impl Hidden {
+    /// Count one removed record. `unstated` says whether it was dropped for a
+    /// non-statement rather than for a "no".
+    fn drop_one(&mut self, unstated: bool) {
+        self.total += 1;
+        self.unstated += usize::from(unstated);
+    }
+}
+
+/// Whether a status is a statement about the copies, or the absence of one.
+///
+/// [`Status::PossiblyAvailable`] belongs on this side: the black KOBV traffic light is
+/// the normal answer for a public library and asserts nothing, so a record dropped for it
+/// was never really answered.
+fn is_unstated(status: Status) -> bool {
+    matches!(status, Status::Unknown | Status::PossiblyAvailable)
+}
+
+/// Keep only the records that are borrowable right now — the form without `--at`.
+///
+/// Judged by [`record_status`], the record's overall traffic light, which is the same
+/// light the flat list prints: `--available` shows what the marker already claimed.
+/// [`Status::Reference`] is *not* available — a reference copy cannot be taken home —
+/// and neither non-statement is, so a record without any `924` holding falls out and is
+/// counted as `unstated`: 4.9 % of records state no holdings, and that is "not stated",
+/// never "held nowhere".
+///
+/// The failure mode this guards against is silence: the returned [`Hidden`] is what lets
+/// the caller say *how many* records this page lost and how many of them were merely
+/// unanswered. An empty result here is never "nothing found".
+pub fn keep_available(records: Vec<Record>) -> (Vec<Record>, Hidden) {
+    let mut hidden = Hidden::default();
+    let kept = records
+        .into_iter()
+        .filter(|record| {
+            let status = record_status(record);
+            let keep = status == Status::Available;
+            if !keep {
+                hidden.drop_one(is_unstated(status));
+            }
+            keep
+        })
+        .collect();
+    (kept, hidden)
+}
+
+/// Keep only what is borrowable **at each location** — the form with `--at`.
+///
+/// Every block is filtered on its own, by [`location_status`], because that is the light
+/// its heading prints: `--at HU,STABI --available` answers "what can I pick up at the HU"
+/// and "what can I pick up at the Stabi" separately, and a record can legitimately
+/// survive in one block and vanish from the other. A record no block still shows is then
+/// dropped from `records`, exactly as [`take_page_per_location`] does it, so that nothing
+/// is rendered under no heading.
+///
+/// A block is matched to its location by `key` **and** ISIL, never by position: the two
+/// lists are built independently — `at[]` in user order, `locations` per engine — and
+/// zipping them would silently judge one location's records by another's copies.
+///
+/// `Hidden` counts only the records that fall out of *every* block; one that is still
+/// shown somewhere was not hidden. Such a record counts as `unstated` only when no block
+/// made a statement about it — a record definitely on loan at one location has been
+/// answered, even if another location said nothing.
+pub fn keep_available_per_location(
+    records: Vec<Record>,
+    at: &mut [AtBlock],
+    locations: &[Location],
+) -> (Vec<Record>, Hidden) {
+    let mut unanswered = vec![None; records.len()];
+    for block in at.iter_mut() {
+        // Matched by alias *and* ISIL, as `run::at_blocks` does. A block whose location
+        // is not among `locations` cannot happen — the engine builds `at[]` from these
+        // very locations — but judging its records by nothing would keep the whole block,
+        // so it falls back to the record's overall light instead.
+        let location = locations
+            .iter()
+            .find(|location| block.key == location.key && block.isil == location.isil);
+        let stated = std::mem::take(&mut block.records);
+        block.records = stated
+            .into_iter()
+            .filter(|id| {
+                let Some(index) = records.iter().position(|record| &record.id == id) else {
+                    // An id with no record behind it can be shown by no block anyway.
+                    return false;
+                };
+                let status = status_of(&records[index], location);
+                let slot = &mut unanswered[index];
+                *slot = Some(slot.unwrap_or(true) && is_unstated(status));
+                status == Status::Available
+            })
+            .collect();
+    }
+
+    let shown: Vec<&RecordId> = at.iter().flat_map(|block| &block.records).collect();
+    let mut hidden = Hidden::default();
+    let kept = records
+        .into_iter()
+        .zip(unanswered)
+        .filter_map(|(record, unanswered)| {
+            if shown.contains(&&record.id) {
+                return Some(record);
+            }
+            // No block judged this record — it stands under no heading, so paging had
+            // already dropped it. Judge it by its own light rather than leave it uncounted.
+            let unstated = unanswered.unwrap_or_else(|| is_unstated(record_status(&record)));
+            hidden.drop_one(unstated);
+            None
+        })
+        .collect();
+    (kept, hidden)
 }
 
 /// Set `holdings[].mine` for the `--at` locations.
@@ -585,6 +719,7 @@ mod tests {
                 fetched: 3,
                 after_filter: 3,
                 undelivered: 0,
+                before_available: None,
             },
             engines: vec![Engine::Kobv],
             at: vec![
@@ -679,6 +814,120 @@ mod tests {
             language: Some("ger".to_owned()),
         };
         assert!(filter(result.records, &filters).is_empty());
+    }
+
+    /// Without `--at` the record's overall light decides: only the record some library
+    /// lends survives, and the two drops are told apart — one is on loan, the other
+    /// states no holdings at all.
+    #[test]
+    fn the_availability_filter_keeps_only_what_is_in() {
+        let (result, _) = result();
+        let (kept, hidden) = keep_available(result.records);
+        let ids: Vec<&str> = kept.iter().map(|record| record.id.as_str()).collect();
+        assert_eq!(ids, ["almahu_1"]);
+        assert_eq!(hidden.total, 2);
+        assert_eq!(hidden.unstated, 1, "only the record without holdings");
+    }
+
+    /// `Reference` and `Unavailable` are answers, `PossiblyAvailable` and `Unknown` are
+    /// not — and the filter drops all four while counting only the last two.
+    #[test]
+    fn unstated_counts_the_non_statements_and_nothing_else() {
+        let statuses = [
+            Status::Available,
+            Status::Reference,
+            Status::Unavailable,
+            Status::PossiblyAvailable,
+        ];
+        let records: Vec<Record> = statuses
+            .iter()
+            .enumerate()
+            .map(|(index, status)| {
+                let mut one = record(&format!("almahu_{index}"), "Titel", None);
+                one.holdings = vec![holding("DE-11", *status, Vec::new())];
+                one
+            })
+            .collect();
+
+        let (kept, hidden) = keep_available(records);
+        assert_eq!(kept.len(), 1, "reference stock is not borrowable");
+        assert_eq!(hidden.total, 3);
+        assert_eq!(hidden.unstated, 1, "possibly_available says nothing");
+    }
+
+    /// The 4.9 % trap: no `924` means "not stated in this record", never "held nowhere",
+    /// so the record falls out as *unstated* rather than as a "no".
+    #[test]
+    fn a_record_without_holdings_is_hidden_as_unstated() {
+        let (_, hidden) = keep_available(vec![record("almafu_3", "Ohne Bestand", None)]);
+        assert_eq!(hidden.total, 1);
+        assert_eq!(hidden.unstated, 1);
+    }
+
+    /// Blockweise: the same record is lent by the HU and only readable at the Stabi, so
+    /// it survives under one heading and vanishes from the other — and `records` keeps it,
+    /// because a block still shows it.
+    #[test]
+    fn a_record_survives_in_the_block_that_lends_it() {
+        let (mut result, locations) = result();
+        // Paging has already dropped the record no block shows.
+        result.records.pop();
+        result.at[0].records = ids(&["almahu_1", "almahu_2"]);
+        result.at[1].records = ids(&["almahu_1"]);
+
+        let (kept, hidden) =
+            keep_available_per_location(result.records, &mut result.at, &locations);
+
+        let of = |index: usize| -> Vec<&str> {
+            result.at[index]
+                .records
+                .iter()
+                .map(RecordId::as_str)
+                .collect()
+        };
+        assert_eq!(of(0), ["almahu_1"], "the HU lends it");
+        assert!(of(1).is_empty(), "the Stabi copy is reference stock");
+        let shown: Vec<&str> = kept.iter().map(|record| record.id.as_str()).collect();
+        assert_eq!(shown, ["almahu_1"], "one block still shows it");
+        assert_eq!(hidden.total, 1, "only the record no block still shows");
+        assert_eq!(hidden.unstated, 0, "the HU said it is on loan");
+    }
+
+    /// A record that falls out of every block leaves the page. It is *not* unstated: one
+    /// block said it is on loan, even though the other said nothing about it at all.
+    #[test]
+    fn a_record_no_block_lends_leaves_the_page() {
+        let (mut result, locations) = result();
+        result.records.pop();
+        result.at[0].records = ids(&["almahu_1", "almahu_2"]);
+        result.at[1].records = ids(&["almahu_2"]);
+
+        let (kept, hidden) =
+            keep_available_per_location(result.records, &mut result.at, &locations);
+
+        let shown: Vec<&str> = kept.iter().map(|record| record.id.as_str()).collect();
+        assert_eq!(shown, ["almahu_1"]);
+        assert_eq!(hidden.total, 1);
+        assert_eq!(
+            hidden.unstated, 0,
+            "on loan at the HU outweighs the Stabi saying nothing"
+        );
+    }
+
+    /// A VÖBB branch: every holding carries the network's `DE-609`, so the copies decide,
+    /// and the filter means the same thing there — what is on the shelf *of that branch*.
+    #[test]
+    fn a_branch_filters_by_the_copies_standing_in_it() {
+        let (mut result, locations) = two_branches();
+        let (kept, hidden) =
+            keep_available_per_location(result.records, &mut result.at, &locations);
+
+        let shown: Vec<&str> = kept.iter().map(|record| record.id.as_str()).collect();
+        assert_eq!(shown, ["voebb_SAK1"], "the AGB copy is in");
+        let bstb: Vec<&str> = result.at[1].records.iter().map(RecordId::as_str).collect();
+        assert!(bstb.is_empty(), "the BSTB copy is on loan");
+        assert_eq!(hidden.total, 1);
+        assert_eq!(hidden.unstated, 0);
     }
 
     #[test]

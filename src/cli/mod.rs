@@ -316,6 +316,21 @@ pub struct SearchArgs {
     #[arg(long, value_name = "CODE")]
     pub language: Option<String>,
 
+    /// Keep only the records with a copy that is in right now.
+    ///
+    /// It thins the page out and does not reload: the status is only asked about for the
+    /// records that are shown, so ten hits may come back as four. A larger --limit is the
+    /// way to see more, and unlike --format and --language this flag deliberately does
+    /// not widen the fetched window — the 40 extra records would carry no status at all.
+    ///
+    /// Reference stock does not count as available: it is there, but it cannot be taken
+    /// home. Records the catalogue states no status for drop out as well and are counted,
+    /// and the footer — notes in the JSON — says how many. Combining this with --sort
+    /// availability is allowed and harmless: every surviving record then carries the same
+    /// status, so that sort has nothing left to order.
+    #[arg(long)]
+    pub available: bool,
+
     /// Do not ask whether the copies are in.
     ///
     /// Faster and quieter: availability is one request per shown record. Holdings are
@@ -438,6 +453,16 @@ pub struct Plan {
     pub filters: Filters,
     /// Whether availability is fetched for the shown records.
     pub availability: AvailabilityMode,
+    /// Whether only the records with a copy that is in right now are shown.
+    ///
+    /// Deliberately not a third field in [`Filters`]: it filters on the status, which
+    /// exists only *after* availability was fetched for the shown page, so it is not a
+    /// window filter. As one, `Filters::is_active()` would widen the fetched window to
+    /// 50 for nothing — `take_page*` cuts the page before `fill_availability` runs, so
+    /// the 40 extra records would never get a status to be judged by — and `active_filter`
+    /// in `run` would sooner or later name it in a message about the fetched window,
+    /// where it does not belong.
+    pub only_available: bool,
     /// Whether the output is JSON.
     pub json: bool,
     /// Whether the response cache may be used.

@@ -28,6 +28,7 @@
 
 use std::io::{self, Write};
 
+use crate::counts::{records, results};
 use crate::error::{EmptyReason, Error};
 use crate::libraries::{Branch, Library};
 use crate::model::{
@@ -153,18 +154,39 @@ pub fn search(
 ) -> io::Result<()> {
     let blocks = select::blocks(result, locations);
     let scoped = !locations.is_empty();
+    let filtered = availability_filtered(result);
     let mut shown = Vec::new();
     for (index, block) in blocks.iter().enumerate() {
         if index > 0 {
             writeln!(out)?;
         }
         if scoped {
-            write_grouped_block(out, block, style, &mut shown)?;
+            write_grouped_block(out, block, filtered, style, &mut shown)?;
         } else {
-            write_flat_block(out, result, block, style, &mut shown)?;
+            write_flat_block(out, result, block, filtered, style, &mut shown)?;
         }
     }
     write_footer(out, result, &shown, scoped, style)
+}
+
+/// Whether `--available` actually judged anything, which is the only thing the headings
+/// need to know about it.
+///
+/// The question is **not** "did the flag run": with `--available --format video` the
+/// window filter can empty the page before a single status was asked for, and
+/// `before_available` is then `Some(0)` — the filter ran over nothing. A heading built on
+/// the mere presence of the field would say `none available now` about records nobody
+/// ever looked at, and contradict the `--format` explanation printed beside it.
+///
+/// `window.before_available` counts the records the filter judged and is `None` when the
+/// flag did not run — there is no second parameter carrying the same fact, so the two
+/// cannot disagree. The condition is the one [`crate::cli::run`] uses to choose
+/// `EmptyReason::NothingAvailable`, for the same reason.
+fn availability_filtered(result: &SearchResult) -> bool {
+    result
+        .window
+        .before_available
+        .is_some_and(|judged| judged > 0)
 }
 
 /// One location's block: heading, then a line per record with that location's copies
@@ -172,10 +194,17 @@ pub fn search(
 fn write_grouped_block(
     out: &mut dyn Write,
     block: &Block<'_>,
+    filtered: bool,
     style: Style,
     shown: &mut Vec<Status>,
 ) -> io::Result<()> {
-    write_line(out, &block_heading(block), 0, style.heading(), style)?;
+    write_line(
+        out,
+        &block_heading(block, filtered),
+        0,
+        style.heading(),
+        style,
+    )?;
     if block.records.is_empty() {
         return Ok(());
     }
@@ -226,24 +255,48 @@ fn write_flat_block(
     out: &mut dyn Write,
     result: &SearchResult,
     block: &Block<'_>,
+    filtered: bool,
     style: Style,
     shown: &mut Vec<Status>,
 ) -> io::Result<()> {
     let count = block.records.len();
-    write_line(out, &flat_heading(result, count), 0, style.heading(), style)?;
+    write_line(
+        out,
+        &flat_heading(result, count, filtered),
+        0,
+        style.heading(),
+        style,
+    )?;
     if count == 0 {
         return Ok(());
     }
     writeln!(out)?;
 
-    let first = first_number(result);
-    let number_width = digits(first + count as u64 - 1);
-    let layout = flat_record_layout(number_width);
+    // No running numbers once `--available` has sieved the page: the hidden records are
+    // gone by the time this runs, so the survivors' positions are not knowable here, and
+    // counting the survivors would print hit 5 as 4 the moment a hidden record precedes a
+    // shown one. The number is a pure reading aid — `blibs` is stateless, `show 3` cannot
+    // work, and the id is what `show` takes (`plan/cli.md` § *Für beide Formen*) — so a
+    // number that no longer knows its position is dropped rather than invented. Starting
+    // over at 1 would be the same false claim in a quieter voice: on `--page 2` those
+    // numbers belong to the records of page 1.
+    let first = (!filtered).then(|| first_number(result));
+    let numbering = first.map(|first| Numbering {
+        first,
+        width: digits(first + count as u64 - 1),
+    });
+    let layout = flat_record_layout(numbering);
     let rows: Vec<Vec<Cell>> = block
         .records
         .iter()
         .enumerate()
-        .map(|(offset, entry)| flat_record_row(entry, first + offset as u64, number_width, style))
+        .map(|(offset, entry)| {
+            flat_record_row(
+                entry,
+                numbering.map(|numbering| numbering.at(offset)),
+                style,
+            )
+        })
         .collect();
     let widths = layout.widths(&rows, available(style, RECORD_INDENT));
     for (entry, row) in block.records.iter().zip(&rows) {
@@ -318,7 +371,28 @@ fn footer_notes(result: &SearchResult) -> Vec<String> {
             ),
         });
     }
+    if let Some(note) = availability_filter_note(result) {
+        notes.push(note);
+    }
     notes
+}
+
+/// `--available hid 7 of the 10 records on this page`, and nothing when it hid none.
+///
+/// The filter thins the page out instead of refilling it, so the reader has to be told
+/// how much of the page went — otherwise a page of three looks like a result of three.
+/// The judged count is `window.before_available`, the survivors are `shown`, and the
+/// difference is what disappeared.
+fn availability_filter_note(result: &SearchResult) -> Option<String> {
+    let judged = result.window.before_available?;
+    let hidden = judged.saturating_sub(result.shown);
+    if hidden == 0 {
+        return None;
+    }
+    Some(format!(
+        "--available hid {hidden} of the {} on this page",
+        records(judged)
+    ))
 }
 
 /// `HU Berlin · 6 results`, `… · showing 2` when the block shows fewer than it counted,
@@ -326,13 +400,23 @@ fn footer_notes(result: &SearchResult) -> Vec<String> {
 ///
 /// A location whose engine could not state a total says `showing N` alone: printing the
 /// number of records on this page as if it were the total would be a lie.
-fn block_heading(block: &Block<'_>) -> String {
+///
+/// After `--available` an empty block is not an empty result: the hits exist, none of
+/// their copies is in. It keeps its true total and says so —
+/// `HU Berlin · 6 results · none available now`. Only with a known total above zero,
+/// because otherwise the heading would name a number nobody reported.
+fn block_heading(block: &Block<'_>, filtered: bool) -> String {
     let name = block
         .location
         .map_or("", |location| location.display.as_str());
     let shown = block.records.len();
     if shown == 0 {
-        return format!("{name} · no results");
+        return match block.total.filter(|_| filtered) {
+            Some(total) if total > 0 => {
+                format!("{name} · {} · none available now", results(total))
+            }
+            _ => format!("{name} · no results"),
+        };
     }
     match block.total {
         Some(total) if total > shown as u64 => {
@@ -347,12 +431,20 @@ fn block_heading(block: &Block<'_>) -> String {
 ///
 /// The footer always names the true total, so that a short page does not read like a
 /// short result.
-fn flat_heading(result: &SearchResult, shown: usize) -> String {
+///
+/// After `--available` the range is dropped for a count —
+/// `774 results for "Kafka Prozess" · 3 available on this page`. The survivors are not
+/// hits 1 to 3 but three of the ten on this page, and a range would suggest exactly the
+/// completeness `plan/cli.md` § *Für beide Formen* forbids.
+fn flat_heading(result: &SearchResult, shown: usize, filtered: bool) -> String {
     let terms = &result.query.terms;
     let total = result.total.unwrap_or(shown as u64);
     let head = format!("{} for {terms:?}", results(total));
     if shown == 0 {
         return head;
+    }
+    if filtered {
+        return format!("{head} · {shown} available on this page");
     }
     let first = first_number(result);
     format!("{head} · showing {first}-{}", first + shown as u64 - 1)
@@ -365,15 +457,6 @@ fn flat_heading(result: &SearchResult, shown: usize) -> String {
 /// pages, and a short last page would otherwise restart the count from a smaller stride.
 fn first_number(result: &SearchResult) -> u64 {
     u64::from(result.page.get() - 1) * result.limit as u64 + 1
-}
-
-/// `1 result` / `774 results`.
-fn results(total: u64) -> String {
-    if total == 1 {
-        "1 result".to_owned()
-    } else {
-        format!("{total} results")
-    }
 }
 
 /// Decimal digits of a running number, so a page's markers stay in one column.
@@ -392,14 +475,33 @@ fn grouped_record_layout() -> Layout {
     ])
 }
 
+/// The running numbers of one flat page: where the count starts and how wide the column
+/// is, so that every line of the page reserves the same room.
+///
+/// `None` at the call site once `--available` has sieved the page — see
+/// [`write_flat_block`] for why the numbers go rather than shift.
+#[derive(Clone, Copy)]
+struct Numbering {
+    first: u64,
+    width: usize,
+}
+
+impl Numbering {
+    /// The number of the record at `offset` on this page, and the width it shares.
+    fn at(self, offset: usize) -> (u64, usize) {
+        (self.first + offset as u64, self.width)
+    }
+}
+
 /// The columns of a record line in the flat list: a running number in front, a wider
 /// title, and no copy lines to align with.
 ///
 /// The first column is as wide as the page's largest running number plus its marker, so
-/// that the markers of a page stand in one column whatever the page number.
-fn flat_record_layout(number_width: usize) -> Layout {
+/// that the markers of a page stand in one column whatever the page number. Without
+/// numbers the marker stands alone, in the one column the grouped list gives it.
+fn flat_record_layout(numbering: Option<Numbering>) -> Layout {
     Layout::new(vec![
-        Column::Fixed(number_width + 2),
+        Column::Fixed(numbering.map_or(1, |numbering| numbering.width + 2)),
         Column::Flex { min: 12 },
         Column::Fixed(15),
         Column::Fixed(4),
@@ -447,14 +549,20 @@ fn grouped_record_row(entry: &BlockRecord<'_>, style: Style) -> Vec<Cell> {
 
 /// One record in the flat list. The number is a reading aid only — `blibs` is stateless,
 /// so `show 3` cannot work and the id is what `show` takes.
+///
+/// `None` prints the marker alone: after `--available` the line no longer knows which hit
+/// it is, and a reading aid is not worth a wrong number.
 fn flat_record_row(
     entry: &BlockRecord<'_>,
-    number: u64,
-    number_width: usize,
+    number: Option<(u64, usize)>,
     style: Style,
 ) -> Vec<Cell> {
     let record = entry.record;
-    let marker = format!("{number:>number_width$} {}", entry.status.symbol());
+    let symbol = entry.status.symbol();
+    let marker = match number {
+        Some((number, width)) => format!("{number:>width$} {symbol}"),
+        None => symbol.to_string(),
+    };
     vec![
         Cell::new(marker).styled(style.status(entry.status)).whole(),
         title_cell(&record.title, FLAT_TITLE),
@@ -1274,6 +1382,7 @@ mod tests {
                 fetched: shown,
                 after_filter: shown,
                 undelivered: 0,
+                before_available: None,
             },
             engines: vec![Engine::Kobv],
             at: Vec::new(),
@@ -1553,9 +1662,154 @@ AGB (VÖBB) · 35 results · showing 2
             fetched: 50,
             after_filter: 5,
             undelivered: 0,
+            before_available: None,
         };
         let output = rendered(&result, &locations);
         assert!(output.contains("note: the filters saw the 50 fetched records, not all 6 results"));
+    }
+
+    /// A location whose copies are all out keeps its hit count: the results exist, none
+    /// of them is in. `· no results` would deny the hits themselves.
+    #[test]
+    fn an_emptied_block_keeps_its_total_after_the_availability_filter() {
+        let (mut result, mut locations) = vorleser();
+        locations.push(institution("TU", "DE-83", "TU Berlin"));
+        result.at.push(at("TU", "DE-83", 6, Engine::Kobv, &[]));
+
+        assert!(rendered(&result, &locations).contains("TU Berlin · no results\n"));
+
+        result.window.before_available = Some(12);
+        let output = rendered(&result, &locations);
+        assert!(output.contains("TU Berlin · 6 results · none available now\n"));
+        assert!(!output.contains("TU Berlin · no results"));
+    }
+
+    /// Without a total there is no number to keep, so the heading stays at `no results`
+    /// rather than inventing one out of the page.
+    #[test]
+    fn an_emptied_block_without_a_total_still_says_no_results() {
+        let (mut result, mut locations) = vorleser();
+        locations.push(institution("TU", "DE-83", "TU Berlin"));
+        let mut block = at("TU", "DE-83", 0, Engine::Kobv, &[]);
+        block.total = None;
+        result.at.push(block);
+        result.window.before_available = Some(12);
+        assert!(rendered(&result, &locations).contains("TU Berlin · no results\n"));
+    }
+
+    /// The flat heading counts instead of naming a range once the filter ran: the
+    /// survivors are not hits 1 to 3 but three of the ten on this page, and a range is
+    /// exactly the suggestion `plan/cli.md` § *Für beide Formen* forbids.
+    #[test]
+    fn the_flat_heading_counts_instead_of_ranging_after_the_availability_filter() {
+        let ids = [
+            "almafu_BV008885798",
+            "b3kat_BV005550341",
+            "almafu_BV035123456",
+        ];
+        let records = ids
+            .iter()
+            .map(|id| {
+                let mut record = record(id, "Der Prozess", "Kafka, Franz", 1953);
+                record.holdings = vec![holding(
+                    "DE-11",
+                    "HU Berlin",
+                    "Humboldt-Universität zu Berlin",
+                    Status::Available,
+                    Vec::new(),
+                )];
+                record
+            })
+            .collect();
+        let mut result = result("Kafka Prozess", Some(774), records);
+        result.limit = 10;
+
+        assert!(
+            rendered(&result, &[]).starts_with("774 results for \"Kafka Prozess\" · showing 1-3\n")
+        );
+
+        result.window.before_available = Some(10);
+        assert!(
+            rendered(&result, &[])
+                .starts_with("774 results for \"Kafka Prozess\" · 3 available on this page\n")
+        );
+    }
+
+    /// `--available` is not the only reason a page can be empty. When `--format` emptied
+    /// it before a single status was asked for, `before_available` is `Some(0)` — the
+    /// filter ran over nothing — and a heading claiming `none available now` would state
+    /// a verdict nobody reached, next to a `--format` explanation saying the opposite.
+    #[test]
+    fn a_block_the_filter_never_judged_does_not_say_none_available_now() {
+        let (mut result, mut locations) = vorleser();
+        locations.push(institution("TU", "DE-83", "TU Berlin"));
+        result.at.push(at("TU", "DE-83", 6, Engine::Kobv, &[]));
+        result.window.before_available = Some(0);
+
+        let output = rendered(&result, &locations);
+        assert!(output.contains("TU Berlin · no results\n"), "{output}");
+        assert!(!output.contains("none available now"), "{output}");
+    }
+
+    /// The flat list stops numbering once the filter has sieved the page: the hidden
+    /// records are gone, so a count over the survivors prints hit 5 as 4. The number is a
+    /// reading aid, and a reading aid is not worth a wrong position.
+    #[test]
+    fn the_flat_list_drops_its_numbers_after_the_availability_filter() {
+        let records = ["b3kat_BV005550341", "almafu_BV035123456"]
+            .iter()
+            .map(|id| {
+                let mut record = record(id, "Der Prozess", "Kafka, Franz", 1953);
+                record.holdings = vec![holding(
+                    "DE-11",
+                    "HU Berlin",
+                    "Humboldt-Universität zu Berlin",
+                    Status::Available,
+                    Vec::new(),
+                )];
+                record
+            })
+            .collect();
+        let mut result = result("Kafka Prozess", Some(774), records);
+        result.limit = 3;
+        result.page = Page::new(2).expect("2 is a page");
+
+        // Unfiltered the numbers are the page's own positions, and they still are.
+        let plain = rendered(&result, &[]);
+        assert!(plain.contains("\n  4 ●  Der Prozess"), "{plain}");
+        assert!(plain.contains("\n  5 ●  Der Prozess"), "{plain}");
+
+        // Filtered, these two are the survivors of four judged records — hits 5 and 6 for
+        // all this renderer knows, never 4 and 5.
+        result.window.before_available = Some(4);
+        let output = rendered(&result, &[]);
+        assert!(!output.contains("  4 ●"), "{output}");
+        assert!(!output.contains("  5 ●"), "{output}");
+        assert!(!output.contains("  1 ●"), "{output}");
+        assert_eq!(
+            output
+                .lines()
+                .filter(|line| line.starts_with("  ●  Der Prozess"))
+                .count(),
+            2,
+            "{output}"
+        );
+    }
+
+    /// The filter thins the page out instead of refilling it, so the footer says how
+    /// much of the page went — and says nothing when it took nothing.
+    #[test]
+    fn the_availability_filter_says_how_much_of_the_page_it_hid() {
+        let (mut result, locations) = vorleser();
+        result.window.before_available = Some(12);
+        let output = rendered(&result, &locations);
+        assert!(output.contains("note: --available hid 7 of the 12 records on this page\n"));
+
+        result.window.before_available = Some(result.shown);
+        assert!(!rendered(&result, &locations).contains("--available hid"));
+
+        result.window.before_available = None;
+        assert!(!rendered(&result, &locations).contains("--available hid"));
     }
 
     /// Colour is decoration: strip the escapes and the coloured output is the plain one.

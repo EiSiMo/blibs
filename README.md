@@ -37,6 +37,7 @@ Requires Rust 1.85 or later (edition 2024).
 blibs search Kafka Prozess
 blibs search "Der Vorleser" --at HU,STABI,AGB
 blibs search --author Kafka --year 1953 --format book
+blibs search "Der Vorleser" --at AGB --available
 blibs show almafu_BV008885798 --at STABI,HU
 blibs libraries --find grimm
 blibs libraries --near 52.52,13.39
@@ -190,6 +191,11 @@ change.
 - `window` is `{ fetched, after_filter }` — how many records the query actually returned
   and how many survived a client-side filter such as `--format`. Without it, "nothing
   found" and "nothing in this window" both look like an empty result.
+- `window.before_available` is there only when `--available` ran, and says how many of the
+  displayed records it judged. The survivors are `shown`, so the hidden ones are the
+  difference; its absence is how a page that was always this short is told apart from one
+  the filter thinned out. `at[].total` is untouched by the filter — it stays that
+  location's true hit count, and only `at[].records` is filtered.
 - `availability` is `"fetched"` or `"skipped"` — whether the status service was asked at
   all, so an empty `items` list is never ambiguous.
 - `notes` carries footnotes such as a skipped diagnostic record; it is `[]` when there is
@@ -234,6 +240,13 @@ Error object shape:
 - **`--sort`, `--format` and `--language` only see the fetched window**, not the whole
   result — the catalogue itself cannot sort or filter by material type or language. A
   short result after `--format` is stated as a window effect, never as "none exist".
+- **`--available` thins the page out, it does not reload.** The status is only asked about
+  for the records that are shown, so ten hits can come back as four — use a larger
+  `--limit` to see more. Reference stock does not count as available, and a record the
+  catalogue states no status for drops out too; the footer says how many went and how many
+  of those were never answered. With several `--at` locations it acts per block: a record
+  can survive under one heading and vanish from another. Combining it with
+  `--no-availability` is a usage error — there would be nothing to filter on.
 - **Subject headings are mixed-language and untranslated.** `--subject Recht` and
   `--subject law` are different searches; both can return hits.
 - **ISBN check digits are verified before anything is sent.** The upstream identifier

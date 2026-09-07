@@ -297,6 +297,259 @@ fn a_filter_that_matches_nothing_says_how_large_the_window_was() {
     assert_eq!(document["total"], 230);
 }
 
+/// Like [`search_fetch`], but the third record — `almahu_BV048243266` — is answered with
+/// a fixture of its own.
+///
+/// The availability call carries the record's `ISIL;local-id` pairs in `availability_id`
+/// (`src/engine/kobv/client.rs`), so a route on that parameter answers *per record*. That
+/// is the only way an end-to-end test can give one record a green light and another a
+/// reference copy; the specific route has to precede the catch-all, which [`FixtureFetch`]
+/// resolves first-match-wins.
+fn search_fetch_answering_third(fixture: &str) -> FixtureFetch {
+    FixtureFetch::new()
+        .on_param("availability_id", "BV048243266", fixture)
+        .route(
+            is_availability,
+            read_fixture("kobv/availability/mixed.json"),
+        )
+        .fallback("kobv/sru/filtered.xml")
+}
+
+/// The ids of the records the JSON document shows, in order.
+fn record_ids(document: &serde_json::Value) -> Vec<String> {
+    document["records"]
+        .as_array()
+        .expect("records is an array")
+        .iter()
+        .map(|record| record["id"].as_str().unwrap_or_default().to_owned())
+        .collect()
+}
+
+/// Whether the document carries a note of this kind. Agents switch on `kind`, never on
+/// the message, so the test does too.
+fn has_note(document: &serde_json::Value, kind: &str) -> bool {
+    document["notes"]
+        .as_array()
+        .is_some_and(|notes| notes.iter().any(|note| note["kind"] == kind))
+}
+
+/// `--available` **thins** the page, it does not refill it: the records that are in stay,
+/// the others go, and the count of records the filter judged is reported so that "three
+/// of ten" can never read as "three hits". A reference copy is not available — taking a
+/// `Präsenzbestand` home is exactly what the catalogue forbids.
+#[test]
+fn the_available_filter_thins_the_page_and_says_by_how_much() {
+    let fetch = search_fetch_answering_third("kobv/availability/reference.json");
+    let ran = invoke(&["--json", "search", "Vorleser", "--available"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let document = ran.json();
+    // Two of the three fetched records are borrowable; the third is reference only.
+    assert_eq!(document["shown"], 2);
+    assert_eq!(document["window"]["before_available"], 3);
+    assert_eq!(
+        record_ids(&document),
+        vec!["almahu_9950092449202882", "almahu_9950168055502882"],
+        "the reference-only record has to be the one that went: {document}"
+    );
+    // The catalogue's own hit count is untouched — the filter never saw those records.
+    assert_eq!(document["total"], 230);
+    // A reference copy is a statement, so nothing here was merely unanswered.
+    assert!(
+        !has_note(&document, "availability_filter_unstated"),
+        "the service said \"reference\", which is an answer: {document}"
+    );
+}
+
+/// The number in a block heading is that location's **catalogue** hit count and stays
+/// put; only `at[].records` shrinks. The filter knows nothing about the records it never
+/// fetched, so letting `total` follow it would claim the FU holds six books when it holds
+/// 230 of which none is in.
+#[test]
+fn a_location_keeps_its_true_total_when_the_filter_empties_its_block() {
+    let fetch = search_fetch();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Vorleser",
+            "--at",
+            "HU,FU",
+            "--available",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let document = ran.json();
+    let at = document["at"].as_array().expect("at[] is an array");
+    assert_eq!(at[0]["key"], "HU");
+    assert_eq!(at[0]["total"], 230);
+    assert_eq!(
+        at[0]["records"]
+            .as_array()
+            .expect("at[].records is an array")
+            .len(),
+        3,
+        "the HU has a green light for all three: {document}"
+    );
+    assert_eq!(at[1]["key"], "FU");
+    // The FU's copies are reference only — its block loses every record and keeps its
+    // total.
+    assert_eq!(at[1]["total"], 230);
+    assert_eq!(
+        at[1]["records"]
+            .as_array()
+            .expect("at[].records is an array")
+            .len(),
+        0,
+        "{document}"
+    );
+    // A record still shown under one heading was not hidden, so the page is not thinned.
+    assert_eq!(document["shown"], 3);
+    assert_eq!(document["window"]["before_available"], 3);
+
+    let fetch = search_fetch();
+    let ran = invoke(
+        &["search", "Vorleser", "--at", "HU,FU", "--available"],
+        &fetch,
+    );
+    assert!(
+        ran.out
+            .contains("FU Berlin · 230 results · none available now"),
+        "an emptied block says how many results it really has: {}",
+        ran.out
+    );
+}
+
+/// A page on which nothing is available is exit 1 like every empty result, but it is
+/// **not** "nothing found" and not "nobody holds it": both of those send the user off in
+/// the wrong direction. The reason has its own text, and it names the next step that can
+/// actually help — a larger window or another page.
+#[test]
+fn a_page_with_nothing_available_is_its_own_kind_of_empty() {
+    let fetch = FixtureFetch::new()
+        .route(
+            is_availability,
+            read_fixture("kobv/availability/reference.json"),
+        )
+        .fallback("kobv/sru/filtered.xml");
+    let ran = invoke(&["search", "Vorleser", "--available"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(
+        ran.out.is_empty(),
+        "an empty result renders no list: {:?}",
+        ran.out
+    );
+    assert!(
+        ran.err
+            .contains("230 results, but none of the 3 records on this page is in right now"),
+        "stderr was {:?}",
+        ran.err
+    );
+    assert!(
+        ran.err
+            .contains("try a larger --limit, another --page, or drop --available"),
+        "the reason has to name a next step: {:?}",
+        ran.err
+    );
+    assert!(
+        !ran.err.contains("try fewer or more general words"),
+        "hits existed — this is not NoHits: {:?}",
+        ran.err
+    );
+    assert!(
+        !ran.err.contains("none of them is held at"),
+        "the records are held; they are just out — this is not NoHoldings: {:?}",
+        ran.err
+    );
+    // Every one of the three was answered with "reference", so nothing was left unsaid.
+    assert!(!ran.err.contains("state no status at all"), "{:?}", ran.err);
+}
+
+/// The difference between *"it is out"* and *"nothing was said about it"* must survive
+/// the filter. A record the service made no statement about is hidden like an on-loan
+/// one, and the note is the only thing that keeps that from reading as a refusal.
+#[test]
+fn a_record_without_a_status_statement_is_hidden_and_noted() {
+    let fetch = search_fetch_answering_third("kobv/availability/public.json");
+    let ran = invoke(&["--json", "search", "Vorleser", "--available"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let document = ran.json();
+    assert_eq!(document["shown"], 2);
+    assert_eq!(document["window"]["before_available"], 3);
+    assert!(
+        !record_ids(&document).contains(&"almahu_BV048243266".to_owned()),
+        "a black traffic light is not a green one: {document}"
+    );
+    assert!(
+        has_note(&document, "availability_filter_unstated"),
+        "nothing was stated about the hidden record, and the document has to say so: \
+         {document}"
+    );
+}
+
+/// Without the flag nothing about the document changes — same hits, and no
+/// `before_available`, whose very absence is how a reader tells that no availability
+/// filter ran. The committed schema snapshot depends on it.
+#[test]
+fn without_the_flag_the_document_is_the_one_it_always_was() {
+    let fetch = search_fetch_answering_third("kobv/availability/reference.json");
+    let ran = invoke(&["--json", "search", "Vorleser"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let document = ran.json();
+    assert_eq!(document["shown"], 3);
+    assert_eq!(document["total"], 230);
+    assert_eq!(
+        document["window"]["before_available"],
+        serde_json::Value::Null,
+        "the member is absent unless the filter ran: {document}"
+    );
+    assert!(
+        !has_note(&document, "availability_filter_unstated"),
+        "{document}"
+    );
+}
+
+/// `--available` filters records that were already fetched, so it costs the services
+/// nothing: the same search and the same one availability call per displayed record,
+/// flag or no flag. A filter that refilled the page would ask about records nobody sees,
+/// which is what `CLAUDE.md` § *Upstream etiquette* forbids.
+#[test]
+fn the_available_filter_costs_no_extra_request() {
+    let plain = search_fetch_answering_third("kobv/availability/reference.json");
+    let plain_recorder = plain.recorder();
+    let ran = invoke(&["search", "Vorleser"], &plain);
+    assert_eq!(ran.exit(), ExitCode::Success);
+
+    let filtered = search_fetch_answering_third("kobv/availability/reference.json");
+    let filtered_recorder = filtered.recorder();
+    let ran = invoke(&["search", "Vorleser", "--available"], &filtered);
+    assert_eq!(ran.exit(), ExitCode::Success);
+
+    assert_eq!(
+        plain_recorder.count_matching("AJAX/JSON"),
+        3,
+        "{:?}",
+        plain_recorder.log()
+    );
+    assert_eq!(
+        filtered_recorder.count_matching("AJAX/JSON"),
+        plain_recorder.count_matching("AJAX/JSON"),
+        "the filter runs after the fetching, so it may not add a call: {:?}",
+        filtered_recorder.log()
+    );
+    assert_eq!(
+        filtered_recorder.total(),
+        plain_recorder.total(),
+        "one search either way: {:?}",
+        filtered_recorder.log()
+    );
+}
+
 /// `--at` is an upstream filter, so a total of zero means the catalogue has nothing for
 /// this query *at these locations* — not that hits exist elsewhere. The block is still
 /// rendered (a missing block cannot be told apart from a forgotten one), and the reason

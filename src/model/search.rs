@@ -236,8 +236,9 @@ pub enum AvailabilityMode {
 
 /// How large the fetched window was and what survived the client-side filters.
 ///
-/// Both numbers are printed. Without them, "no hits" and "no hits *in the first 50*" are
-/// indistinguishable.
+/// The numbers are printed. Without them, "no hits" and "no hits *in the first 50*" are
+/// indistinguishable, and a page thinned by `--available` is indistinguishable from a
+/// short one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub struct WindowInfo {
     /// How many records came back.
@@ -247,6 +248,15 @@ pub struct WindowInfo {
     /// How many the envelope announced but did not deliver.
     #[serde(skip_serializing_if = "is_zero")]
     pub undelivered: usize,
+    /// How many of the displayed records `--available` judged, and `None` when the flag
+    /// did not run — which is how a reader tells a page that was thinned from one that
+    /// was always this short.
+    ///
+    /// How many *survived* is [`SearchResult::shown`] and is deliberately not repeated
+    /// here: two names for one count drift apart. The hidden records are the difference
+    /// between the two.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub before_available: Option<usize>,
 }
 
 #[expect(
@@ -352,6 +362,14 @@ pub mod note_kinds {
     /// a loan that does not exist is the worse of the two mistakes.
     pub const AVAILABILITY_STATUS_CONFLICT: &str = "availability_status_conflict";
 
+    /// `--available` was asked which copies are in and met records that say nothing at
+    /// all. Three sources produce one: a record with no `924` holdings (4.9 % of the
+    /// catalogue), a portal answer of `hasAvailability: false`, and a voebb branch whose
+    /// copies could not be resolved — an Onleihe or multi-part record without copies of
+    /// its own among them. They are hidden like an on-loan record, and the note is what
+    /// keeps "nothing was said" from reading as "it is out".
+    pub const AVAILABILITY_FILTER_UNSTATED: &str = "availability_filter_unstated";
+
     /// A block of copies could not be matched to any ISIL and is shown under the
     /// portal's own name for the library.
     pub const HOLDING_WITHOUT_ISIL: &str = "holding_without_isil";
@@ -445,6 +463,7 @@ mod tests {
             note_kinds::AVAILABILITY_MATCHED_BY_NAME,
             note_kinds::AVAILABILITY_MATCH_CONFLICT,
             note_kinds::AVAILABILITY_STATUS_CONFLICT,
+            note_kinds::AVAILABILITY_FILTER_UNSTATED,
             note_kinds::HOLDING_WITHOUT_ISIL,
             note_kinds::VOEBB_MULTIVOLUME,
             note_kinds::VOEBB_ONLINE_ONLY,
@@ -584,6 +603,7 @@ mod tests {
                 fetched: 50,
                 after_filter: 2,
                 undelivered: 0,
+                before_available: None,
             },
             engines: vec![Engine::Kobv, Engine::Voebb],
             at: vec![
@@ -814,6 +834,7 @@ mod tests {
             fetched: 50,
             after_filter: 2,
             undelivered: 0,
+            before_available: None,
         })
         .expect("WindowInfo serialises");
         assert_eq!(quiet, r#"{"fetched":50,"after_filter":2}"#);
@@ -822,9 +843,37 @@ mod tests {
             fetched: 48,
             after_filter: 2,
             undelivered: 2,
+            before_available: None,
         })
         .expect("WindowInfo serialises");
         assert_eq!(loud, r#"{"fetched":48,"after_filter":2,"undelivered":2}"#);
+    }
+
+    /// `before_available` is additive too, and its absence is the signal that
+    /// `--available` did not run at all — which is why the committed schema snapshot,
+    /// taken without the flag, does not change.
+    #[test]
+    fn the_available_filter_is_reported_only_when_it_ran() {
+        let unfiltered = serde_json::to_string(&WindowInfo {
+            fetched: 10,
+            after_filter: 10,
+            undelivered: 0,
+            before_available: None,
+        })
+        .expect("WindowInfo serialises");
+        assert_eq!(unfiltered, r#"{"fetched":10,"after_filter":10}"#);
+
+        let filtered = serde_json::to_string(&WindowInfo {
+            fetched: 10,
+            after_filter: 10,
+            undelivered: 0,
+            before_available: Some(10),
+        })
+        .expect("WindowInfo serialises");
+        assert_eq!(
+            filtered,
+            r#"{"fetched":10,"after_filter":10,"before_available":10}"#
+        );
     }
 
     /// Empty notes vanish from the document; a non-empty one must never be swallowed.

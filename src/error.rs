@@ -15,6 +15,7 @@
 
 use std::fmt;
 
+use crate::counts;
 use crate::model::{Engine, RecordId};
 
 /// Where a bug in this tool is reported. Named once so that every "this should not
@@ -80,8 +81,8 @@ impl Outcome {
     }
 }
 
-/// Why a run produced no records. Never collapsed into a bare "no results": the five
-/// reasons call for five different next steps, and only `NoHits` means the catalogue
+/// Why a run produced no records. Never collapsed into a bare "no results": the six
+/// reasons call for six different next steps, and only `NoHits` means the catalogue
 /// really has nothing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EmptyReason {
@@ -103,6 +104,22 @@ pub enum EmptyReason {
         filter: String,
         /// The value that flag was given.
         value: String,
+    },
+    /// `--available` was given and none of the displayed records is in right now. Its
+    /// own reason, not `FilteredOut`: this filter runs *after* the page was cut, so
+    /// narrowing the search — the advice `FilteredOut` gives — changes nothing here,
+    /// while a larger page or another page can.
+    NothingAvailable {
+        /// How many records the catalogue has for the query, when it said so. The
+        /// filter knows nothing about the records it never saw, and saying the total is
+        /// what keeps the message from reading as "the catalogue has nothing".
+        total: Option<u64>,
+        /// How many displayed records the filter judged.
+        judged: usize,
+        /// How many of those stated no status at all. Printed, because an empty result
+        /// renders no notes and this is the one place a human learns that the tool did
+        /// not hear "on loan" — it heard nothing.
+        unstated: usize,
     },
     /// Hits existed, but none of them is held at any of the requested locations.
     NoHoldings {
@@ -151,6 +168,35 @@ impl EmptyReason {
                 format!(
                     "{head}\n\
                      narrow the search itself (--title, --author) so the filter has more to work on"
+                )
+            }
+            EmptyReason::NothingAvailable {
+                total,
+                judged,
+                unstated,
+            } => {
+                // The counts are phrased, not interpolated: a single page otherwise
+                // reads "none of the 1 records", and one record without a statement
+                // "1 of them state no status at all". `counts` holds the wording that
+                // `render::human` says about the same numbers, because `error` must not
+                // depend on `render` and two copies of a phrase drift.
+                let page = counts::records(*judged);
+                let head = match total {
+                    Some(total) => format!(
+                        "{}, but none of the {page} on this page is in right now",
+                        counts::results(*total)
+                    ),
+                    None => format!("none of the {page} on this page is in right now"),
+                };
+                let silent = if *unstated > 0 {
+                    let state = if *unstated == 1 { "states" } else { "state" };
+                    format!(", and {unstated} of them {state} no status at all")
+                } else {
+                    String::new()
+                };
+                format!(
+                    "{head}{silent}\n\
+                     try a larger --limit, another --page, or drop --available"
                 )
             }
             EmptyReason::NoHoldings { locations } => {
@@ -339,6 +385,16 @@ pub enum UsageError {
         /// The engine that does not support it.
         engine: Engine,
     },
+    /// Two flags that cancel each other out, so that honouring both is impossible
+    /// rather than merely odd. The pair is data: the next such conflict is one call
+    /// site, not a second variant.
+    #[error("{flag} cannot be combined with {with}")]
+    ConflictingFlags {
+        /// The flag the user asked for, spelled as on the command line.
+        flag: String,
+        /// The flag that contradicts it.
+        with: String,
+    },
     /// `--near` was given free text; the tool geocodes nothing.
     #[error("cannot locate {input:?}")]
     NearNeedsCoordinates {
@@ -372,6 +428,7 @@ impl UsageError {
             UsageError::PageOutOfRange { .. } => "page_out_of_range",
             UsageError::WindowTooDeep { .. } => "window_too_deep",
             UsageError::FlagUnsupportedByEngine { .. } => "unsupported_by_engine",
+            UsageError::ConflictingFlags { .. } => "conflicting_flags",
             UsageError::NearNeedsCoordinates { .. } => "near_needs_coordinates",
             UsageError::RecordId { .. } => "invalid_record_id",
             UsageError::Cli(_) => "usage",
@@ -433,6 +490,9 @@ impl UsageError {
                 "drop {flag}, or leave the {engine} locations out of --at so the other \
                  catalogue answers"
             ),
+            UsageError::ConflictingFlags { flag, with } => {
+                format!("drop one of the two: {flag} asks for an answer that {with} switches off")
+            }
             UsageError::NearNeedsCoordinates { .. } => {
                 "blibs looks up no addresses — give coordinates (--near 52.52,13.41) \
                  or a library shortcode (--near HU)"
@@ -918,6 +978,11 @@ mod tests {
                 engine: Engine::Voebb,
             }
             .into(),
+            UsageError::ConflictingFlags {
+                flag: "--available".to_string(),
+                with: "--no-availability".to_string(),
+            }
+            .into(),
             UsageError::NearNeedsCoordinates {
                 input: "Alexanderplatz 1".to_string(),
             }
@@ -1191,6 +1256,80 @@ mod tests {
         );
     }
 
+    /// The two counted cases of `--available` are the point of the variant: "on loan"
+    /// and "nothing was said" must stay apart, and an empty result renders no notes, so
+    /// the second one has to survive in the message itself.
+    #[test]
+    fn nothing_available_names_the_records_that_stated_no_status() {
+        assert_eq!(
+            EmptyReason::NothingAvailable {
+                total: Some(774),
+                judged: 10,
+                unstated: 3,
+            }
+            .message(),
+            "774 results, but none of the 10 records on this page is in right now, \
+             and 3 of them state no status at all\n\
+             try a larger --limit, another --page, or drop --available"
+        );
+        assert_eq!(
+            EmptyReason::NothingAvailable {
+                total: None,
+                judged: 4,
+                unstated: 0,
+            }
+            .message(),
+            "none of the 4 records on this page is in right now\n\
+             try a larger --limit, another --page, or drop --available"
+        );
+    }
+
+    /// One is one. A `--limit 1` page otherwise reads "none of the 1 records on this
+    /// page", and a single record without a statement "1 of them state no status at
+    /// all" — two grammatical errors in the sentence a user only ever sees when the
+    /// answer disappointed them.
+    #[test]
+    fn a_single_record_is_not_counted_in_the_plural() {
+        assert_eq!(
+            EmptyReason::NothingAvailable {
+                total: Some(1),
+                judged: 1,
+                unstated: 1,
+            }
+            .message(),
+            "1 result, but none of the 1 record on this page is in right now, \
+             and 1 of them states no status at all\n\
+             try a larger --limit, another --page, or drop --available"
+        );
+        // The plural of the documented example is untouched.
+        assert!(
+            EmptyReason::NothingAvailable {
+                total: Some(774),
+                judged: 10,
+                unstated: 3,
+            }
+            .message()
+            .starts_with(
+                "774 results, but none of the 10 records on this page is in right now, \
+                 and 3 of them state no status at all"
+            )
+        );
+    }
+
+    /// The advice is the whole reason this is not `FilteredOut`: `--available` runs
+    /// after the page was cut, so a narrower search would not bring a copy back in.
+    #[test]
+    fn nothing_available_advises_a_larger_page_not_a_narrower_search() {
+        let message = EmptyReason::NothingAvailable {
+            total: Some(6),
+            judged: 6,
+            unstated: 1,
+        }
+        .message();
+        assert!(message.contains("try a larger --limit"));
+        assert!(!message.contains("narrow the search"));
+    }
+
     #[test]
     fn every_empty_reason_has_a_first_line_of_its_own() {
         let reasons = [
@@ -1202,6 +1341,11 @@ mod tests {
                 fetched: 10,
                 filter: "--language".to_string(),
                 value: "fre".to_string(),
+            },
+            EmptyReason::NothingAvailable {
+                total: Some(774),
+                judged: 10,
+                unstated: 0,
             },
             EmptyReason::NoHoldings {
                 locations: vec!["STABI".to_string(), "HU".to_string()],

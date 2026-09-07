@@ -82,6 +82,7 @@ fn plan(args: &SearchArgs, json: bool, cache: bool) -> Result<Plan, UsageError> 
         language: args.language.as_deref().map(language).transpose()?,
     };
     check_window_depth(limit, page, &filters, &locations)?;
+    check_flag_conflicts(args)?;
 
     Ok(Plan {
         terms_echo: echo(args, &query),
@@ -92,6 +93,7 @@ fn plan(args: &SearchArgs, json: bool, cache: bool) -> Result<Plan, UsageError> 
         sort: sort_key(args.sort.as_deref())?,
         filters,
         availability: availability(args.no_availability),
+        only_available: args.available,
         json,
         cache,
     })
@@ -408,6 +410,33 @@ fn check_engine_support(args: &SearchArgs, locations: &[Location]) -> Result<(),
             return Err(UsageError::FlagUnsupportedByEngine {
                 flag: flag.to_owned(),
                 engine: Engine::Voebb,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Refuse two flags that cancel each other out.
+///
+/// `--available` keeps the records whose copies are in, and `--no-availability` says not
+/// to ask whether they are — together there would be nothing left to filter on, and
+/// picking a winner would silently answer a question the user did not ask.
+///
+/// Deliberately not clap's `conflicts_with`: that produces [`UsageError::Cli`], whose
+/// `kind` is the catch-all `usage` and which carries no hint, while every refusal here
+/// owes the user the way out.
+///
+/// The pairs are a table, so the next conflict is one line rather than a second function.
+fn check_flag_conflicts(args: &SearchArgs) -> Result<(), UsageError> {
+    let conflicts = [(
+        ("--available", args.available),
+        ("--no-availability", args.no_availability),
+    )];
+    for ((flag, asked), (with, refused)) in conflicts {
+        if asked && refused {
+            return Err(UsageError::ConflictingFlags {
+                flag: flag.to_owned(),
+                with: with.to_owned(),
             });
         }
     }
@@ -964,6 +993,40 @@ mod tests {
         assert_eq!(filtered.window().size.get(), 50);
     }
 
+    /// The counterpart to the test above, and the reason it is not a `Filters` field:
+    /// `--available` judges a status that only the *shown* records ever get, because
+    /// paging happens before availability is fetched. Widening the window would buy 40
+    /// records without a status to be judged by, so the window stays at the limit.
+    #[test]
+    fn the_availability_filter_leaves_the_window_at_the_limit() {
+        let plan = search(&["search", "Kafka", "--limit", "10", "--available"])
+            .expect("a search filtered by availability");
+        assert_eq!(plan.window().size.get(), 10);
+    }
+
+    #[test]
+    fn available_is_carried_as_a_plan_flag() {
+        let filtered = search(&["search", "Kafka", "--available"]).expect("a bare search");
+        assert!(filtered.only_available);
+        let plain = search(&["search", "Kafka"]).expect("a bare search");
+        assert!(!plain.only_available);
+    }
+
+    /// One flag asks what the other switches off, so there would be nothing left to
+    /// filter on. Refused with both names, rather than one of them quietly winning.
+    #[test]
+    fn available_and_no_availability_are_refused_together() {
+        let Err(error) = search(&["search", "Kafka", "--available", "--no-availability"]) else {
+            panic!("the two availability flags contradict each other");
+        };
+        assert_eq!(error.exit(), ExitCode::Usage, "{error}");
+        assert_eq!(error.kind(), "conflicting_flags");
+        for flag in ["--available", "--no-availability"] {
+            assert!(error.to_string().contains(flag), "{error}");
+        }
+        assert!(error.hint().is_some(), "a usage error names the way out");
+    }
+
     #[test]
     fn no_availability_is_carried_as_skipped() {
         let plan = search(&["search", "Kafka", "--no-availability"]).expect("a bare search");
@@ -1119,6 +1182,18 @@ mod tests {
             ("mixed-language", "subject headings are not translated"),
             ("blibs libraries", "--at points at the list"),
             ("phrase", "the quoting rule"),
+            (
+                "thins the page out",
+                "--available does not reload to refill the page",
+            ),
+            (
+                "Reference stock",
+                "--available drops non-circulating copies",
+            ),
+            (
+                "states no status for",
+                "--available drops and counts the records without a status",
+            ),
         ];
         for (needle, why) in expectations {
             assert!(help.contains(needle), "the search help omits {why}");

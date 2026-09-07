@@ -25,8 +25,8 @@ use crate::error::{EmptyReason, Error, Outcome, UnexpectedError};
 use crate::http::{Fetch, scope_map};
 use crate::libraries::{self, Library};
 use crate::model::{
-    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Location, QueryEcho, Record,
-    SearchRequest, SearchResult, SortKey, SortScope, SortSpec, WindowInfo,
+    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Location, Note, QueryEcho, Record,
+    SearchRequest, SearchResult, SortKey, SortScope, SortSpec, WindowInfo, note_kinds,
 };
 use crate::render::{self, Style};
 use crate::select;
@@ -85,6 +85,13 @@ struct EngineOutcome {
     search: EngineSearch,
     /// How many records survived the client-side filters, before paging.
     after_filter: usize,
+    /// How many displayed records `--available` judged, or `None` when it did not run.
+    /// The survivors are already counted by `search.records`; this is the number the
+    /// difference is taken from.
+    before_available: Option<usize>,
+    /// What `--available` removed from this engine's page, split into "said no" and
+    /// "said nothing".
+    hidden: select::Hidden,
 }
 
 /// `search`: one thread per engine, then one document out of all of them.
@@ -96,8 +103,9 @@ fn run_search(
     style: Style,
 ) -> Result<Outcome, Error> {
     let outcomes = search_engines(plan, fetch)?;
-    let result = assemble_result(plan, outcomes);
-    let outcome = outcome_of(plan, &result);
+    let unstated = unstated_hidden(&outcomes);
+    let result = assemble_result(plan, outcomes, unstated);
+    let outcome = outcome_of(plan, &result, unstated);
 
     if plan.json {
         render::json::write(&result, out)?;
@@ -125,7 +133,8 @@ fn search_engines(plan: &Plan, fetch: &dyn Fetch) -> Result<Vec<EngineOutcome>, 
     })
 }
 
-/// One engine: search, filter, sort, page, availability — in that order and no other.
+/// One engine: search, filter, sort, page, availability, keep-available — in that order
+/// and no other.
 ///
 /// Availability is fetched for the records that survived paging, because it costs one
 /// request each. That is also why [`SortKey::Availability`] sorts twice: the first pass
@@ -135,6 +144,12 @@ fn search_engines(plan: &Plan, fetch: &dyn Fetch) -> Result<Vec<EngineOutcome>, 
 /// Paging is where `--at` changes the shape: `--limit` is a promise **per block**, so
 /// with locations every block is cut to it on its own and a record no block still shows
 /// is dropped before availability is asked for.
+///
+/// `--available` is the one filter that runs *last*, for the same reason the second sort
+/// does: before availability was fetched there is no status to judge. It therefore
+/// **thins the page out rather than filling it up** — ten hits become four, and asking
+/// for status on more records than are displayed to refill it is exactly the bulk traffic
+/// this tool does not generate. A larger `--limit` is the way to see more.
 fn search_one_engine(
     plan: &Plan,
     engine: Engine,
@@ -169,6 +184,30 @@ fn search_one_engine(
             select::sort(&mut records, plan.sort, sort_at);
         }
     }
+
+    // Outside the availability block, not inside it: `--available` without a status is
+    // an empty page, and that is a property of the data rather than of the rule in
+    // `validate` that forbids the flag next to `--no-availability`. Reading top to
+    // bottom, the page is fetched, then sieved by status, then marked, then cut into
+    // blocks.
+    //
+    // The filter judges by *this engine's* locations, never by `plan.locations`: with
+    // `--at HU,AGB` the kobv run would otherwise look for an AGB block it never had and
+    // find no statement about it. `mark_mine` below stays on `plan.locations` on
+    // purpose — "one of mine" is a question about the whole invocation.
+    let mut before_available = None;
+    let mut hidden = select::Hidden::default();
+    if plan.only_available {
+        before_available = Some(records.len());
+        let (kept, removed) = if locations.is_empty() {
+            select::keep_available(records)
+        } else {
+            select::keep_available_per_location(records, &mut search.at, locations)
+        };
+        records = kept;
+        hidden = removed;
+    }
+
     select::mark_mine(&mut records, &plan.locations);
 
     search.records = records;
@@ -178,6 +217,8 @@ fn search_one_engine(
     Ok(EngineOutcome {
         search,
         after_filter,
+        before_available,
+        hidden,
     })
 }
 
@@ -210,7 +251,11 @@ fn catalog_for<'f>(engine: Engine, fetch: &'f dyn Fetch) -> Box<dyn Catalog + 'f
 ///
 /// Record-centric: the records of both engines follow each other, and the grouping humans
 /// see is derived from `at[]` — never a second list of records.
-fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>) -> SearchResult {
+///
+/// `unstated` comes from [`unstated_hidden`] over the same outcomes; it is passed in
+/// rather than recomputed here so that the note and [`outcome_of`] cannot end up naming
+/// two different numbers for one thing.
+fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>, unstated: usize) -> SearchResult {
     let engines: Vec<Engine> = outcomes
         .iter()
         .map(|outcome| outcome.search.engine)
@@ -220,6 +265,12 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>) -> SearchResult {
         fetched: outcomes.iter().map(|o| o.search.fetched).sum(),
         after_filter: outcomes.iter().map(|o| o.after_filter).sum(),
         undelivered: outcomes.iter().map(|o| o.search.undelivered).sum(),
+        // `None` unless some engine actually ran the filter — the renderers read the
+        // field as "did `--available` run", and a zero would answer that with "yes".
+        before_available: outcomes
+            .iter()
+            .filter_map(|outcome| outcome.before_available)
+            .reduce(|left, right| left + right),
     };
     // `total` and `pqf` are the KOBV search's, and `null` when only voebb ran, or when
     // several KOBV searches did: two catalogues have two totals, and so do two locations,
@@ -232,6 +283,9 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>) -> SearchResult {
     let pqf = kobv.and_then(|outcome| outcome.search.query_echo.clone());
 
     let mut notes = Vec::new();
+    if let Some(note) = unstated_note(unstated) {
+        notes.push(note);
+    }
     let mut records = Vec::new();
     for outcome in outcomes {
         notes.extend(outcome.search.notes);
@@ -258,6 +312,34 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>) -> SearchResult {
         notes,
         records,
     }
+}
+
+/// How many records `--available` removed without ever having been told a status, over
+/// all engines.
+///
+/// Only this half of [`select::Hidden`] travels any further. The other half — how many
+/// records were hidden in total — is `window.before_available` minus `shown`, which the
+/// document already carries, and a second copy of a number is a number that can
+/// contradict the first.
+fn unstated_hidden(outcomes: &[EngineOutcome]) -> usize {
+    outcomes.iter().map(|outcome| outcome.hidden.unstated).sum()
+}
+
+/// The note that keeps "nothing was said" from reading as "it is out".
+///
+/// Only when there were such records: a note that always fires is a note nobody reads.
+/// The count is in the message for the human; an agent branches on
+/// [`note_kinds::AVAILABILITY_FILTER_UNSTATED`] and never on the wording.
+fn unstated_note(unstated: usize) -> Option<Note> {
+    (unstated > 0).then(|| {
+        Note::new(
+            note_kinds::AVAILABILITY_FILTER_UNSTATED,
+            format!(
+                "no status was stated for {unstated} of the records --available hid; \
+                 nothing was said about their copies, so they are not known to be on loan"
+            ),
+        )
+    })
 }
 
 /// The `at[]` entries, **in the order the user wrote `--at`** — not in engine order.
@@ -291,12 +373,26 @@ fn at_blocks(plan: &Plan, outcomes: &[EngineOutcome]) -> Vec<AtBlock> {
 
 /// Why this search is empty — or that it is not.
 ///
-/// The three empty reasons are three different next steps, which is why they are not one:
-/// a filter that emptied a full window is a window problem, a location that holds nothing
-/// is a "look elsewhere", and only the last case means the catalogue really has nothing.
-fn outcome_of(plan: &Plan, result: &SearchResult) -> Outcome {
+/// The four empty reasons are four different next steps, which is why they are not one:
+/// records that are all out want a larger page or another day, a filter that emptied a
+/// full window is a window problem, a location that holds nothing is a "look elsewhere",
+/// and only the last case means the catalogue really has nothing.
+fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize) -> Outcome {
     if result.shown > 0 {
         return Outcome::Found;
+    }
+    // First, and only when the filter had something to judge: these records *are* there
+    // and they *are* held here, they are merely not in. Falling through would offer
+    // "try fewer or more general words" or "none of them is held at HU", and both would
+    // send the user after a problem they do not have.
+    if let Some(judged) = result.window.before_available
+        && judged > 0
+    {
+        return Outcome::Empty(EmptyReason::NothingAvailable {
+            total: result.total,
+            judged,
+            unstated,
+        });
     }
     if let Some((filter, value)) = active_filter(plan)
         && result.window.fetched > 0

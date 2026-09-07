@@ -24,6 +24,7 @@
 //! model   → the domain types every layer above shares
 //! http    → transport, cache, backoff, per-host cap; interprets nothing
 //! error   → one error enum; every variant says what failed and what to do
+//! counts  → the English phrases for a count, shared by `error` and `render`
 //! ```
 //!
 //! Two rules run through all of it. A parser never performs I/O and a client never
@@ -32,6 +33,7 @@
 //! can give an agent — so a missing element becomes a named error instead.
 
 pub mod cli;
+pub mod counts;
 pub mod engine;
 pub mod error;
 pub mod http;
