@@ -11,8 +11,8 @@
 
 use std::io::Write;
 
-use crate::error::{Error, ErrorEnvelope, UsageError};
-use crate::libraries::{self, Branch, Library};
+use crate::error::{Error, ErrorEnvelope};
+use crate::libraries::{Branch, Library};
 use crate::model::{Engine, Location};
 
 /// Write one document, pretty-printed and closed by a newline.
@@ -214,30 +214,30 @@ pub struct ParentView<'a> {
 
 /// How `--at` reaches one branch.
 ///
-/// Not a judgement made here: it is [`crate::libraries::branch_access`] verbatim, the same
-/// call `--at` itself goes through. `at` is always something that can be typed — the
-/// branch when it can be searched on its own, the institution when it cannot — so an agent
-/// never has to construct a fallback of its own.
+/// Not a judgement made here: it is [`crate::libraries::branch_location`] verbatim, the
+/// same call `--at` itself goes through, so this view and a real search can never come to
+/// disagree. `at` is always something that can be typed.
+///
+/// `limitation` is what separates the two kinds of answer. A VÖBB branch is filtered
+/// upstream by the house facet and its result is complete; a branch of any other house is
+/// filtered upstream only by its *house*, and the branch itself is read off the copies of
+/// the records that were fetched. The second is a real answer with a real edge, and the
+/// tag is the same one the search itself puts in `notes[]`, so an agent switches on one
+/// vocabulary rather than two.
 #[derive(Debug, serde::Serialize)]
 pub struct BranchSearchView {
-    /// Whether `--at` can search **this branch** on its own.
-    pub searchable: bool,
-    /// What to give `--at`: this branch, or the institution to search instead.
+    /// What to give `--at` to search this branch.
     pub at: String,
     /// The engine that answers that `--at` value.
     pub engine: Engine,
-    /// Why the branch cannot be searched on its own; `null` when it can.
-    pub reason: Option<String>,
+    /// The `notes[]` kind this search will carry, or `null` when the answer is complete.
+    pub limitation: Option<&'static str>,
 }
 
 impl<'a> BranchDetailView<'a> {
-    /// Build the view from the branch, its house and the searchability the library list
-    /// decided — see [`crate::libraries::branch_access`] for who decides it.
-    pub fn new(
-        parent: &'a Library,
-        branch: &'a Branch,
-        access: &Result<Location, UsageError>,
-    ) -> Self {
+    /// Build the view from the branch, its house and the location `--at` would resolve it
+    /// to — see [`crate::libraries::branch_location`] for who decides that.
+    pub fn new(parent: &'a Library, branch: &'a Branch, at: &Location) -> Self {
         BranchDetailView {
             kind_of_entry: EntryKind::Branch,
             alias: branch.alias(),
@@ -255,31 +255,24 @@ impl<'a> BranchDetailView<'a> {
                 name: &parent.name,
                 short_name: &parent.short_name,
             },
-            search: BranchSearchView::new(parent, access),
+            search: BranchSearchView::new(at),
         }
     }
 }
 
 impl BranchSearchView {
-    /// Read the two arms of [`crate::libraries::branch_access`] into one shape.
+    /// Read one branch location into the shape the JSON promises.
     ///
-    /// The unsearchable arm falls back to the institution's own location, so `at` and
-    /// `engine` describe the same command line the error's hint names — one decision,
-    /// stated once.
-    fn new(parent: &Library, access: &Result<Location, UsageError>) -> Self {
-        let fallback;
-        let (location, reason) = match access {
-            Ok(location) => (location, None),
-            Err(error) => {
-                fallback = libraries::institution_location(parent);
-                (&fallback, Some(error.to_string()))
-            }
-        };
+    /// The limitation is derived from the engine, which is where the difference actually
+    /// lives: `voebb` filters the branch upstream, `kobv` can only filter its house.
+    fn new(at: &Location) -> Self {
         BranchSearchView {
-            searchable: reason.is_none(),
-            at: location.key.clone(),
-            engine: location.engine,
-            reason,
+            at: at.key.clone(),
+            engine: at.engine,
+            limitation: match at.engine {
+                Engine::Kobv => Some(crate::model::note_kinds::BRANCH_FROM_COPIES),
+                Engine::Voebb => None,
+            },
         }
     }
 }
@@ -405,30 +398,31 @@ mod tests {
                 .as_str()
                 .is_some_and(|name| !name.is_empty())
         );
-        assert_eq!(document["search"]["searchable"], true);
         assert_eq!(document["search"]["at"], "AGB");
         assert_eq!(document["search"]["engine"], "voebb");
-        assert!(document["search"]["reason"].is_null());
+        assert!(
+            document["search"]["limitation"].is_null(),
+            "the house facet filters upstream: {document}"
+        );
         assert!(
             document.get("branches").is_none(),
             "a branch has no branches of its own"
         );
     }
 
-    /// A branch no engine can search on its own says so, and `at` names the way in
-    /// rather than leaving the caller to work one out.
+    /// A branch of a KOBV house is searchable too, and says where the answer stops: the
+    /// tag is the same one the search itself puts in `notes[]`, so an agent reads one
+    /// vocabulary rather than two.
     #[test]
-    fn an_unsearchable_branch_points_at_its_institution() {
+    fn a_kobv_branch_names_the_limitation_of_its_search() {
         let document = branch_document("PHILBIB");
 
         assert_eq!(document["parent"]["alias"], "FU");
-        assert_eq!(document["search"]["searchable"], false);
-        assert_eq!(document["search"]["at"], "FU");
+        assert_eq!(document["search"]["at"], "PHILBIB");
         assert_eq!(document["search"]["engine"], "kobv");
-        assert!(
-            document["search"]["reason"]
-                .as_str()
-                .is_some_and(|reason| reason.contains("cannot be searched on its own")),
+        assert_eq!(
+            document["search"]["limitation"],
+            crate::model::note_kinds::BRANCH_FROM_COPIES,
             "{document}"
         );
     }
@@ -440,8 +434,8 @@ mod tests {
         else {
             panic!("{alias} must be a branch");
         };
-        let access = crate::libraries::branch_access(alias, parent, branch);
-        serde_json::to_value(BranchDetailView::new(parent, branch, &access))
+        let at = crate::libraries::branch_location(parent, branch);
+        serde_json::to_value(BranchDetailView::new(parent, branch, &at))
             .expect("the view serialises")
     }
 

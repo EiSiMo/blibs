@@ -265,6 +265,12 @@ impl Catalog for Kobv<'_> {
 /// the upstream filter decided it, so a record is in the block because the catalogue
 /// answered it for this library.
 ///
+/// **A branch block states no total.** The count came back for the *house* — `1044` is
+/// the only restriction the catalogue offers — and printing it under a branch's heading
+/// would claim a number nobody counted. Which of those records the branch actually holds
+/// is decided afterwards, from the copies
+/// ([`crate::select::keep_branch_per_location`]), so the honest answer here is `null`.
+///
 /// Two locations with the same ISIL share the one search that was run for it; a location
 /// whose ISIL somehow has no search states nothing rather than borrowing another's
 /// numbers.
@@ -283,9 +289,11 @@ fn at_blocks(
             AtBlock {
                 key: location.key.clone(),
                 isil: location.isil.clone(),
-                branch: None,
+                branch: location.branch.as_ref().map(|branch| branch.kobvid.clone()),
                 engine: Engine::Kobv,
-                total: found.map(|(total, _)| *total),
+                total: found
+                    .map(|(total, _)| *total)
+                    .filter(|_| location.branch.is_none()),
                 records: found.map(|(_, ids)| ids.clone()).unwrap_or_default(),
             }
         })

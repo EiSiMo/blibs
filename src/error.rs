@@ -361,14 +361,6 @@ pub enum UsageError {
         /// Up to three close matches from the library list.
         suggestions: Vec<String>,
     },
-    /// `--at` named a branch that no engine can search on its own.
-    #[error("{input:?} is a branch that cannot be searched on its own")]
-    BranchNotSearchable {
-        /// What the user typed.
-        input: String,
-        /// The institution to use instead.
-        fallback: String,
-    },
     /// A `<house>/<branch>` path fits more than one branch of that house.
     ///
     /// Never resolved by picking one: two branches of the same university are two
@@ -543,7 +535,6 @@ impl UsageError {
     pub fn kind(&self) -> &'static str {
         match self {
             UsageError::UnknownLibrary { .. } => "unknown_library",
-            UsageError::BranchNotSearchable { .. } => "branch_not_searchable",
             UsageError::AmbiguousBranch { .. } => "ambiguous_branch",
             UsageError::Wildcard { .. } => "wildcard_unsupported",
             UsageError::Range { .. } => "range_unsupported",
@@ -578,9 +569,6 @@ impl UsageError {
                 } else {
                     format!("did you mean {}? {lookup}", suggestions.join(", "))
                 }
-            }
-            UsageError::BranchNotSearchable { fallback, .. } => {
-                format!("search the institution instead: --at {fallback}")
             }
             UsageError::AmbiguousBranch { candidates, .. } => {
                 format!("name one of them: {}", candidates.join(", "))
@@ -1110,9 +1098,12 @@ mod tests {
                 suggestions: vec!["STABI".to_string(), "SBB".to_string()],
             }
             .into(),
-            UsageError::BranchNotSearchable {
-                input: "philbib".to_string(),
-                fallback: "FU".to_string(),
+            UsageError::AmbiguousBranch {
+                input: "HU/Zweigbibliothek".to_string(),
+                house: "HU".to_string(),
+                candidates: vec![
+                    "HUB00043 (Zweigbibliothek Germanistik/Skandinavistik)".to_string(),
+                ],
             }
             .into(),
             UsageError::Wildcard {

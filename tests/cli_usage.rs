@@ -445,19 +445,19 @@ fn a_branch_key_answers_with_the_branch_not_its_house() {
         .stdout(contains("branches").not());
 }
 
-/// The same for a branch no engine can search on its own: it is a perfectly ordinary
-/// thing to look up, and the view says how to get at its holdings instead of pretending
-/// the question was about the house.
+/// The same for a branch outside the public network. It is searched by `kobv`, under its
+/// house — and the view says where that answer stops, because "not on this page" and
+/// "not held there" look identical once the page is printed.
 #[test]
-fn a_branch_outside_the_public_network_names_the_house_to_search() {
+fn a_branch_outside_the_public_network_states_the_edge_of_its_search() {
     blibs()
         .args(["libraries", "PHILBIB"])
         .assert()
         .success()
         .stdout(contains("Philologische Bibliothek"))
         .stdout(contains("Branch of    FU"))
-        .stdout(contains("cannot be searched on its own"))
-        .stdout(contains("search the institution instead: --at FU"));
+        .stdout(contains("Search       --at PHILBIB (kobv engine)"))
+        .stdout(contains("from the copies"));
 }
 
 /// In JSON the kind is a member, so an agent never has to infer from the members present

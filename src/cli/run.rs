@@ -199,12 +199,13 @@ fn search_one_engine(
     let sort_at = sort_location(locations);
     let mut records = filtered;
     select::sort(&mut records, plan.sort, sort_at);
-    let mut records = if locations.is_empty() {
+    let records = if locations.is_empty() {
         select::take_page(records, plan.cut())
     } else {
         select::take_page_per_location(records, &mut search.at, plan.cut())
     };
 
+    let mut records = records;
     if plan.availability == AvailabilityMode::Fetched {
         search
             .notes
@@ -212,6 +213,18 @@ fn search_one_engine(
         if plan.sort == SortKey::Availability {
             select::sort(&mut records, plan.sort, sort_at);
         }
+        // Only now can a KOBV branch be answered for at all: the search restricted the
+        // *house*, and which branch holds a copy is said by the copies alone. It runs
+        // before `--available` so that filter judges the copies of this branch rather
+        // than the house's.
+        let (kept, elsewhere) =
+            select::keep_branch_per_location(records, &mut search.at, locations);
+        records = kept;
+        if let Some(note) = branch_note(locations, elsewhere) {
+            search.notes.push(note);
+        }
+    } else if let Some(note) = unfiltered_branch_note(locations) {
+        search.notes.push(note);
     }
 
     // Outside the availability block, not inside it: `--available` without a status is
@@ -249,6 +262,56 @@ fn search_one_engine(
         before_available,
         hidden,
     })
+}
+
+/// What a KOBV branch location has to say about its own block.
+///
+/// It is never nothing. The heading has no total, the page can be shorter than `--limit`,
+/// and neither is visible as anything but a small result — so the limitation is stated
+/// whether or not this particular page lost a record to it.
+fn branch_note(locations: &[Location], elsewhere: usize) -> Option<Note> {
+    let branches = branch_names(locations)?;
+    let dropped = match elsewhere {
+        0 => String::new(),
+        1 => " 1 record on this page is held by the house but not there".to_string(),
+        many => format!(" {many} records on this page are held by the house but not there"),
+    };
+    Some(Note::new(
+        note_kinds::BRANCH_FROM_COPIES,
+        format!(
+            "{branches} could only be narrowed from the copies of the records on this page — \
+             the catalogue filters by institution, not by branch. The block states no total, \
+             the page can be shorter than --limit, and nothing here shows that the branch \
+             holds no other edition.{dropped}"
+        ),
+    ))
+}
+
+/// The same location with `--no-availability`: no copies, so nothing to narrow by.
+fn unfiltered_branch_note(locations: &[Location]) -> Option<Note> {
+    let branches = branch_names(locations)?;
+    Some(Note::new(
+        note_kinds::BRANCH_NEEDS_COPIES,
+        format!(
+            "{branches} could not be applied: the branch of a copy is only named in the \
+             availability answer, and --no-availability did not ask for one. The block is \
+             the whole institution's."
+        ),
+    ))
+}
+
+/// The KOBV branch locations of this run, named for a note, or `None` when there are none.
+fn branch_names(locations: &[Location]) -> Option<String> {
+    let named: Vec<&str> = locations
+        .iter()
+        .filter(|location| location.branch.is_some() && location.engine == Engine::Kobv)
+        .map(|location| location.key.as_str())
+        .collect();
+    match named.as_slice() {
+        [] => None,
+        [only] => Some(format!("--at {only}")),
+        several => Some(format!("--at {}", several.join(", --at "))),
+    }
 }
 
 /// Which location `--sort availability` should judge by.
@@ -640,15 +703,11 @@ fn show_library(
     Ok(Outcome::Found)
 }
 
-/// One branch in detail, including whether `--at` can search it on its own.
+/// One branch in detail, including how `--at` searches it.
 ///
-/// The searchability is not decided here: [`libraries::branch_access`] is asked, and it
-/// is the same call `--at` goes through, so the two can never disagree about which
-/// branches the `voebb` engine answers for. Nothing on this path names an ISIL.
-///
-/// The branch's own canonical shorthand is what the answer is phrased in, rather than
-/// what the user typed, so that `libraries philbib` and `libraries PHILBIB` print the
-/// same thing.
+/// How is not decided here: [`libraries::branch_location`] is asked, and it is the same
+/// call `--at` goes through, so the two can never disagree about which engine answers for
+/// a branch or how complete that answer is. Nothing on this path names an ISIL.
 fn show_branch(
     plan: &LibrariesPlan,
     parent: &'static Library,
@@ -656,15 +715,14 @@ fn show_branch(
     out: &mut dyn Write,
     style: Style,
 ) -> Result<Outcome, Error> {
-    let named_as = branch.alias().unwrap_or(branch.kobvid.as_str());
-    let access = libraries::branch_access(named_as, parent, branch);
+    let at = libraries::branch_location(parent, branch);
     if plan.json {
         render::json::write(
-            &render::json::BranchDetailView::new(parent, branch, &access),
+            &render::json::BranchDetailView::new(parent, branch, &at),
             out,
         )?;
     } else {
-        render::human::branch_detail(parent, branch, &access, out, style).map_err(output)?;
+        render::human::branch_detail(parent, branch, &at, out, style).map_err(output)?;
     }
     Ok(Outcome::Found)
 }

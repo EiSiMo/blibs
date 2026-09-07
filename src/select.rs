@@ -24,8 +24,8 @@ use std::cmp::Reverse;
 use std::collections::HashSet;
 
 use crate::model::{
-    AtBlock, Format, Holding, Item, Limit, Location, Record, RecordId, SearchResult, SortKey,
-    Status,
+    AtBlock, Engine, Format, Holding, Item, Limit, Location, Record, RecordId, SearchResult,
+    SortKey, Status,
 };
 
 /// The client-side filters.
@@ -332,6 +332,78 @@ pub fn keep_available(records: Vec<Record>) -> (Vec<Record>, Hidden) {
         })
         .collect();
     (kept, hidden)
+}
+
+/// Narrow each **branch** block of a KOBV search to the records that branch actually
+/// holds a copy of.
+///
+/// The engine filtered the search by the branch's *house*, because that is the only
+/// restriction the catalogue offers (`@attr 1=1044`); which branch holds a copy is said
+/// by the availability answer alone, one `bibids=` link per copy. So this runs **after**
+/// availability and does what the search could not: a record stays in the block when one
+/// of its holdings [`holding_is_at`] the location, and leaves it otherwise.
+///
+/// It changes nothing for a location without a branch, and nothing for a VÖBB branch:
+/// there the house facet already filtered upstream and the block is complete, and
+/// re-deciding it here from copies that have not been fetched would only be a chance to
+/// get it wrong.
+///
+/// [`holding_is_at`]'s deliberate exception carries straight through — a holding whose
+/// copies name **no** branch at all is kept, because a missing link is "not stated", never
+/// "not there". Dropping those would answer a broken link as an absence, which is the one
+/// answer this tool must never give by accident.
+///
+/// Returns how many records fell out of every block, so the page can say it rather than
+/// simply being short.
+pub fn keep_branch_per_location(
+    records: Vec<Record>,
+    at: &mut [AtBlock],
+    locations: &[Location],
+) -> (Vec<Record>, usize) {
+    let sieved =
+        |location: &&Location| location.branch.is_some() && location.engine == Engine::Kobv;
+    if !locations.iter().any(|location| sieved(&location)) {
+        return (records, 0);
+    }
+    for block in at.iter_mut() {
+        // Matched by alias *and* ISIL, as `run::at_blocks` does. A block whose location is
+        // not among `locations` cannot happen — the engine builds `at[]` from these very
+        // locations — but judging its records by nothing would empty the whole block, so
+        // it is left as the engine stated it.
+        let Some(location) = locations
+            .iter()
+            .find(|location| block.key == location.key && block.isil == location.isil)
+            .filter(sieved)
+        else {
+            continue;
+        };
+        let stated = std::mem::take(&mut block.records);
+        block.records = stated
+            .into_iter()
+            .filter(|id| {
+                records
+                    .iter()
+                    .find(|record| &record.id == id)
+                    .is_some_and(|record| {
+                        record
+                            .holdings
+                            .iter()
+                            .any(|holding| holding_is_at(holding, location))
+                    })
+            })
+            .collect();
+    }
+    let shown: Vec<&RecordId> = at.iter().flat_map(|block| &block.records).collect();
+    let mut dropped = 0;
+    let kept = records
+        .into_iter()
+        .filter(|record| {
+            let keep = shown.contains(&&record.id);
+            dropped += usize::from(!keep);
+            keep
+        })
+        .collect();
+    (kept, dropped)
 }
 
 /// Keep only what is borrowable **at each location** — the form with `--at`.
@@ -739,6 +811,20 @@ mod tests {
             }),
             engine: Engine::Voebb,
             display: format!("{key} (VÖBB)"),
+        }
+    }
+
+    /// A branch of a KOBV institution, the case `keep_branch_per_location` exists for.
+    fn kobv_branch(key: &str, isil: &str, kobvid: &str) -> Location {
+        Location {
+            key: key.to_owned(),
+            isil: Isil::new(isil),
+            branch: Some(BranchRef {
+                kobvid: kobvid.to_owned(),
+                name: key.to_owned(),
+            }),
+            engine: Engine::Kobv,
+            display: format!("{key} display"),
         }
     }
 
@@ -1687,5 +1773,117 @@ mod tests {
             .map(|r| r.record.id.as_str())
             .collect();
         assert_eq!(hu, ["almahu_2", "almahu_1"]);
+    }
+
+    /// The sieve keeps a record the branch holds a copy of, drops one only its house
+    /// holds, and counts the drop — the block heading has no total, so the number is the
+    /// only thing that tells "not on this page" from "not held".
+    #[test]
+    fn the_branch_sieve_keeps_only_what_the_branch_holds() {
+        let mut here = record("almahu_1", "Held at the branch", None);
+        here.holdings = vec![holding(
+            "DE-11",
+            Status::Available,
+            vec![
+                item("Grimm-Zentrum", Some("HUB00028"), Status::Available),
+                item("ZwB Germanistik", Some("HUB00043"), Status::Available),
+            ],
+        )];
+        let mut elsewhere = record("almahu_2", "Held at the house only", None);
+        elsewhere.holdings = vec![holding(
+            "DE-11",
+            Status::Available,
+            vec![item("Grimm-Zentrum", Some("HUB00028"), Status::Available)],
+        )];
+
+        let locations = vec![kobv_branch("HUB00043", "DE-11", "HUB00043")];
+        let mut at = vec![AtBlock {
+            key: "HUB00043".to_owned(),
+            isil: Isil::new("DE-11"),
+            branch: Some("HUB00043".to_owned()),
+            engine: Engine::Kobv,
+            total: None,
+            records: ids(&["almahu_1", "almahu_2"]),
+        }];
+
+        let (kept, dropped) = keep_branch_per_location(vec![here, elsewhere], &mut at, &locations);
+
+        assert_eq!(dropped, 1);
+        assert_eq!(
+            kept.iter()
+                .map(|record| record.id.as_str())
+                .collect::<Vec<_>>(),
+            ["almahu_1"]
+        );
+        assert_eq!(at[0].records, ids(&["almahu_1"]));
+    }
+
+    /// A holding whose copies name **no** branch is kept: a missing `bibids=` link is
+    /// "not stated", and answering it as an absence is the one mistake this tool must not
+    /// make. An institution block is untouched by the same call.
+    #[test]
+    fn the_branch_sieve_keeps_copies_that_name_no_branch() {
+        let mut unstated = record("almahu_1", "Online, no branch link", None);
+        unstated.holdings = vec![holding(
+            "DE-11",
+            Status::Available,
+            vec![item("Online-Zugriff", None, Status::Available)],
+        )];
+
+        let locations = vec![
+            kobv_branch("HUB00043", "DE-11", "HUB00043"),
+            institution("HU", "DE-11"),
+        ];
+        let mut at = vec![
+            AtBlock {
+                key: "HUB00043".to_owned(),
+                isil: Isil::new("DE-11"),
+                branch: Some("HUB00043".to_owned()),
+                engine: Engine::Kobv,
+                total: None,
+                records: ids(&["almahu_1"]),
+            },
+            AtBlock {
+                key: "HU".to_owned(),
+                isil: Isil::new("DE-11"),
+                branch: None,
+                engine: Engine::Kobv,
+                total: Some(9),
+                records: ids(&["almahu_1"]),
+            },
+        ];
+
+        let (kept, dropped) = keep_branch_per_location(vec![unstated], &mut at, &locations);
+
+        assert_eq!(dropped, 0);
+        assert_eq!(kept.len(), 1);
+        assert_eq!(at[0].records, ids(&["almahu_1"]));
+        assert_eq!(
+            at[1].records,
+            ids(&["almahu_1"]),
+            "the house block is untouched"
+        );
+    }
+
+    /// A VÖBB branch is not sieved here: its house facet filtered upstream, and its
+    /// records carry no copies at this point, so re-deciding it would only lose them.
+    #[test]
+    fn the_branch_sieve_leaves_a_voebb_block_alone() {
+        let record = record("voebb_1", "Der Vorleser", None);
+        let locations = vec![branch("AGB", "SIG00036")];
+        let mut at = vec![AtBlock {
+            key: "AGB".to_owned(),
+            isil: Isil::new("DE-609"),
+            branch: Some("SIG00036".to_owned()),
+            engine: Engine::Voebb,
+            total: Some(35),
+            records: ids(&["voebb_1"]),
+        }];
+
+        let (kept, dropped) = keep_branch_per_location(vec![record], &mut at, &locations);
+
+        assert_eq!(dropped, 0);
+        assert_eq!(kept.len(), 1);
+        assert_eq!(at[0].records, ids(&["voebb_1"]));
     }
 }

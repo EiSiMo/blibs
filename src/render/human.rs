@@ -39,10 +39,10 @@
 use std::io::{self, Write};
 
 use crate::counts::{records, results};
-use crate::error::{EmptyReason, Error, UsageError};
+use crate::error::{EmptyReason, Error};
 use crate::libraries::{Branch, Library};
 use crate::model::{
-    Format, Holding, Item, Location, Note, Record, SearchResult, SortKey, Status, UrlKind,
+    Engine, Format, Holding, Item, Location, Note, Record, SearchResult, SortKey, Status, UrlKind,
 };
 use crate::render::Style;
 use crate::render::style::label;
@@ -1258,13 +1258,13 @@ pub fn library_detail(library: &Library, out: &mut dyn Write, style: Style) -> i
 /// wants the house at Blücherplatz, not the 98-branch listing of the network it belongs
 /// to; the parent is named in one line and the listing stays with the question it answers.
 ///
-/// `access` is [`crate::libraries::branch_access`] verbatim — this function states its
-/// two answers and decides nothing itself, so the view and `--at` cannot come to differ
-/// about which branches can be searched.
+/// `at` is [`crate::libraries::branch_location`] verbatim — this function prints it and
+/// decides nothing itself, so the view and `--at` cannot come to differ about which
+/// engine searches a branch.
 pub fn branch_detail(
     parent: &Library,
     branch: &Branch,
-    access: &Result<Location, UsageError>,
+    at: &Location,
     out: &mut dyn Write,
     style: Style,
 ) -> io::Result<()> {
@@ -1288,7 +1288,7 @@ pub fn branch_detail(
             format!("{:.5}, {:.5}", coords.lat, coords.lon),
         );
     }
-    push_search_field(&mut fields, access);
+    push_search_field(&mut fields, at);
     write_fields(out, &fields, style)
 }
 
@@ -1301,25 +1301,25 @@ fn parent_line(parent: &Library) -> String {
     }
 }
 
-/// The `Search` field: the `--at` value that searches this branch, or the refusal `--at`
-/// would give and its way out.
+/// The `Search` field: the `--at` value that searches this branch, and — where the answer
+/// has an edge — what that edge is.
 ///
-/// The refusal is printed in the error's **own** words — its `Display` and its
-/// [`crate::error::UsageError::hint`] — rather than paraphrased here. A second wording of
-/// the same rule is a second thing to keep true.
-fn push_search_field(fields: &mut Vec<(String, String)>, access: &Result<Location, UsageError>) {
-    match access {
-        Ok(location) => push_field(
-            fields,
-            "Search",
-            format!("--at {} ({} engine)", location.key, location.engine),
-        ),
-        Err(error) => {
-            push_field(fields, "Search", error.to_string());
-            for line in error.hint().unwrap_or_default().lines() {
-                fields.push((String::new(), line.to_owned()));
-            }
-        }
+/// A `kobv` branch is not filtered upstream: its *house* is, and the branch is read off
+/// the copies of the records that come back. Saying so here is the whole point of the
+/// field, because it is the difference between "nothing there" and "nothing on this page".
+fn push_search_field(fields: &mut Vec<(String, String)>, at: &Location) {
+    push_field(
+        fields,
+        "Search",
+        format!("--at {} ({} engine)", at.key, at.engine),
+    );
+    if at.engine == Engine::Kobv && at.branch.is_some() {
+        fields.push((
+            String::new(),
+            "narrowed from the copies of its house's records, so a page \
+             can be short and absence is never proven"
+                .to_owned(),
+        ));
     }
 }
 
@@ -2613,9 +2613,9 @@ almafu_BV008885798
 
     fn branch_output(alias: &str) -> String {
         let (parent, branch) = branch_of(alias);
-        let access = crate::libraries::branch_access(alias, parent, branch);
+        let at = crate::libraries::branch_location(parent, branch);
         let mut out = Vec::new();
-        branch_detail(parent, branch, &access, &mut out, Style::plain(WIDE)).expect("bytes");
+        branch_detail(parent, branch, &at, &mut out, Style::plain(WIDE)).expect("bytes");
         String::from_utf8(out).expect("UTF-8")
     }
 
@@ -2657,22 +2657,18 @@ almafu_BV008885798
         }
     }
 
-    /// A branch outside the public network: the same view, and the refusal `--at` itself
-    /// would give — in the error's own words, so the two cannot drift apart.
+    /// A branch outside the public network: the same view, the `--at` that searches it —
+    /// and the edge that `--at` has there, because `kobv` can only filter its house.
     #[test]
-    fn a_branch_no_engine_searches_says_so_and_names_its_house() {
+    fn a_kobv_branch_states_the_edge_of_its_search() {
         let output = branch_output("PHILBIB");
 
         assert!(output.contains("\n  Branch of    FU — "), "{output:?}");
         assert!(
-            output.contains("cannot be searched on its own"),
+            output.contains("\n  Search       --at PHILBIB (kobv engine)\n"),
             "{output:?}"
         );
-        assert!(
-            output.contains("search the institution instead: --at FU"),
-            "{output:?}"
-        );
-        assert!(!output.contains("--at PHILBIB"), "{output:?}");
+        assert!(output.contains("from the copies"), "{output:?}");
     }
 
     /// "Nothing found" is never a bare line: the reason decides what to try next.

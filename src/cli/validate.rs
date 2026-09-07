@@ -957,15 +957,21 @@ mod tests {
         assert_eq!(keys, ["HU", "STABI"]);
     }
 
-    /// A branch of a university is not a location: the KOBV record carries every copy of
-    /// the institution anyway, and voebb.de does not know the house.
+    /// A branch of a university is a location like any other, answered by `kobv`: its
+    /// house is filtered upstream and the branch is read off the copies.
     #[test]
-    fn a_non_voebb_branch_is_refused_with_its_institution() {
-        let Err(error) = search(&["search", "Kafka", "--at", "PHILBIB"]) else {
-            panic!("a non-VÖBB branch cannot be searched on its own");
+    fn a_non_voebb_branch_is_a_kobv_location() {
+        let plan = search(&["search", "Kafka", "--at", "PHILBIB"]).expect("a branch of the FU");
+        let [location] = plan.locations.as_slice() else {
+            panic!("one location");
         };
-        assert_eq!(error.kind(), "branch_not_searchable");
-        assert!(error.hint().unwrap_or_default().contains("--at"), "{error}");
+        assert_eq!(location.engine, Engine::Kobv);
+        assert_eq!(location.isil.as_str(), "DE-188");
+        let branch = location
+            .branch
+            .as_ref()
+            .expect("a branch location names it");
+        assert_eq!(branch.kobvid, "FUB00019");
     }
 
     // ---- engine support ----

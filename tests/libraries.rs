@@ -5,7 +5,7 @@ mod common;
 use blibs::error::UsageError;
 use blibs::libraries::data::{LIBRARIES_JSON, Library};
 use blibs::libraries::{
-    Entry, alias_for, branch_access, by_isil, by_kobvid, by_portal_name, display_name, find,
+    Entry, alias_for, branch_location, by_isil, by_kobvid, by_portal_name, display_name, find,
     look_up, name_holding, near, resolve, short_name_for,
 };
 use blibs::model::{Engine, Holding, Isil, Status};
@@ -323,26 +323,27 @@ fn a_hopeless_entry_suggests_nothing() {
     }
 }
 
-/// A branch outside the VÖBB cannot be searched on its own: the KOBV record does not know
-/// the branch, so the error names the house to use instead.
+/// A branch outside the VÖBB is searched by `kobv`, under its house's ISIL: that is the
+/// only restriction the catalogue offers, and the branch itself is decided later, from the
+/// copies the availability answer names.
 #[test]
-fn a_branch_of_another_institution_names_its_institution() {
-    match resolve("philbib").expect_err("PHILBIB is an FU branch") {
-        UsageError::BranchNotSearchable { input, fallback } => {
-            assert_eq!(input, "philbib");
-            assert_eq!(fallback, "FU");
-        }
-        other => panic!("expected BranchNotSearchable, got {other:?}"),
-    }
+fn a_branch_of_another_institution_is_searched_under_its_house() {
+    let philbib = resolve("philbib").expect("PHILBIB is an FU branch");
+
+    assert_eq!(philbib.engine, Engine::Kobv);
+    assert_eq!(philbib.isil.as_str(), "DE-188");
+    assert_eq!(philbib.key, "PHILBIB");
+    let branch = philbib.branch.expect("a branch location names its branch");
+    assert_eq!(branch.kobvid, "FUB00019");
 }
 
-/// A lookup answers for **every** branch, including the ones `--at` refuses: "which house
-/// is PHILBIB" is a fair question, and only "search PHILBIB" is not.
+/// A lookup answers for **every** branch, whichever engine searches it, and however the
+/// key was spelled or padded.
 ///
 /// This is the split that used to be a second, parallel lookup in `cli::run`, where a
 /// branch alias silently answered with its parent house.
 #[test]
-fn a_lookup_answers_for_a_branch_that_cannot_be_searched() {
+fn a_lookup_answers_for_every_branch() {
     for input in ["philbib", "PHILBIB", " philbib "] {
         match look_up(input).unwrap_or_else(|_| panic!("{input:?} must name something")) {
             Entry::Branch { parent, branch } => {
@@ -351,10 +352,8 @@ fn a_lookup_answers_for_a_branch_that_cannot_be_searched() {
             }
             other @ Entry::Institution(_) => panic!("expected a branch, got {other:?}"),
         }
-        assert!(
-            resolve(input).is_err(),
-            "{input:?} still cannot be searched on its own"
-        );
+        let location = resolve(input).unwrap_or_else(|error| panic!("{input:?}: {error}"));
+        assert_eq!(location.key, "PHILBIB", "{input:?}");
     }
 }
 
@@ -384,33 +383,26 @@ fn a_lookup_and_a_resolution_agree_on_what_a_key_names() {
     }
 }
 
-/// `branch_access` is the one place that decides which branches can be searched, and it
-/// decides it from the parent being the public network — not from a branch's own name.
+/// `branch_location` is the one place that decides which engine answers for a branch, and
+/// it decides it from the parent being the public network — not from a branch's own name.
 #[test]
-fn branch_access_answers_from_the_parent_network() {
-    for (alias, searchable) in [("AGB", true), ("BSTB", true), ("PHILBIB", false)] {
+fn branch_location_answers_from_the_parent_network() {
+    for (alias, engine) in [
+        ("AGB", Engine::Voebb),
+        ("BSTB", Engine::Voebb),
+        ("PHILBIB", Engine::Kobv),
+    ] {
         let Ok(Entry::Branch { parent, branch }) = look_up(alias) else {
             panic!("{alias} must be a branch");
         };
-        let access = branch_access(alias, parent, branch);
+        let location = branch_location(parent, branch);
+        assert_eq!(location.key, alias);
+        assert_eq!(location.engine, engine, "{alias}: parent {}", parent.isil);
+        assert_eq!(location.isil.as_str(), parent.isil);
         assert_eq!(
-            access.is_ok(),
-            searchable,
-            "{alias}: parent {}",
-            parent.isil
+            location.branch.expect("a branch location names it").kobvid,
+            branch.kobvid
         );
-        match access {
-            Ok(location) => {
-                assert_eq!(location.key, alias);
-                assert_eq!(location.engine, Engine::Voebb);
-                assert_eq!(location.isil.as_str(), "DE-609");
-            }
-            Err(UsageError::BranchNotSearchable { input, fallback }) => {
-                assert_eq!(input, alias);
-                assert_eq!(fallback, "FU");
-            }
-            Err(other) => panic!("expected BranchNotSearchable, got {other:?}"),
-        }
     }
 }
 

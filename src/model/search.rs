@@ -417,6 +417,22 @@ pub mod note_kinds {
     /// way of saying it holds nothing matching. Not an error, and not a broken filter.
     pub const VOEBB_BRANCH_NOT_LISTED: &str = "voebb_branch_not_listed";
 
+    /// A branch of a KOBV institution was answered from the **copies** of the records
+    /// that were fetched, not by a filter the catalogue applied.
+    ///
+    /// The house is filtered upstream, so the records are complete for the house; which
+    /// branch holds a copy is only ever said by the availability answer, and that is
+    /// asked for one page at a time. So the block's total is `null`, the page can come
+    /// back shorter than `--limit`, and nothing here proves that the branch does *not*
+    /// hold an edition further down the result. A VÖBB branch is not this case — its
+    /// house facet filters upstream and its block is complete.
+    pub const BRANCH_FROM_COPIES: &str = "branch_from_copies";
+
+    /// A branch of a KOBV institution could not be applied at all, because
+    /// `--no-availability` means no copies were fetched and the copies are the only place
+    /// the branch is named. The block is the whole house's.
+    pub const BRANCH_NEEDS_COPIES: &str = "branch_needs_copies";
+
     /// A location in `--at` is answered by the *other* catalogue than the record that was
     /// shown. The two are never matched against each other — a KOBV record states no
     /// branch and a voebb record no institution — so the location could not narrow this
@@ -527,6 +543,7 @@ impl ShowResult {
     ) -> Self {
         let mut notes = Vec::new();
         notes.extend(other_catalogue_note(engine, locations));
+        notes.extend(kobv_branch_note(locations, availability));
         if let Some(record) = &record {
             notes.extend(record_notes(record));
         }
@@ -536,6 +553,38 @@ impl ShowResult {
             notes,
         }
     }
+}
+
+/// The note for a `--at` entry that is a branch of a KOBV institution.
+///
+/// Here the branch narrows *which copies of this one record* are shown, and that is
+/// complete — the availability answer lists every copy the institution holds. What is not
+/// complete is the silence: a copy whose location cell carries no `bibids=` link names no
+/// branch, so "no copies at this branch" can also mean "the link was missing". The note
+/// says which question was answered; without copies at all it says that instead.
+fn kobv_branch_note(locations: &[Location], availability: AvailabilityMode) -> Option<Note> {
+    let branch = locations
+        .iter()
+        .find(|location| location.branch.is_some() && location.engine == Engine::Kobv)?;
+    Some(match availability {
+        AvailabilityMode::Fetched => Note::new(
+            note_kinds::BRANCH_FROM_COPIES,
+            format!(
+                "--at {} narrows the copies of this record, not the record itself — the \
+                 branch of a copy is read from the availability answer, and a copy whose \
+                 location names no branch is kept rather than hidden.",
+                branch.key
+            ),
+        ),
+        AvailabilityMode::Skipped => Note::new(
+            note_kinds::BRANCH_NEEDS_COPIES,
+            format!(
+                "--at {} could not be applied: the branch of a copy is only named in the \
+                 availability answer, and --no-availability did not ask for one.",
+                branch.key
+            ),
+        ),
+    })
 }
 
 /// The note for a `--at` entry the other catalogue answers for.

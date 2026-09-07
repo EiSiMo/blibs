@@ -34,8 +34,8 @@ pub const PATH_SEPARATOR: char = '/';
 ///
 /// This is the **whole** result of reading a key — it says what was named and nothing
 /// about what may be done with it. Whether a branch can be *searched* is a separate
-/// question, asked by [`branch_access`] and only by `--at`: `blibs libraries PHILBIB` is
-/// a perfectly ordinary question about a house that no engine can search on its own.
+/// question, answered by [`branch_location`] and only for `--at`: `blibs libraries
+/// PHILBIB` is a perfectly ordinary question about a house, whichever engine searches it.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Entry {
     /// A whole institution: the key was one of its aliases or its ISIL.
@@ -120,34 +120,8 @@ pub fn resolve(input: &str) -> Result<Location, UsageError> {
     let typed = input.trim();
     match look_up(typed)? {
         Entry::Institution(library) => Ok(institution_location(library)),
-        Entry::Branch { parent, branch } => branch_access(typed, parent, branch),
+        Entry::Branch { parent, branch } => Ok(branch_location(parent, branch)),
     }
-}
-
-/// How `--at` reaches one branch: the location that searches it, or the usage error that
-/// says it cannot be searched on its own.
-///
-/// **The rule lives here and nowhere else.** A branch of the public library network is
-/// answered by the `voebb` engine; every other branch by nothing at all, because the KOBV
-/// record does not know which branch holds a copy and a branch filter there could never
-/// prove absence. [`resolve`] returns this verbatim, and the detail view of
-/// `blibs libraries <branch>` *states* it rather than wording the same rule a second time.
-///
-/// `input` is only what the error quotes: `--at` passes the user's spelling, so that the
-/// message names what was typed; a lookup passes the branch's canonical alias, so that
-/// two spellings of the same question print the same answer.
-pub fn branch_access(
-    input: &str,
-    parent: &'static Library,
-    branch: &'static Branch,
-) -> Result<Location, UsageError> {
-    if parent.isil == VOEBB_NETWORK {
-        return Ok(branch_location(parent, branch));
-    }
-    Err(UsageError::BranchNotSearchable {
-        input: input.to_string(),
-        fallback: institution_location(parent).key,
-    })
 }
 
 /// Alias, then house ISIL, then branch key — the order of `plan/libraries.md` §6.
@@ -351,8 +325,7 @@ fn by_isil_ignoring_case(typed: &str) -> Option<&'static Library> {
 ///
 /// `key` is how the house is addressed on the command line — its canonical alias, or the
 /// bare ISIL for a house that has none. It is public because it is also the answer to
-/// "what do I put in `--at` instead", which [`branch_access`] needs and the detail view
-/// of a branch prints.
+/// "what do I put in `--at`", which the detail view of a house prints.
 pub fn institution_location(library: &Library) -> Location {
     Location {
         key: library.alias().unwrap_or(library.isil.as_str()).to_string(),
@@ -363,31 +336,56 @@ pub fn institution_location(library: &Library) -> Location {
     }
 }
 
-/// One branch of the public library network, searched on voebb.de.
+/// One branch, and the engine that answers for it.
+///
+/// **Which engine is decided by the parent and by nothing else.** A branch of the public
+/// library network goes to `voebb`, where the house facet filters upstream and the result
+/// is complete. Every other branch goes to `kobv`, where its house is filtered upstream
+/// and the branch itself is read off the copies — the availability answer names one per
+/// copy (`bibids=`), which the record never does. The two are not the same kind of
+/// answer, and `plan/cli.md` § *Das Fensterproblem* says which is which; nothing here
+/// branches on a specific ISIL beyond that one comparison.
+///
+/// `key` is what names this branch back: its shorthand, its own ISIL, or its KOBV id.
+/// An ISIL a *house* also carries is skipped, because [`lookup`] answers that with the
+/// house — a key that resolves to something else is not a key.
 ///
 /// [`crate::model::BranchRef::name`] carries the branch's `short_name`, not its full
-/// name: the full name starts with the district ("Stadtbibliothek Spandau / …"), which
-/// no heading has room for and which the voebb.de house facet never repeats. The facet
+/// name: the full name starts with the house ("Stadtbibliothek Spandau / …"), which no
+/// heading has room for and which the voebb.de house facet never repeats. The facet
 /// labels its checkboxes `<district>: <house>`, and that second half equals `short_name`
 /// for 42 of the 84 labels in `tests/fixtures/voebb/results.html` — including both
 /// aliased branches, `AGB` and `BSTB`. Matching the remaining labels is the facet
 /// parser's problem (`plan/voebb.md`), not this function's: it must never guess, and a
 /// label it cannot place has to be a named error rather than an empty filter.
-fn branch_location(library: &Library, branch: &Branch) -> Location {
+pub fn branch_location(library: &Library, branch: &Branch) -> Location {
+    let own_isil = branch
+        .isil
+        .as_deref()
+        .filter(|isil| by_isil_ignoring_case(isil).is_none());
     let key = branch
         .alias()
-        .or(branch.isil.as_deref())
+        .or(own_isil)
         .unwrap_or(branch.kobvid.as_str())
         .to_string();
+    let voebb = library.isil == VOEBB_NETWORK;
     Location {
-        display: format!("{key} ({VOEBB_LABEL})"),
+        display: format!(
+            "{} ({})",
+            branch.alias().unwrap_or(&branch.short_name),
+            if voebb {
+                VOEBB_LABEL
+            } else {
+                &library.short_name
+            }
+        ),
         key,
         isil: Isil::new(&library.isil),
         branch: Some(BranchRef {
             kobvid: branch.kobvid.clone(),
             name: branch.short_name.clone(),
         }),
-        engine: Engine::Voebb,
+        engine: if voebb { Engine::Voebb } else { Engine::Kobv },
     }
 }
 
