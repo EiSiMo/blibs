@@ -160,10 +160,21 @@ pub enum Column {
     /// example output in `plan/cli.md`, whose columns do not depend on the records that
     /// happen to be on the page.
     Fixed(usize),
-    /// Sized to its widest cell, giving way down to `min` but no further — the title
-    /// column, which absorbs the shortfall for everything else.
+    /// Sized to its widest cell but never narrower than `ideal`, giving way down to
+    /// `min` but no further — the title column, which absorbs the shortfall for
+    /// everything else.
+    ///
+    /// The two numbers are what a fixed width cannot express at once: `ideal` is the
+    /// width the column keeps when everything in it is shorter, which is what pins the
+    /// example layouts in `plan/cli.md` to their stated columns; content wider than that
+    /// widens the column instead of being cut, as long as the row has the room. **Never
+    /// pre-shorten a cell to `ideal` at the call site** — that caps the column at the
+    /// constant even in a wide terminal, and lets a narrowed column cut a value that was
+    /// complete.
     Flex {
-        /// The narrowest this column may become.
+        /// The width the column takes when no cell in it is wider.
+        ideal: usize,
+        /// The narrowest this column may become when the row does not fit.
         min: usize,
     },
     /// Sized to its widest cell, never shortened and never padded. The record id: a
@@ -177,7 +188,7 @@ impl Column {
     fn floor(self) -> Option<usize> {
         match self {
             Column::Auto => Some(1),
-            Column::Flex { min } => Some(min),
+            Column::Flex { min, .. } => Some(min),
             Column::Fixed(_) | Column::Last => None,
         }
     }
@@ -236,9 +247,10 @@ impl Layout {
 
     /// The width of each column, given the rows and the width available.
     ///
-    /// Columns start at their natural width — [`Column::Fixed`] at its stated one, every
-    /// other at its widest cell — and are then shrunk, widest first, until the row fits.
-    /// Widest first so that one long title gives way before four short columns do.
+    /// Columns start at their natural width — [`Column::Fixed`] at its stated one,
+    /// [`Column::Flex`] at its widest cell but never below its `ideal`, every other at
+    /// its widest cell — and are then shrunk, widest first, until the row fits. Widest
+    /// first so that one long title gives way before four short columns do.
     /// [`Column::Fixed`] and [`Column::Last`] never give way, so a row can still overflow
     /// a very narrow terminal; that is preferable to a cut record id.
     pub fn widths(&self, rows: &[Vec<Cell>], available: usize) -> Vec<usize> {
@@ -246,6 +258,7 @@ impl Layout {
         let mut widths: Vec<usize> = (0..count)
             .map(|index| match self.column(index) {
                 Column::Fixed(width) => width,
+                Column::Flex { ideal, .. } => natural_width(rows, index).max(ideal),
                 _ => natural_width(rows, index),
             })
             .collect();
@@ -598,7 +611,7 @@ mod tests {
     /// a cut id cannot be typed back into `show`.
     #[test]
     fn the_last_column_overflows_rather_than_being_cut() {
-        let layout = Layout::new(vec![Column::Flex { min: 4 }, Column::Last]);
+        let layout = Layout::new(vec![Column::Flex { ideal: 4, min: 4 }, Column::Last]);
         let rows = vec![vec![
             Cell::new("Der Prozess : Roman"),
             Cell::new("almafu_BV008885798").whole(),
@@ -611,13 +624,66 @@ mod tests {
     /// `Flex` stops at its minimum instead of collapsing to a bare ellipsis.
     #[test]
     fn a_flex_column_does_not_shrink_past_its_minimum() {
-        let layout = Layout::new(vec![Column::Flex { min: 8 }, Column::Last]);
+        let layout = Layout::new(vec![Column::Flex { ideal: 8, min: 8 }, Column::Last]);
         let rows = vec![vec![
             Cell::new("Der Prozess : Roman einer Verwandlung"),
             Cell::new("almafu_BV008885798").whole(),
         ]];
         let rendered = render(&layout, &rows, Style::plain(10));
         assert_eq!(rendered, "Der Pro…  almafu_BV008885798");
+    }
+
+    /// `ideal` is the width the column keeps when everything in it is shorter — that is
+    /// what reproduces the example layouts, whose columns do not move with the records
+    /// that happen to be on the page.
+    #[test]
+    fn a_flex_column_keeps_its_ideal_width_for_short_content() {
+        let layout = Layout::new(vec![Column::Flex { ideal: 32, min: 12 }, Column::Last]);
+        let rows = vec![vec![Cell::new("Kafka, Franz"), Cell::new("author").whole()]];
+        assert_eq!(layout.widths(&rows, 100), vec![32, 6]);
+    }
+
+    /// Regression: content longer than `ideal` widens the column while the row has room.
+    /// Pre-shortening the cell to the constant used to cap the column at it, so a value
+    /// stayed cut in a 200-column terminal with everything else fitting four times over.
+    #[test]
+    fn a_flex_column_grows_past_its_ideal_when_there_is_room() {
+        let layout = Layout::new(vec![
+            Column::Flex { ideal: 32, min: 12 },
+            Column::Fixed(12),
+            Column::Last,
+        ]);
+        let name = "Enzensberger, Hans Magnus (1929-2022)";
+        let rows = vec![vec![
+            Cell::new(name),
+            Cell::new("author"),
+            Cell::new("GND 118530550").whole(),
+        ]];
+        let rendered = render(&layout, &rows, Style::plain(200));
+        assert!(rendered.starts_with(name), "{rendered}");
+        assert!(!rendered.contains(ELLIPSIS), "{rendered}");
+    }
+
+    /// Regression: a cell that fits its column is never marked as cut. A column shrunk
+    /// below its `ideal` used to measure the padding baked into the cell as content, so
+    /// a complete value came out with an ellipsis behind it and nothing missing.
+    #[test]
+    fn a_shrunken_flex_column_does_not_mark_a_cut_it_did_not_make() {
+        let layout = Layout::new(vec![
+            Column::Flex { ideal: 32, min: 12 },
+            Column::Fixed(12),
+            Column::Last,
+        ]);
+        let name = "Kafka, Franz (1883-1924)";
+        let rows = vec![vec![
+            Cell::new(name),
+            Cell::new("author"),
+            Cell::new("GND 118559230").whole(),
+        ]];
+        // Too narrow for the ideal width, wide enough for the text itself.
+        let rendered = render(&layout, &rows, Style::plain(58));
+        assert!(rendered.starts_with(name), "{rendered}");
+        assert!(!rendered.contains(ELLIPSIS), "{rendered}");
     }
 
     /// The layout claim of the whole crate: colour is decoration. Strip the escapes and

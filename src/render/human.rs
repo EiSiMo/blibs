@@ -15,12 +15,22 @@
 //! - When a client-side filter was in play, a line saying how large the window was — so
 //!   that "nothing found" is never mistaken for "nothing exists".
 //!
-//! The columns of the examples are reproduced with **padded [`Column::Flex`] cells rather
-//! than [`Column::Fixed`] ones** wherever the content is truncatable: a cell padded to the
-//! example's width has exactly that natural width, so a roomy terminal gets the example's
-//! layout, and a narrow one shortens the title instead of overflowing. Widths that carry
-//! meaning — the marker, the year, the shelfmark, the record id — stay fixed and overflow
-//! rather than lie.
+//! The columns of the examples are reproduced with **[`Column::Flex`] rather than
+//! [`Column::Fixed`]** wherever the content is truncatable: the example's width is the
+//! column's `ideal`, so a roomy terminal gets the example's layout, a narrow one shortens
+//! the title instead of overflowing, and a value longer than the example widens its
+//! column rather than being cut while the row still has room. Widths that carry meaning —
+//! the marker, the year, the shelfmark, the record id — stay fixed and overflow rather
+//! than lie.
+//!
+//! **A cell bound for a [`Column::Flex`] carries its raw text.** Shortening and padding
+//! are the layout's job there and happen once, at the final width. A cell pre-shortened to
+//! the example's constant capped its column at that constant however wide the terminal
+//! was, and its baked-in padding was counted as content by the second shortening — which
+//! put an ellipsis behind values that were complete. The one place a cell still shortens
+//! itself is a [`Column::Fixed`] one, which by design never shortens anything: there the
+//! cap has nowhere else to live, and the two shortenings cannot disagree because the
+//! column does not move.
 //!
 //! The separation between columns is the layout's gap, never the padding of a cell. A
 //! shrunken column spends its padding on its own text, so a title that had to give way
@@ -36,7 +46,7 @@ use crate::model::{
 };
 use crate::render::Style;
 use crate::render::style::label;
-use crate::render::table::{Cell, Column, Layout, display_width, pad_right, truncate};
+use crate::render::table::{Cell, Column, Layout, display_width, truncate};
 use crate::select::{self, Block, BlockRecord, holding_status};
 
 /// Indent of a record line, in both list forms.
@@ -48,7 +58,8 @@ const SHOW_ITEM_INDENT: usize = 6;
 /// Indent of everything under a heading in `show`.
 const SHOW_INDENT: usize = 2;
 
-/// Title column with `--at`.
+/// Title column with `--at`. An `ideal`, not a cap: a longer title widens the column
+/// when the terminal has the room (see the module docs).
 const GROUPED_TITLE: usize = 34;
 /// Title column without `--at`, which has no copy lines to make room for.
 const FLAT_TITLE: usize = 38;
@@ -224,7 +235,7 @@ fn write_grouped_block(
             entry
                 .items
                 .iter()
-                .map(|item| item_row(item, SEARCH_ITEM_LOCATION, style))
+                .map(|item| item_row(item, style))
                 .collect()
         })
         .collect();
@@ -478,7 +489,10 @@ fn digits(number: u64) -> usize {
 fn grouped_record_layout() -> Layout {
     Layout::new(vec![
         Column::Fixed(1),
-        Column::Flex { min: 12 },
+        Column::Flex {
+            ideal: GROUPED_TITLE,
+            min: 12,
+        },
         Column::Fixed(18),
         Column::Fixed(5),
         Column::Last,
@@ -512,7 +526,10 @@ impl Numbering {
 fn flat_record_layout(numbering: Option<Numbering>) -> Layout {
     Layout::new(vec![
         Column::Fixed(numbering.map_or(1, |numbering| numbering.width + 2)),
-        Column::Flex { min: 12 },
+        Column::Flex {
+            ideal: FLAT_TITLE,
+            min: 12,
+        },
         Column::Fixed(15),
         Column::Fixed(4),
         Column::Last,
@@ -525,9 +542,12 @@ fn flat_record_layout(numbering: Option<Numbering>) -> Layout {
 /// The shelfmark column is [`Column::Fixed`] and its cell is never shortened: half a
 /// shelfmark does not find a book. It overflows into the status column instead, which is
 /// visible and honest.
-fn item_layout(shelfmark_width: usize) -> Layout {
+fn item_layout(location_width: usize, shelfmark_width: usize) -> Layout {
     Layout::new(vec![
-        Column::Flex { min: 12 },
+        Column::Flex {
+            ideal: location_width,
+            min: 12,
+        },
         Column::Fixed(shelfmark_width),
         Column::Fixed(STATUS_COLUMN),
         Column::Last,
@@ -536,12 +556,12 @@ fn item_layout(shelfmark_width: usize) -> Layout {
 
 /// The copy layout of the grouped list.
 fn search_item_layout() -> Layout {
-    item_layout(19)
+    item_layout(SEARCH_ITEM_LOCATION, 19)
 }
 
 /// The copy layout of `show`, which indents one column less and has more room.
 fn show_item_layout() -> Layout {
-    item_layout(16)
+    item_layout(SHOW_ITEM_LOCATION, 16)
 }
 
 /// One record under a location heading. The marker is that **location's** traffic light,
@@ -550,8 +570,9 @@ fn grouped_record_row(entry: &BlockRecord<'_>, style: Style) -> Vec<Cell> {
     let record = entry.record;
     vec![
         Cell::new(entry.status.symbol().to_string()).styled(style.status(entry.status)),
-        title_cell(&record.title, GROUPED_TITLE),
-        Cell::new(pad_right(&truncate(first_author(record), 18), 18)),
+        Cell::new(record.title.clone()),
+        // A `Fixed` column never shortens: the cap belongs to the cell here.
+        Cell::new(truncate(first_author(record), 18)),
         Cell::new(year(record)),
         Cell::new(record.id.as_str()).whole(),
     ]
@@ -575,20 +596,21 @@ fn flat_record_row(
     };
     vec![
         Cell::new(marker).styled(style.status(entry.status)).whole(),
-        title_cell(&record.title, FLAT_TITLE),
-        Cell::new(pad_right(&truncate(first_author(record), 15), 15)),
+        Cell::new(record.title.clone()),
+        // A `Fixed` column never shortens: the cap belongs to the cell here.
+        Cell::new(truncate(first_author(record), 15)),
         Cell::new(year(record)),
         Cell::new(record.id.as_str()).whole(),
     ]
 }
 
 /// One copy: where it stands, what it is called there, and whether it is in.
-fn item_row(item: &Item, location_width: usize, style: Style) -> Vec<Cell> {
+///
+/// The location column's width is the layout's ([`item_layout`]), not the row's: a copy
+/// line does not know how much room the block it lands in has.
+fn item_row(item: &Item, style: Style) -> Vec<Cell> {
     let mut cells = vec![
-        Cell::new(pad_right(
-            &truncate(&item_location(item), location_width),
-            location_width,
-        )),
+        Cell::new(item_location(item)),
         Cell::new(item.call_number.clone().unwrap_or_default())
             .styled(style.dim())
             .whole(),
@@ -615,12 +637,6 @@ fn item_location(item: &Item) -> String {
         (false, Some(volume)) => format!("{place} · {volume}"),
         _ => place,
     }
-}
-
-/// A title cell: shortened to leave two columns of air, then padded so that the column
-/// has the example's width whatever is in it.
-fn title_cell(title: &str, width: usize) -> Cell {
-    Cell::new(pad_right(&truncate(title, width), width))
 }
 
 /// The first author's name, or nothing. Never the role and never a placeholder.
@@ -665,7 +681,10 @@ fn write_author_block(out: &mut dyn Write, record: &Record, style: Style) -> io:
     }
     writeln!(out)?;
     let layout = Layout::new(vec![
-        Column::Flex { min: 12 },
+        Column::Flex {
+            ideal: SHOW_AUTHOR_NAME,
+            min: 12,
+        },
         Column::Fixed(12),
         Column::Last,
     ]);
@@ -679,10 +698,7 @@ fn write_author_block(out: &mut dyn Write, record: &Record, style: Style) -> io:
                 None => author.name.clone(),
             };
             vec![
-                Cell::new(pad_right(
-                    &truncate(&name, SHOW_AUTHOR_NAME),
-                    SHOW_AUTHOR_NAME,
-                )),
+                Cell::new(name),
                 Cell::new(author.role.clone().unwrap_or_default()),
                 Cell::new(
                     author
@@ -909,7 +925,7 @@ fn write_holdings(
             record.holdings[*index]
                 .items
                 .iter()
-                .map(|item| item_row(item, SHOW_ITEM_LOCATION, style))
+                .map(|item| item_row(item, style))
                 .collect()
         })
         .collect();
@@ -1084,13 +1100,12 @@ fn write_library_table(
         16,
         rows.iter().map(|(library, _)| library.short_name.as_str()),
     );
-    let name_width = column_width(1, rows.iter().map(|(library, _)| library.name.as_str()));
     let city_width = column_width(1, rows.iter().map(|(library, _)| library.city.as_str()));
     let layout = Layout::new(vec![
         Column::Fixed(alias_width),
         Column::Fixed(isil_width),
         Column::Fixed(short_width),
-        Column::Flex { min: 16 },
+        Column::Flex { ideal: 16, min: 16 },
         Column::Fixed(city_width),
         Column::Last,
     ])
@@ -1105,7 +1120,7 @@ fn write_library_table(
                     .whole(),
                 Cell::new(library.isil.clone()).styled(style.dim()).whole(),
                 Cell::new(library.short_name.clone()),
-                Cell::new(pad_right(&library.name, name_width)),
+                Cell::new(library.name.clone()),
                 Cell::new(library.city.clone()),
             ];
             if let Some(distance) = distance {
@@ -1262,7 +1277,7 @@ mod tests {
         AtBlock, Author, AuthorKind, AvailabilityMode, BranchRef, Engine, Isil, Note, Page,
         QueryEcho, RecordId, ResourceUrl, SortScope, SortSpec, WindowInfo,
     };
-    use crate::render::table::strip_ansi;
+    use crate::render::table::{pad_right, strip_ansi};
 
     /// The width the examples in `plan/cli.md` were written for. Wide enough that no
     /// column has to give way, which is what makes them reproducible at all.
@@ -1411,8 +1426,12 @@ mod tests {
     }
 
     fn rendered_show(record: &Record, locations: &[Location]) -> String {
+        rendered_show_at(record, locations, WIDE)
+    }
+
+    fn rendered_show_at(record: &Record, locations: &[Location], width: usize) -> String {
         let mut out = Vec::new();
-        show(record, locations, &mut out, Style::plain(WIDE)).expect("a vector accepts bytes");
+        show(record, locations, &mut out, Style::plain(width)).expect("a vector accepts bytes");
         String::from_utf8(out).expect("the renderer writes UTF-8")
     }
 
@@ -1849,6 +1868,94 @@ AGB (VÖBB) · 35 results · showing 2
         let output = String::from_utf8(out).expect("UTF-8");
         assert!(output.contains("almahu_BV011234567"));
         assert!(output.contains('…'), "the title gives way instead");
+    }
+
+    /// Regression: a value that fits its column is never marked as cut.
+    ///
+    /// The author cell used to arrive pre-shortened *and* padded to
+    /// [`SHOW_AUTHOR_NAME`]. In a terminal too narrow for that width the column shrank
+    /// below it, the second shortening counted the baked-in padding as content, and
+    /// `Kafka, Franz (1883-1924)` came out as `Kafka, Franz (1883-1924)…` — an ellipsis
+    /// behind a complete name, with nothing missing.
+    #[test]
+    fn a_complete_value_is_never_marked_as_cut_in_a_narrow_terminal() {
+        let output = rendered_show_at(&prozess(), &[], 60);
+        assert!(output.contains("Kafka, Franz (1883-1924)"), "{output:?}");
+        assert!(
+            !output.contains("Kafka, Franz (1883-1924)…"),
+            "nothing was removed, so nothing marks a removal: {output:?}"
+        );
+    }
+
+    /// Regression: a long value widens its column while the row has the room.
+    ///
+    /// The pre-shortened cell capped the column at [`SHOW_AUTHOR_NAME`] whatever the
+    /// terminal offered, so a name longer than that stayed cut in a 200-column terminal
+    /// even though the JSON carried it in full.
+    #[test]
+    fn a_long_value_is_not_cut_when_the_terminal_has_room_for_it() {
+        let mut record = prozess();
+        record.authors[0].name = "Enzensberger, Hans Magnus".to_owned();
+        record.authors[0].dates = Some("1929-2022".to_owned());
+        let output = rendered_show_at(&record, &[], 200);
+        assert!(
+            output.contains("Enzensberger, Hans Magnus (1929-2022)"),
+            "{output:?}"
+        );
+        assert!(
+            !output.contains("Enzensberger, Hans Magnus (1929-202…"),
+            "the column widens instead of cutting: {output:?}"
+        );
+    }
+
+    /// The author column is [`Column::Fixed`], which never shortens anything — so the
+    /// cell shortens itself. Without that the name overflows and pushes the year and the
+    /// record id of that one line out of their columns.
+    #[test]
+    fn a_long_author_is_cut_rather_than_pushing_the_id_out_of_its_column() {
+        let mut result = result(
+            "Kafka",
+            Some(2),
+            vec![
+                record(
+                    "gbv_777604809",
+                    "Kafka en las dos orillas",
+                    "Kafka, Franz",
+                    2013,
+                ),
+                record(
+                    "gbv_777604810",
+                    "Kafka en las dos orillas",
+                    "Martínez Salazar, Elisa",
+                    2013,
+                ),
+            ],
+        );
+        result.records[1].holdings = Vec::new();
+        let output = rendered(&result, &[]);
+        let lines: Vec<&str> = output.lines().filter(|l| l.contains("gbv_")).collect();
+        assert_eq!(lines.len(), 2, "{output:?}");
+        // Compared in columns, not in bytes: `í` is one column and two bytes.
+        let id_column = |line: &str| {
+            let start = line.find("gbv_").expect("the line was picked for its id");
+            display_width(&line[..start])
+        };
+        assert_eq!(
+            id_column(lines[0]),
+            id_column(lines[1]),
+            "the id column does not move: {output:?}"
+        );
+        assert!(lines[1].contains("Martínez Salaz…"), "{output:?}");
+    }
+
+    /// The same for a copy line: the location column of `show` is an `ideal`, not a cap.
+    #[test]
+    fn a_long_location_is_not_cut_when_the_terminal_has_room_for_it() {
+        let long = "Zentralbibliothek Grimm-Zentrum, 7. Obergeschoss / Bereich B";
+        let mut record = prozess();
+        record.holdings[0].items[0].location = Some(long.to_owned());
+        let output = rendered_show_at(&record, &[], 200);
+        assert!(output.contains(long), "{output:?}");
     }
 
     /// The record of `plan/cli.md` § `show`.
