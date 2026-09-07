@@ -26,7 +26,7 @@ use crate::cli::{
 };
 use crate::engine::voebb;
 use crate::error::{Error, UsageError};
-use crate::libraries::{self, Branch, LatLon, Library, NotAPoint};
+use crate::libraries::{self, LatLon, NotAPoint};
 use crate::model::{
     AvailabilityMode, Engine, FetchWindow, Format, Identifier, Limit, Location, Page, QuerySpec,
     RecordId, SortKey, Term,
@@ -119,13 +119,24 @@ pub fn validate_show(args: &ShowArgs, json: bool, cache: bool) -> Result<ShowPla
 /// Validate a `libraries` invocation.
 ///
 /// `--near` is where most of the refusing happens: it takes coordinates or a library,
-/// blibs geocodes nothing, and [`point`] tells the four ways of missing that apart. The
-/// two text arguments are only checked for being empty — a name that matches nothing is
-/// an ordinary empty result, not a usage error.
+/// blibs geocodes nothing, and [`point`] tells the four ways of missing that apart.
+///
+/// **A positional key is resolved here, and a miss is a usage error** — the same exit 2,
+/// the same `did you mean STABI?` that `--at STABI2` gives. The key names one library the
+/// user believes exists; answering the typo with an empty list would be indistinguishable
+/// from "this library really is not in the list", and the suggestion the very same list
+/// can produce would be thrown away. That it is a lookup rather than a search is exactly
+/// why: a **search** — `--find` and `--near` — may legitimately match nothing and keeps
+/// its exit 1, because "no library is called that" is a true answer to a search and no
+/// answer at all to a lookup.
+///
+/// The two text arguments are checked for being empty first, so that `--find "$NAME"`
+/// with `NAME` unset is refused as the empty flag it is rather than searched for.
 pub fn validate_libraries(args: &LibrariesArgs, json: bool) -> Result<LibrariesPlan, Error> {
     let near = args.near.as_deref().map(str::trim).map(point).transpose()?;
+    let key = text_argument(args.key.as_deref(), "a library name")?;
     Ok(LibrariesPlan {
-        detail: text_argument(args.key.as_deref(), "a library name")?,
+        detail: key.as_deref().map(libraries::look_up).transpose()?,
         find: text_argument(args.find.as_deref(), "--find")?,
         near,
         near_input: args.near.clone(),
@@ -575,11 +586,18 @@ fn point(input: &str) -> Result<LatLon, UsageError> {
 /// A library that resolves but has no usable coordinates falls through to the same
 /// answer, because from the user's side the effect is identical: this name cannot place
 /// them on the map.
+///
+/// A **lookup**, not a `--at` resolution: "where is this" is a fair question about every
+/// branch in the list, including the ones no engine can search on its own. Asking
+/// [`libraries::resolve`] here refused `--near PHILBIB` with "cannot locate" although the
+/// list holds its coordinates.
 fn locate(input: &str) -> Result<LatLon, UsageError> {
-    match libraries::resolve(input) {
-        Ok(location) => coordinates(&location).ok_or_else(|| UsageError::NearNeedsCoordinates {
-            input: input.to_owned(),
-        }),
+    match libraries::look_up(input) {
+        Ok(entry) => entry
+            .coords()
+            .ok_or_else(|| UsageError::NearNeedsCoordinates {
+                input: input.to_owned(),
+            }),
         Err(UsageError::UnknownLibrary { input, suggestions }) if !suggestions.is_empty() => {
             Err(UsageError::UnknownLibrary { input, suggestions })
         }
@@ -587,17 +605,6 @@ fn locate(input: &str) -> Result<LatLon, UsageError> {
             input: input.to_owned(),
         }),
     }
-}
-
-/// Where a resolved location sits. A branch has its own coordinates and they are the
-/// better answer — the network's are those of its head office.
-fn coordinates(location: &Location) -> Option<LatLon> {
-    if let Some(branch) = &location.branch
-        && let Some((_, Some(branch))) = libraries::by_kobvid(&branch.kobvid)
-    {
-        return Branch::coords(branch);
-    }
-    libraries::by_isil(&location.isil).and_then(Library::coords)
 }
 
 /// A value clap's own parser should already have rejected.
@@ -626,6 +633,7 @@ mod tests {
     use super::*;
     use crate::cli::{Cli, Command, Plan};
     use crate::error::ExitCode;
+    use crate::libraries::Entry;
 
     /// Parse a command line exactly as the binary does, then validate it. Going through
     /// clap rather than constructing `SearchArgs` by hand means these tests also cover
@@ -1313,13 +1321,43 @@ mod tests {
         );
     }
 
-    /// A detail key is a lookup, not a promise: an unknown one is exit 1 further down,
-    /// so validation carries it through untouched.
+    /// A detail key is resolved here, so that everything downstream is about a library
+    /// that exists — and a branch key stays a branch instead of becoming its house.
     #[test]
-    fn a_detail_key_is_carried_through_unresolved() {
-        let plan = libraries_plan(&["libraries", "NOSUCHLIBRARY"]).expect("a lookup never fails");
-        assert_eq!(plan.detail.as_deref(), Some("NOSUCHLIBRARY"));
+    fn a_detail_key_is_resolved_to_what_it_names() {
+        let plan = libraries_plan(&["libraries", "stabi"]).expect("STABI is a library");
+        assert!(
+            matches!(plan.detail, Some(Entry::Institution(library)) if library.isil == "DE-1"),
+            "{:?}",
+            plan.detail
+        );
         assert!(plan.find.is_none());
+
+        let plan = libraries_plan(&["libraries", "agb"]).expect("AGB is a branch");
+        assert!(
+            matches!(
+                plan.detail,
+                Some(Entry::Branch { branch, .. }) if branch.kobvid == "SIG00036"
+            ),
+            "{:?}",
+            plan.detail
+        );
+    }
+
+    /// A typo in a detail key is exit 2 with the list's own suggestion, exactly as in
+    /// `--at`: a lookup of a name the user chose, answered with an empty list, is
+    /// indistinguishable from "no such library exists".
+    #[test]
+    fn an_unknown_detail_key_is_a_usage_error() {
+        let Err(error) = libraries_plan(&["libraries", "STABI2"]) else {
+            panic!("an unknown key must be refused");
+        };
+        assert_eq!(error.kind(), "unknown_library");
+        assert_eq!(error.exit(), ExitCode::Usage);
+        assert!(
+            error.hint().unwrap_or_default().contains("STABI"),
+            "the hint must offer the near miss"
+        );
     }
 
     #[test]

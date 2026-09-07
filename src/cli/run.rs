@@ -23,7 +23,7 @@ use crate::engine::kobv::Kobv;
 use crate::engine::voebb::Voebb;
 use crate::error::{EmptyReason, Error, Outcome, UnexpectedError};
 use crate::http::{Fetch, scope_map};
-use crate::libraries::{self, Library};
+use crate::libraries::{self, Branch, Library};
 use crate::model::{
     AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Location, Note, QueryEcho, Record,
     SearchRequest, SearchResult, SortKey, SortScope, SortSpec, WindowInfo, note_kinds,
@@ -554,8 +554,8 @@ fn run_libraries(
     err: &mut dyn Write,
     style: Style,
 ) -> Result<Outcome, Error> {
-    if let Some(key) = &plan.detail {
-        return show_library(plan, key, out, err, style);
+    if let Some(entry) = plan.detail {
+        return show_entry(plan, entry, out, style);
     }
     match plan.near {
         Some(point) => list_near(plan, point, out, err, style),
@@ -563,21 +563,34 @@ fn run_libraries(
     }
 }
 
-/// One library in detail, or exit 1 with the reason.
+/// One entry in detail. Never empty and never a failure: the key was resolved in
+/// `validate`, so by the time we are here it names something.
 ///
-/// An unknown key here is a *result*, not a usage error: `--at NOPE` names a library the
-/// search must have, but `libraries NOPE` is a lookup, and a lookup that finds nothing
-/// found nothing.
-fn show_library(
+/// A branch is answered **as a branch** — its own address, its parent house and how it
+/// can be searched — and not by silently substituting the house it belongs to, which
+/// would answer a question about the Amerika-Gedenkbibliothek with a 98-branch listing of
+/// the whole VÖBB.
+fn show_entry(
     plan: &LibrariesPlan,
-    key: &str,
+    entry: libraries::Entry,
     out: &mut dyn Write,
-    err: &mut dyn Write,
     style: Style,
 ) -> Result<Outcome, Error> {
-    let Some(library) = library_by_key(key) else {
-        return empty_libraries(plan, key.to_owned(), out, err);
-    };
+    match entry {
+        libraries::Entry::Institution(library) => show_library(plan, library, out, style),
+        libraries::Entry::Branch { parent, branch } => {
+            show_branch(plan, parent, branch, out, style)
+        }
+    }
+}
+
+/// One institution in detail, with its branches listed underneath.
+fn show_library(
+    plan: &LibrariesPlan,
+    library: &'static Library,
+    out: &mut dyn Write,
+    style: Style,
+) -> Result<Outcome, Error> {
     if plan.json {
         render::json::write(&render::json::LibraryView::from(library), out)?;
     } else {
@@ -586,42 +599,33 @@ fn show_library(
     Ok(Outcome::Found)
 }
 
-/// The institution a detail key names: an alias, an ISIL, or the branch alias of one.
+/// One branch in detail, including whether `--at` can search it on its own.
 ///
-/// A branch alias answers with its parent house — `libraries AGB` is a question about the
-/// Amerika-Gedenkbibliothek, and the list keeps its address under the ZLB entry. Nothing
-/// here branches on a specific ISIL; the three lookups are the same three the resolver
-/// uses for `--at`.
-fn library_by_key(key: &str) -> Option<&'static Library> {
-    let typed = key.trim();
-    let folded = libraries::text::fold(typed);
-    if folded.is_empty() {
-        return None;
+/// The searchability is not decided here: [`libraries::branch_access`] is asked, and it
+/// is the same call `--at` goes through, so the two can never disagree about which
+/// branches the `voebb` engine answers for. Nothing on this path names an ISIL.
+///
+/// The branch's own canonical shorthand is what the answer is phrased in, rather than
+/// what the user typed, so that `libraries philbib` and `libraries PHILBIB` print the
+/// same thing.
+fn show_branch(
+    plan: &LibrariesPlan,
+    parent: &'static Library,
+    branch: &'static Branch,
+    out: &mut dyn Write,
+    style: Style,
+) -> Result<Outcome, Error> {
+    let named_as = branch.alias().unwrap_or(branch.kobvid.as_str());
+    let access = libraries::branch_access(named_as, parent, branch);
+    if plan.json {
+        render::json::write(
+            &render::json::BranchDetailView::new(parent, branch, &access),
+            out,
+        )?;
+    } else {
+        render::human::branch_detail(parent, branch, &access, out, style).map_err(output)?;
     }
-    let by_alias = libraries::all()
-        .iter()
-        .find(|library| has_alias(&library.aliases, &folded));
-    by_alias
-        .or_else(|| {
-            libraries::all()
-                .iter()
-                .find(|library| library.isil.eq_ignore_ascii_case(typed))
-        })
-        .or_else(|| {
-            libraries::all().iter().find(|library| {
-                library
-                    .branches
-                    .iter()
-                    .any(|branch| has_alias(&branch.aliases, &folded))
-            })
-        })
-}
-
-/// Whether a folded string is one of these aliases.
-fn has_alias(aliases: &[String], folded: &str) -> bool {
-    aliases
-        .iter()
-        .any(|alias| libraries::text::fold(alias) == folded)
+    Ok(Outcome::Found)
 }
 
 /// The list ordered by distance, optionally narrowed by `--find`.

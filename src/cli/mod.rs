@@ -28,7 +28,7 @@ pub mod validate;
 use clap::builder::PossibleValuesParser;
 use clap::{CommandFactory, Parser, Subcommand};
 
-use crate::libraries::LatLon;
+use crate::libraries::{Entry, LatLon};
 use crate::model::{
     AvailabilityMode, Engine, FetchWindow, Limit, Location, Page, QuerySpec, RecordId, SortKey,
 };
@@ -97,6 +97,7 @@ const LIBRARIES_AFTER_HELP: &str = "\
 Examples:
   blibs libraries                    all of them, with short name, ISIL and city
   blibs libraries STABI              one house in detail
+  blibs libraries AGB                one branch in detail, and how to search it
   blibs libraries --find grimm       search short names, names and cities
   blibs libraries --near HU          nearest first, measured from another library
   blibs libraries --near 52.52,13.39 nearest first, measured from a point\
@@ -400,12 +401,16 @@ pub struct ShowArgs {
 #[derive(Debug, clap::Args)]
 #[command(after_help = LIBRARIES_AFTER_HELP)]
 pub struct LibrariesArgs {
-    /// A short name or ISIL to show in detail, e.g. STABI or DE-11.
+    /// A short name or ISIL to show in detail, e.g. STABI, DE-11 or AGB.
     ///
     /// The detail view shows name, short names, type, address, coordinates, phone,
     /// website and catalogue. Opening hours are deliberately absent: they carry dated
     /// special notices that would be wrong within days of being compiled in, so the
     /// website is linked instead of a frozen copy being shown.
+    ///
+    /// A branch shorthand answers with that branch — its own address, its parent house
+    /// and how to search it — not with the house it belongs to. An unknown shorthand is
+    /// a usage error with the same "did you mean" `--at` gives.
     #[arg(value_name = "LIBRARY")]
     pub key: Option<String>,
 
@@ -534,13 +539,17 @@ impl ShowPlan {
 /// syntax. A detail key answers on its own.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LibrariesPlan {
-    /// A single library to show in detail, as the user typed it.
+    /// A single library to show in detail, already resolved.
     ///
-    /// Deliberately unresolved: an unknown key here is exit 1 ("no library matched"),
-    /// not exit 2. `--at` names a library the search *must* have, so a typo there is a
-    /// usage error; `libraries FOO` is a lookup, and a lookup that finds nothing is a
-    /// result.
-    pub detail: Option<String>,
+    /// Resolved here rather than carried through as text, because a key that names
+    /// nothing is a **usage error** (exit 2) exactly as it is in `--at`: both are
+    /// lookups of a name the user chose, and answering one of them with an empty list
+    /// would leave an agent unable to tell "there is no such library" from "you mistyped
+    /// one". The searches — `--find` and `--near` — keep their empty result.
+    ///
+    /// [`Entry`] carries the branch case with it, so the renderers can answer a question
+    /// about a branch with the branch, instead of silently substituting its parent house.
+    pub detail: Option<Entry>,
     /// The `--find` query.
     pub find: Option<String>,
     /// The point `--near` resolved to.

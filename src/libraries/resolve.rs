@@ -22,65 +22,126 @@ const VOEBB_LABEL: &str = "VÖBB";
 /// How many suggestions an unknown entry carries.
 const SUGGEST_LIMIT: usize = 3;
 
-/// Resolve one `--at` entry.
+/// What a key the user typed named. Institutions and branches share one alias namespace
+/// (`plan/libraries.md` §5, rule 9), so one lookup answers for both.
 ///
-/// Aliases are tried first (case-folded), then ISILs (case-insensitively) — and the
-/// result always carries the **canonical** ISIL from the list, never the user's spelling.
-/// An unknown entry is a usage error carrying up to three near-miss suggestions (see
-/// [`suggest`]), never a silent non-match.
+/// This is the **whole** result of reading a key — it says what was named and nothing
+/// about what may be done with it. Whether a branch can be *searched* is a separate
+/// question, asked by [`branch_access`] and only by `--at`: `blibs libraries PHILBIB` is
+/// a perfectly ordinary question about a house that no engine can search on its own.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Entry {
+    /// A whole institution: the key was one of its aliases or its ISIL.
+    Institution(&'static Library),
+    /// One branch, and the institution it belongs to. The key was a branch alias — only
+    /// the few branches that are actually spoken about have one.
+    Branch {
+        /// The institution holding the branch.
+        parent: &'static Library,
+        /// The branch itself.
+        branch: &'static Branch,
+    },
+}
+
+impl Entry {
+    /// Where this entry sits, when the list has usable coordinates for it.
+    ///
+    /// A branch answers with **its own** coordinates rather than its parent's: the point
+    /// of naming the Amerika-Gedenkbibliothek is Blücherplatz, not the head office of the
+    /// network. `None` for an entry the list places nowhere — see
+    /// [`crate::libraries::Library::coords`] for why that path exists at all.
+    pub fn coords(self) -> Option<LatLon> {
+        match self {
+            Entry::Institution(library) => library.coords(),
+            Entry::Branch { branch, .. } => branch.coords(),
+        }
+    }
+}
+
+/// Look one key up: an alias, an ISIL, or a branch alias.
 ///
-/// The engine follows from what was named: a branch under `DE-609` resolves to
-/// [`crate::model::Engine::Voebb`], an institution to
-/// [`crate::model::Engine::Kobv`], and any other branch is rejected as not searchable on
-/// its own — the KOBV record does not know which branch holds a copy, so a branch filter
-/// there could never prove absence.
+/// **The single lookup in the crate.** `--at` reaches it through [`resolve`] and
+/// `blibs libraries <key>` reaches it directly, so a key that names something in one
+/// cannot fail to name it in the other. Aliases are tried first (case-folded), then
+/// ISILs (case-insensitively).
+///
+/// An unknown key is a usage error carrying up to three near-miss suggestions (see
+/// [`suggest`]), never a silent non-match and never an empty result: "there is no such
+/// library" and "you mistyped one" are different answers, and an agent that gets an empty
+/// list cannot tell them apart.
 ///
 /// Ambiguity cannot arise and is therefore not handled: aliases are unique across the
 /// whole list and never contain a hyphen, so no alias can look like an ISIL. That is an
 /// invariant of the data file, checked in `tests/libraries.rs`.
+pub fn look_up(input: &str) -> Result<Entry, UsageError> {
+    let typed = input.trim();
+    lookup(typed).ok_or_else(|| UsageError::UnknownLibrary {
+        input: typed.to_string(),
+        suggestions: suggest(typed),
+    })
+}
+
+/// Resolve one `--at` entry.
+///
+/// [`look_up`] says what was named; this adds the one thing `--at` needs on top and
+/// nothing else — **which engine answers for it**, and the refusal for the branches no
+/// engine can answer for on its own. The result always carries the **canonical** ISIL
+/// from the list, never the user's spelling.
 pub fn resolve(input: &str) -> Result<Location, UsageError> {
     let typed = input.trim();
-    match lookup(typed) {
-        Some(Match::Institution(library)) => Ok(institution_location(library)),
-        Some(Match::Branch(library, branch)) if library.isil == VOEBB_NETWORK => {
-            Ok(branch_location(library, branch))
-        }
-        Some(Match::Branch(library, _)) => Err(UsageError::BranchNotSearchable {
-            input: typed.to_string(),
-            fallback: library.alias().unwrap_or(library.isil.as_str()).to_string(),
-        }),
-        None => Err(UsageError::UnknownLibrary {
-            input: typed.to_string(),
-            suggestions: suggest(typed),
-        }),
+    match look_up(typed)? {
+        Entry::Institution(library) => Ok(institution_location(library)),
+        Entry::Branch { parent, branch } => branch_access(typed, parent, branch),
     }
 }
 
-/// What a typed entry named. Institutions and branches share one alias namespace
-/// (`plan/libraries.md` §5, rule 9), so one lookup answers for both.
-enum Match {
-    Institution(&'static Library),
-    Branch(&'static Library, &'static Branch),
+/// How `--at` reaches one branch: the location that searches it, or the usage error that
+/// says it cannot be searched on its own.
+///
+/// **The rule lives here and nowhere else.** A branch of the public library network is
+/// answered by the `voebb` engine; every other branch by nothing at all, because the KOBV
+/// record does not know which branch holds a copy and a branch filter there could never
+/// prove absence. [`resolve`] returns this verbatim, and the detail view of
+/// `blibs libraries <branch>` *states* it rather than wording the same rule a second time.
+///
+/// `input` is only what the error quotes: `--at` passes the user's spelling, so that the
+/// message names what was typed; a lookup passes the branch's canonical alias, so that
+/// two spellings of the same question print the same answer.
+pub fn branch_access(
+    input: &str,
+    parent: &'static Library,
+    branch: &'static Branch,
+) -> Result<Location, UsageError> {
+    if parent.isil == VOEBB_NETWORK {
+        return Ok(branch_location(parent, branch));
+    }
+    Err(UsageError::BranchNotSearchable {
+        input: input.to_string(),
+        fallback: institution_location(parent).key,
+    })
 }
 
 /// Alias first, then ISIL — the order of `plan/libraries.md` §6.
-fn lookup(typed: &str) -> Option<Match> {
+fn lookup(typed: &str) -> Option<Entry> {
     if typed.is_empty() {
         return None;
     }
-    by_alias(typed).or_else(|| by_isil_ignoring_case(typed).map(Match::Institution))
+    by_alias(typed).or_else(|| by_isil_ignoring_case(typed).map(Entry::Institution))
 }
 
 /// The alias step, over institutions and branches alike.
-fn by_alias(typed: &str) -> Option<Match> {
+fn by_alias(typed: &str) -> Option<Entry> {
     let wanted = fold(typed);
     for library in all() {
         if library.aliases.iter().any(|alias| fold(alias) == wanted) {
-            return Some(Match::Institution(library));
+            return Some(Entry::Institution(library));
         }
         for branch in &library.branches {
             if branch.aliases.iter().any(|alias| fold(alias) == wanted) {
-                return Some(Match::Branch(library, branch));
+                return Some(Entry::Branch {
+                    parent: library,
+                    branch,
+                });
             }
         }
     }
@@ -101,7 +162,12 @@ fn by_isil_ignoring_case(typed: &str) -> Option<&'static Library> {
 }
 
 /// A whole institution, searched upstream through Bib-1 attribute `1044`.
-fn institution_location(library: &Library) -> Location {
+///
+/// `key` is how the house is addressed on the command line — its canonical alias, or the
+/// bare ISIL for a house that has none. It is public because it is also the answer to
+/// "what do I put in `--at` instead", which [`branch_access`] needs and the detail view
+/// of a branch prints.
+pub fn institution_location(library: &Library) -> Location {
     Location {
         key: library.alias().unwrap_or(library.isil.as_str()).to_string(),
         isil: Isil::new(&library.isil),

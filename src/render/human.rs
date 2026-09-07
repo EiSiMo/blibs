@@ -39,7 +39,7 @@
 use std::io::{self, Write};
 
 use crate::counts::{records, results};
-use crate::error::{EmptyReason, Error};
+use crate::error::{EmptyReason, Error, UsageError};
 use crate::libraries::{Branch, Library};
 use crate::model::{
     Format, Holding, Item, Location, Record, SearchResult, SortKey, Status, UrlKind,
@@ -1209,6 +1209,78 @@ pub fn library_detail(library: &Library, out: &mut dyn Write, style: Style) -> i
         }
     }
     write_fields(out, &fields, style)
+}
+
+/// Render one branch in detail: the branch itself, the house it belongs to, and how it
+/// can be searched.
+///
+/// **Not the parent's detail view.** Someone who asks about the Amerika-Gedenkbibliothek
+/// wants the house at Blücherplatz, not the 98-branch listing of the network it belongs
+/// to; the parent is named in one line and the listing stays with the question it answers.
+///
+/// `access` is [`crate::libraries::branch_access`] verbatim — this function states its
+/// two answers and decides nothing itself, so the view and `--at` cannot come to differ
+/// about which branches can be searched.
+pub fn branch_detail(
+    parent: &Library,
+    branch: &Branch,
+    access: &Result<Location, UsageError>,
+    out: &mut dyn Write,
+    style: Style,
+) -> io::Result<()> {
+    write_line(out, &branch.name, 0, style.bold(), style)?;
+    writeln!(out)?;
+    let mut fields = Vec::new();
+    push_field(&mut fields, "Shorthand", branch.aliases.join(" · "));
+    push_field(&mut fields, "Branch of", parent_line(parent));
+    push_field(&mut fields, "ISIL", branch.isil.clone().unwrap_or_default());
+    push_field(&mut fields, "KOBV id", branch.kobvid.clone());
+    push_field(&mut fields, "Short name", branch.short_name.clone());
+    push_field(
+        &mut fields,
+        "Address",
+        branch.address.clone().unwrap_or_default(),
+    );
+    if let Some(coords) = branch.coords() {
+        push_field(
+            &mut fields,
+            "Coordinates",
+            format!("{:.5}, {:.5}", coords.lat, coords.lon),
+        );
+    }
+    push_search_field(&mut fields, access);
+    write_fields(out, &fields, style)
+}
+
+/// The house behind a branch: its shorthand and its full name, or just the name where the
+/// list carries no shorthand for it.
+fn parent_line(parent: &Library) -> String {
+    match parent.alias() {
+        Some(alias) => format!("{alias} — {}", parent.name),
+        None => parent.name.clone(),
+    }
+}
+
+/// The `Search` field: the `--at` value that searches this branch, or the refusal `--at`
+/// would give and its way out.
+///
+/// The refusal is printed in the error's **own** words — its `Display` and its
+/// [`crate::error::UsageError::hint`] — rather than paraphrased here. A second wording of
+/// the same rule is a second thing to keep true.
+fn push_search_field(fields: &mut Vec<(String, String)>, access: &Result<Location, UsageError>) {
+    match access {
+        Ok(location) => push_field(
+            fields,
+            "Search",
+            format!("--at {} ({} engine)", location.key, location.engine),
+        ),
+        Err(error) => {
+            push_field(fields, "Search", error.to_string());
+            for line in error.hint().unwrap_or_default().lines() {
+                fields.push((String::new(), line.to_owned()));
+            }
+        }
+    }
 }
 
 /// `3 branches`, or `1 branch`.
@@ -2406,6 +2478,80 @@ almafu_BV008885798
             output.contains(" branches\n"),
             "the branch count comes before the branch names"
         );
+    }
+
+    /// The two entries the list holds for one branch alias, for the branch tests below.
+    fn branch_of(alias: &str) -> (&'static Library, &'static Branch) {
+        match crate::libraries::look_up(alias).expect("the alias is in the list") {
+            crate::libraries::Entry::Branch { parent, branch } => (parent, branch),
+            other @ crate::libraries::Entry::Institution(_) => {
+                panic!("{alias} must be a branch, got {other:?}")
+            }
+        }
+    }
+
+    fn branch_output(alias: &str) -> String {
+        let (parent, branch) = branch_of(alias);
+        let access = crate::libraries::branch_access(alias, parent, branch);
+        let mut out = Vec::new();
+        branch_detail(parent, branch, &access, &mut out, Style::plain(WIDE)).expect("bytes");
+        String::from_utf8(out).expect("UTF-8")
+    }
+
+    /// A branch of the public library network: its own address, its house named in one
+    /// line, and the `--at` that searches it.
+    ///
+    /// The house's own branch list must **not** be here — answering "where is the
+    /// Amerika-Gedenkbibliothek" with 98 branch names answers a different question.
+    #[test]
+    fn the_branch_view_states_the_branch_and_how_to_search_it() {
+        let output = branch_output("AGB");
+        let (parent, branch) = branch_of("AGB");
+
+        assert!(output.starts_with(&branch.name), "{output:?}");
+        assert!(output.contains("\n  Shorthand    AGB\n"), "{output:?}");
+        assert!(output.contains("\n  KOBV id      SIG00036\n"), "{output:?}");
+        assert!(
+            output.contains("Blücherplatz 1, 10961 Berlin"),
+            "the branch's own address, not the house's: {output:?}"
+        );
+        assert!(
+            output.contains("\n  Branch of    VOEBB — "),
+            "the house is named: {output:?}"
+        );
+        assert!(
+            output.contains("\n  Search       --at AGB (voebb engine)\n"),
+            "{output:?}"
+        );
+        assert!(
+            !output.contains(" branches\n"),
+            "the house's branch list belongs to the house: {output:?}"
+        );
+        for other in parent.branches.iter().filter(|b| b.kobvid != branch.kobvid) {
+            assert!(
+                !output.contains(&other.short_name),
+                "{} must not appear: {output:?}",
+                other.short_name
+            );
+        }
+    }
+
+    /// A branch outside the public network: the same view, and the refusal `--at` itself
+    /// would give — in the error's own words, so the two cannot drift apart.
+    #[test]
+    fn a_branch_no_engine_searches_says_so_and_names_its_house() {
+        let output = branch_output("PHILBIB");
+
+        assert!(output.contains("\n  Branch of    FU — "), "{output:?}");
+        assert!(
+            output.contains("cannot be searched on its own"),
+            "{output:?}"
+        );
+        assert!(
+            output.contains("search the institution instead: --at FU"),
+            "{output:?}"
+        );
+        assert!(!output.contains("--at PHILBIB"), "{output:?}");
     }
 
     /// "Nothing found" is never a bare line: the reason decides what to try next.

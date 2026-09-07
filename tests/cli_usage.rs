@@ -381,21 +381,125 @@ fn libraries_json_is_an_array() {
     );
 }
 
-/// A lookup that finds nothing is exit 1, not exit 2: `libraries FOO` asks a question,
-/// unlike `--at FOO`, which names a library the search must have.
+/// A **lookup** that names nothing is exit 2 with the list's own suggestion, exactly as
+/// `--at STABI2` is: `libraries STABI2` names one library the user believes exists, and an
+/// empty list cannot be told apart from "this library really does not exist" — while the
+/// suggestion the same list can produce would be thrown away.
 #[test]
-fn an_unknown_library_key_is_exit_one() {
+fn an_unknown_library_key_is_exit_two_with_a_suggestion() {
     blibs()
-        .args(["libraries", "ZZZZ"])
+        .args(["libraries", "STABI2"])
+        .assert()
+        .code(2)
+        .stdout(predicates::str::is_empty())
+        .stderr(contains("unknown library \"STABI2\""))
+        .stderr(contains("did you mean STABI?"));
+
+    // In JSON it is the error envelope every other usage error uses, on stderr, with
+    // nothing on stdout that could be mistaken for a result.
+    blibs()
+        .args(["--json", "libraries", "STABI2"])
+        .assert()
+        .code(2)
+        .stdout(predicates::str::is_empty())
+        .stderr(contains("\"kind\": \"unknown_library\""))
+        .stderr(contains("\"code\": 2"));
+}
+
+/// A **search** that matches nothing keeps its exit 1 and its empty array: "no library is
+/// called that" is a true answer to `--find`, where it is no answer at all to a lookup.
+#[test]
+fn a_library_search_that_matches_nothing_stays_exit_one() {
+    blibs()
+        .args(["libraries", "--find", "Xqzzyplkwrmf"])
         .assert()
         .code(1)
         .stdout(predicates::str::is_empty())
         .stderr(contains("no library matched"));
 
-    // In JSON that is an empty array — a document, not a failure — and still exit 1.
     blibs()
-        .args(["--json", "libraries", "ZZZZ"])
+        .args(["--json", "libraries", "--find", "Xqzzyplkwrmf"])
         .assert()
         .code(1)
         .stdout(contains("[]"));
+}
+
+/// A branch shorthand answers with the **branch**: its own address, the house it belongs
+/// to in one line, and the `--at` that searches it.
+///
+/// The house's 98-branch listing must not appear — that answers the question about the
+/// house, which is not the question that was asked.
+#[test]
+fn a_branch_key_answers_with_the_branch_not_its_house() {
+    blibs()
+        .args(["libraries", "AGB"])
+        .assert()
+        .success()
+        .stdout(contains("Amerika-Gedenkbibliothek"))
+        .stdout(contains("Blücherplatz 1, 10961 Berlin"))
+        .stdout(contains("Branch of    VOEBB"))
+        .stdout(contains("Search       --at AGB (voebb engine)"))
+        // One branch of the network that is not this one; the whole listing is the
+        // house's answer, not the branch's.
+        .stdout(contains("Bibliothek am Luisenbad").not())
+        .stdout(contains("branches").not());
+}
+
+/// The same for a branch no engine can search on its own: it is a perfectly ordinary
+/// thing to look up, and the view says how to get at its holdings instead of pretending
+/// the question was about the house.
+#[test]
+fn a_branch_outside_the_public_network_names_the_house_to_search() {
+    blibs()
+        .args(["libraries", "PHILBIB"])
+        .assert()
+        .success()
+        .stdout(contains("Philologische Bibliothek"))
+        .stdout(contains("Branch of    FU"))
+        .stdout(contains("cannot be searched on its own"))
+        .stdout(contains("search the institution instead: --at FU"));
+}
+
+/// In JSON the kind is a member, so an agent never has to infer from the members present
+/// whether it asked about a house or about one of its branches.
+#[test]
+fn a_branch_document_says_it_is_a_branch_and_names_its_house() {
+    let output = blibs()
+        .args(["--json", "libraries", "BSTB"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let document: serde_json::Value =
+        serde_json::from_slice(&output).expect("libraries --json writes one document");
+
+    assert_eq!(document["type"], "branch");
+    assert_eq!(document["alias"], "BSTB");
+    assert_eq!(document["parent"]["isil"], "DE-609");
+    assert_eq!(document["search"]["at"], "BSTB");
+    assert_eq!(document["search"]["engine"], "voebb");
+    assert!(
+        document.get("branches").is_none(),
+        "the house's branch list is not the branch's answer: {document}"
+    );
+}
+
+/// An institution keeps the document it always had, plus the kind that tells it apart
+/// from a branch.
+#[test]
+fn an_institution_document_says_it_is_an_institution() {
+    let output = blibs()
+        .args(["--json", "libraries", "STABI"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let document: serde_json::Value =
+        serde_json::from_slice(&output).expect("libraries --json writes one document");
+
+    assert_eq!(document["type"], "institution");
+    assert_eq!(document["isil"], "DE-1");
+    assert!(document["branches"].is_array());
 }

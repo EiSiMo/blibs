@@ -11,8 +11,9 @@
 
 use std::io::Write;
 
-use crate::error::{Error, ErrorEnvelope};
-use crate::libraries::{Branch, Library};
+use crate::error::{Error, ErrorEnvelope, UsageError};
+use crate::libraries::{self, Branch, Library};
+use crate::model::{Engine, Location};
 
 /// Write one document, pretty-printed and closed by a newline.
 ///
@@ -37,12 +38,31 @@ pub fn error(error: &Error, out: &mut dyn Write) -> Result<(), Error> {
     write(&ErrorEnvelope::from(error), out)
 }
 
+/// Which kind of thing a `libraries --json` object describes.
+///
+/// Serialised as the `type` member, and it is the **first** member of every such object:
+/// `libraries AGB` answers about a branch and `libraries STABI` about an institution, and
+/// an agent must be able to read which of the two it holds instead of inferring it from
+/// which members happen to be present.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EntryKind {
+    /// A whole house — [`LibraryView`].
+    Institution,
+    /// One branch of a house — [`BranchDetailView`].
+    Branch,
+}
+
 /// One library, as `libraries --json` publishes it.
 ///
 /// Borrowed rather than owned: the list is `'static`, and copying 123 entries to print
 /// them would be work with no purpose. Member order is the document's member order.
 #[derive(Debug, serde::Serialize)]
 pub struct LibraryView<'a> {
+    /// Always [`EntryKind::Institution`]. See there for why it is stated rather than
+    /// implied.
+    #[serde(rename = "type")]
+    pub kind_of_entry: EntryKind,
     /// The shorthand `--at` takes, or `null` where the list carries no spoken one. Never
     /// invented (`plan/libraries.md` §5, rule 5).
     pub alias: Option<&'a str>,
@@ -105,6 +125,7 @@ pub struct BranchView<'a> {
 impl<'a> From<&'a Library> for LibraryView<'a> {
     fn from(library: &'a Library) -> Self {
         LibraryView {
+            kind_of_entry: EntryKind::Institution,
             alias: library.alias(),
             aliases: &library.aliases,
             isil: &library.isil,
@@ -136,6 +157,129 @@ impl<'a> From<&'a Branch> for BranchView<'a> {
             lat: branch.lat,
             lon: branch.lon,
             address: branch.address.as_deref(),
+        }
+    }
+}
+
+/// One branch, as `libraries <branch shorthand> --json` publishes it.
+///
+/// A view of its own rather than the parent's [`LibraryView`]: a branch has an address, a
+/// KOBV id and possibly an ISIL of its own, it has **no** branches of its own, and the
+/// answer to "how do I search it" is not the answer for its house. Handing back the house
+/// would answer a different question than the one asked, without saying so.
+#[derive(Debug, serde::Serialize)]
+pub struct BranchDetailView<'a> {
+    /// Always [`EntryKind::Branch`].
+    #[serde(rename = "type")]
+    pub kind_of_entry: EntryKind,
+    /// The shorthand that names this branch. Only the branches that are actually spoken
+    /// about have one; the rest are addressed by their `kobvid`.
+    pub alias: Option<&'a str>,
+    /// Every shorthand for this branch.
+    pub aliases: &'a [String],
+    /// The portal's own id for the branch, which is what `items[].branch` carries.
+    pub kobvid: &'a str,
+    /// The branch's own ISIL, where it has one. A KOBV record never states it — it names
+    /// the house — so this identifies the branch in the directory, not in a record.
+    pub isil: Option<&'a str>,
+    /// Full name, as the list states it.
+    pub name: &'a str,
+    /// Short name, which is what a block heading and the voebb.de house facet use.
+    pub short_name: &'a str,
+    /// Street address of this branch, not of its house.
+    pub address: Option<&'a str>,
+    /// Latitude in degrees.
+    pub lat: f64,
+    /// Longitude in degrees.
+    pub lon: f64,
+    /// The house this branch belongs to.
+    pub parent: ParentView<'a>,
+    /// How, and whether, `--at` reaches this branch.
+    pub search: BranchSearchView,
+}
+
+/// The house a branch belongs to, named the three ways a caller might need it: to type
+/// (`alias`), to match a record's `924` (`isil`) and to read (`name`).
+#[derive(Debug, serde::Serialize)]
+pub struct ParentView<'a> {
+    /// The parent's shorthand, or `null` where it has none.
+    pub alias: Option<&'a str>,
+    /// The parent's ISIL — the only one a KOBV record ever carries for this branch.
+    pub isil: &'a str,
+    /// The parent's full name.
+    pub name: &'a str,
+    /// The parent's short name.
+    pub short_name: &'a str,
+}
+
+/// How `--at` reaches one branch.
+///
+/// Not a judgement made here: it is [`crate::libraries::branch_access`] verbatim, the same
+/// call `--at` itself goes through. `at` is always something that can be typed — the
+/// branch when it can be searched on its own, the institution when it cannot — so an agent
+/// never has to construct a fallback of its own.
+#[derive(Debug, serde::Serialize)]
+pub struct BranchSearchView {
+    /// Whether `--at` can search **this branch** on its own.
+    pub searchable: bool,
+    /// What to give `--at`: this branch, or the institution to search instead.
+    pub at: String,
+    /// The engine that answers that `--at` value.
+    pub engine: Engine,
+    /// Why the branch cannot be searched on its own; `null` when it can.
+    pub reason: Option<String>,
+}
+
+impl<'a> BranchDetailView<'a> {
+    /// Build the view from the branch, its house and the searchability the library list
+    /// decided — see [`crate::libraries::branch_access`] for who decides it.
+    pub fn new(
+        parent: &'a Library,
+        branch: &'a Branch,
+        access: &Result<Location, UsageError>,
+    ) -> Self {
+        BranchDetailView {
+            kind_of_entry: EntryKind::Branch,
+            alias: branch.alias(),
+            aliases: &branch.aliases,
+            kobvid: &branch.kobvid,
+            isil: branch.isil.as_deref(),
+            name: &branch.name,
+            short_name: &branch.short_name,
+            address: branch.address.as_deref(),
+            lat: branch.lat,
+            lon: branch.lon,
+            parent: ParentView {
+                alias: parent.alias(),
+                isil: &parent.isil,
+                name: &parent.name,
+                short_name: &parent.short_name,
+            },
+            search: BranchSearchView::new(parent, access),
+        }
+    }
+}
+
+impl BranchSearchView {
+    /// Read the two arms of [`crate::libraries::branch_access`] into one shape.
+    ///
+    /// The unsearchable arm falls back to the institution's own location, so `at` and
+    /// `engine` describe the same command line the error's hint names — one decision,
+    /// stated once.
+    fn new(parent: &Library, access: &Result<Location, UsageError>) -> Self {
+        let fallback;
+        let (location, reason) = match access {
+            Ok(location) => (location, None),
+            Err(error) => {
+                fallback = libraries::institution_location(parent);
+                (&fallback, Some(error.to_string()))
+            }
+        };
+        BranchSearchView {
+            searchable: reason.is_none(),
+            at: location.key.clone(),
+            engine: location.engine,
+            reason,
         }
     }
 }
@@ -229,6 +373,76 @@ mod tests {
             !object.contains_key("distance_km"),
             "a plain listing states no distance at all, rather than a null one"
         );
+    }
+
+    /// The kind is a member, not something to be inferred from which members exist: an
+    /// agent that asked for `AGB` must be able to read that it got a branch.
+    #[test]
+    fn every_entry_says_which_kind_it_is() {
+        let library = crate::libraries::all()
+            .first()
+            .expect("the compiled-in list is not empty");
+        let institution =
+            serde_json::to_value(LibraryView::from(library)).expect("the view serialises");
+        assert_eq!(institution["type"], "institution");
+
+        assert_eq!(branch_document("AGB")["type"], "branch");
+    }
+
+    /// One branch of the public network: its own identity, its house, and an `at` that
+    /// searches the branch itself.
+    #[test]
+    fn a_branch_view_carries_the_branch_its_house_and_its_engine() {
+        let document = branch_document("AGB");
+
+        assert_eq!(document["alias"], "AGB");
+        assert_eq!(document["kobvid"], "SIG00036");
+        assert_eq!(document["address"], "Blücherplatz 1, 10961 Berlin");
+        assert_eq!(document["parent"]["isil"], "DE-609");
+        assert_eq!(document["parent"]["alias"], "VOEBB");
+        assert!(
+            document["parent"]["name"]
+                .as_str()
+                .is_some_and(|name| !name.is_empty())
+        );
+        assert_eq!(document["search"]["searchable"], true);
+        assert_eq!(document["search"]["at"], "AGB");
+        assert_eq!(document["search"]["engine"], "voebb");
+        assert!(document["search"]["reason"].is_null());
+        assert!(
+            document.get("branches").is_none(),
+            "a branch has no branches of its own"
+        );
+    }
+
+    /// A branch no engine can search on its own says so, and `at` names the way in
+    /// rather than leaving the caller to work one out.
+    #[test]
+    fn an_unsearchable_branch_points_at_its_institution() {
+        let document = branch_document("PHILBIB");
+
+        assert_eq!(document["parent"]["alias"], "FU");
+        assert_eq!(document["search"]["searchable"], false);
+        assert_eq!(document["search"]["at"], "FU");
+        assert_eq!(document["search"]["engine"], "kobv");
+        assert!(
+            document["search"]["reason"]
+                .as_str()
+                .is_some_and(|reason| reason.contains("cannot be searched on its own")),
+            "{document}"
+        );
+    }
+
+    /// The document `libraries <branch> --json` writes, as JSON.
+    fn branch_document(alias: &str) -> serde_json::Value {
+        let crate::libraries::Entry::Branch { parent, branch } =
+            crate::libraries::look_up(alias).expect("the alias is in the list")
+        else {
+            panic!("{alias} must be a branch");
+        };
+        let access = crate::libraries::branch_access(alias, parent, branch);
+        serde_json::to_value(BranchDetailView::new(parent, branch, &access))
+            .expect("the view serialises")
     }
 
     #[test]

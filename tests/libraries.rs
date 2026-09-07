@@ -5,8 +5,8 @@ mod common;
 use blibs::error::UsageError;
 use blibs::libraries::data::{LIBRARIES_JSON, Library};
 use blibs::libraries::{
-    alias_for, by_isil, by_kobvid, by_portal_name, display_name, find, name_holding, near, resolve,
-    short_name_for,
+    Entry, alias_for, branch_access, by_isil, by_kobvid, by_portal_name, display_name, find,
+    look_up, name_holding, near, resolve, short_name_for,
 };
 use blibs::model::{Engine, Holding, Isil, Status};
 
@@ -333,6 +333,84 @@ fn a_branch_of_another_institution_names_its_institution() {
             assert_eq!(fallback, "FU");
         }
         other => panic!("expected BranchNotSearchable, got {other:?}"),
+    }
+}
+
+/// A lookup answers for **every** branch, including the ones `--at` refuses: "which house
+/// is PHILBIB" is a fair question, and only "search PHILBIB" is not.
+///
+/// This is the split that used to be a second, parallel lookup in `cli::run`, where a
+/// branch alias silently answered with its parent house.
+#[test]
+fn a_lookup_answers_for_a_branch_that_cannot_be_searched() {
+    for input in ["philbib", "PHILBIB", " philbib "] {
+        match look_up(input).unwrap_or_else(|_| panic!("{input:?} must name something")) {
+            Entry::Branch { parent, branch } => {
+                assert_eq!(parent.isil, "DE-188", "{input:?}");
+                assert_eq!(branch.kobvid, "FUB00019", "{input:?}");
+            }
+            other @ Entry::Institution(_) => panic!("expected a branch, got {other:?}"),
+        }
+        assert!(
+            resolve(input).is_err(),
+            "{input:?} still cannot be searched on its own"
+        );
+    }
+}
+
+/// The same lookup answers `--at` and `libraries <key>`: an alias, an ISIL and a branch
+/// alias each name the same thing in both, because there is only one search left.
+#[test]
+fn a_lookup_and_a_resolution_agree_on_what_a_key_names() {
+    match look_up("de-11").expect("an ISIL names its house") {
+        Entry::Institution(library) => assert_eq!(library.isil, "DE-11"),
+        other @ Entry::Branch { .. } => panic!("expected an institution, got {other:?}"),
+    }
+    match look_up("agb").expect("a branch alias names its branch") {
+        Entry::Branch { parent, branch } => {
+            assert_eq!(parent.isil, "DE-609");
+            assert_eq!(branch.kobvid, "SIG00036");
+        }
+        other @ Entry::Institution(_) => panic!("expected a branch, got {other:?}"),
+    }
+
+    // And an unknown key is the same usage error `--at` raises, suggestions included.
+    match look_up("STABI2").expect_err("STABI2 is not a library") {
+        UsageError::UnknownLibrary { input, suggestions } => {
+            assert_eq!(input, "STABI2");
+            assert_eq!(suggestions, vec!["STABI".to_string()], "{suggestions:?}");
+        }
+        other => panic!("expected UnknownLibrary, got {other:?}"),
+    }
+}
+
+/// `branch_access` is the one place that decides which branches can be searched, and it
+/// decides it from the parent being the public network — not from a branch's own name.
+#[test]
+fn branch_access_answers_from_the_parent_network() {
+    for (alias, searchable) in [("AGB", true), ("BSTB", true), ("PHILBIB", false)] {
+        let Ok(Entry::Branch { parent, branch }) = look_up(alias) else {
+            panic!("{alias} must be a branch");
+        };
+        let access = branch_access(alias, parent, branch);
+        assert_eq!(
+            access.is_ok(),
+            searchable,
+            "{alias}: parent {}",
+            parent.isil
+        );
+        match access {
+            Ok(location) => {
+                assert_eq!(location.key, alias);
+                assert_eq!(location.engine, Engine::Voebb);
+                assert_eq!(location.isil.as_str(), "DE-609");
+            }
+            Err(UsageError::BranchNotSearchable { input, fallback }) => {
+                assert_eq!(input, alias);
+                assert_eq!(fallback, "FU");
+            }
+            Err(other) => panic!("expected BranchNotSearchable, got {other:?}"),
+        }
     }
 }
 
