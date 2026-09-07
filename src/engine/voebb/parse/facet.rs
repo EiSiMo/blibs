@@ -500,16 +500,20 @@ mod tests {
         assert_eq!(entry.label, "Spandau: Hauptbibliothek");
     }
 
-    /// The substring stage only ever compares within one district. `Bezirkszentral-
-    /// bibliothek Philipp Schaeffer` (Mitte) contains the whole name of
-    /// `Tempelhof-Schöneberg: Bezirkszentralbibliothek`, and matching those two would be
-    /// worse than not matching at all.
+    /// The substring stage only ever compares within one district. A house of Mitte whose
+    /// name contains the whole label of `Tempelhof-Schöneberg: Bezirkszentralbibliothek`
+    /// must not be matched to it — that would be worse than not matching at all.
+    ///
+    /// The branch is invented rather than taken from the list on purpose: the real house
+    /// this used to be written with, `Bezirkszentralbibliothek Philipp Schaeffer`, now
+    /// carries a `match` string and never reaches the substring stage, so it would test
+    /// nothing.
     #[test]
     fn a_substring_never_crosses_a_district() {
         let facet = parsed(RESULTS);
-        let entry = facet
-            .lookup(branch("Bezirkszentralbibliothek Philipp Schaeffer"))
-            .expect("must not be ambiguous");
+        let mut foreign = invented("Bezirkszentralbibliothek Nirgendwo");
+        foreign.name = "Stadtbibliothek Mitte / Bezirkszentralbibliothek Nirgendwo".to_string();
+        let entry = facet.lookup(&foreign).expect("must not be ambiguous");
         assert_eq!(entry, None);
     }
 
@@ -568,25 +572,26 @@ mod tests {
         );
     }
 
-    /// The one branch of the network whose own district cannot tell it apart: the list
-    /// calls it `Musikbibliothek (in der Mark-Twain-Bibliothek)`, and the facet has both
-    /// `Marzahn-Hellersdorf: Musikbibliothek` and `Marzahn-Hellersdorf:
-    /// Mark-Twain-Bibliothek`. Naming both is the only honest answer.
+    /// What a `match` string is *for*, on the case that used to be the module's own
+    /// example of an unresolvable name.
+    ///
+    /// The list calls the house `Musikbibliothek (in der Mark-Twain-Bibliothek)`, and the
+    /// tree offers both `Marzahn-Hellersdorf: Musikbibliothek` and `Marzahn-Hellersdorf:
+    /// Mark-Twain-Bibliothek`. The substring stage cannot choose between them and used to
+    /// report both as an error; the observed label, written into `match`, decides it one
+    /// stage earlier — and its neighbour keeps its own entry rather than losing it to the
+    /// tie.
     #[test]
-    fn a_real_branch_can_be_ambiguous_inside_its_district() {
+    fn a_match_string_settles_a_tie_the_substring_stage_cannot() {
         let facet = parsed(RESULTS);
-        let error = facet
+        let music = facet
             .find(branch("Musikbibliothek (in der Mark-Twain-Bibliothek)"))
-            .expect_err("must not be accepted");
-        let message = error.to_string();
-        assert!(
-            message.contains("Marzahn-Hellersdorf: Musikbibliothek"),
-            "{message}"
-        );
-        assert!(
-            message.contains("Marzahn-Hellersdorf: Mark-Twain-Bibliothek"),
-            "{message}"
-        );
+            .expect("the match string decides it");
+        let twain = facet
+            .find(branch("Bezirkszentralbibliothek Mark Twain"))
+            .expect("the match string decides it");
+        assert_eq!(music.label, "Marzahn-Hellersdorf: Musikbibliothek");
+        assert_eq!(twain.label, "Marzahn-Hellersdorf: Mark-Twain-Bibliothek");
     }
 
     /// A tree that moved names its selector rather than reporting a facet with no
@@ -607,24 +612,80 @@ mod tests {
         assert!(error.to_string().contains("Bibliothek"), "{error}");
     }
 
-    /// How far the two vocabularies agree, measured rather than assumed: most branches of
-    /// the network resolve, and none of the rest resolves to the *wrong* house.
+    /// The labels the tree lists that no branch of the list answers for.
+    ///
+    /// Three houses voebb.de offers are absent from `data/libraries.json` — the two
+    /// outlying stacks, which are storage rather than branches, and the larger of the two
+    /// Treptow-Köpenick buses, which the KOBV directory does not carry (only the *Kleiner
+    /// Bus* is in it). Plus the tree's own collective entry, which is not a house at all.
+    ///
+    /// They are named here rather than tolerated by a threshold: a label that stops
+    /// resolving has to show up as a failure, and one that was never ours has to be
+    /// visible as a decision instead of hiding inside a count.
+    const UNCLAIMED: [&str; 4] = [
+        "ZLB: Außenmagazin Amerika-Gedenkbibliothek",
+        "ZLB: Außenmagazin Berliner Stadtbibliothek",
+        "Treptow-Köpenick: Fahrbibliothek",
+        "in allen Bibliotheken",
+    ];
+
+    /// Labels that answer for **two** houses of the list, because the tree's vocabulary is
+    /// coarser than the directory's.
+    ///
+    /// Steglitz-Zehlendorf runs two mobile libraries and the KOBV directory carries both;
+    /// voebb.de offers one checkbox for the service. Ticking it is the right answer for
+    /// either bus, so this is the vocabularies disagreeing about granularity, not a
+    /// mismatch — but it is listed rather than tolerated, so that a *new* label with two
+    /// claimants fails instead of passing quietly.
+    const SHARED: [&str; 1] = ["Steglitz-Zehlendorf: Fahrbibliothek"];
+
+    /// How far the two vocabularies agree, measured rather than assumed.
+    ///
+    /// The strong form of the question: **every** label the tree lists is answered by
+    /// exactly one branch, except the four in [`UNCLAIMED`]. A branch that resolves to
+    /// the wrong house therefore leaves the label it *should* have taken free, and the
+    /// test names it.
+    ///
+    /// The reverse direction is deliberately not asserted: 15 branches of the network do
+    /// not appear in this tree at all, because this one search has no hits at them. That
+    /// is an honest `Ok(None)` (see [`BranchFacet::lookup`]), not a gap in the mapping.
     #[test]
-    fn most_of_the_network_resolves_against_the_tree() {
+    fn every_label_of_the_tree_is_claimed_by_one_branch() {
         let facet = parsed(RESULTS);
         let branches: Vec<&Branch> = libraries::all()
             .iter()
             .filter(|library| library.isil == "DE-609")
             .flat_map(|library| &library.branches)
             .collect();
-        let found = branches
-            .iter()
-            .filter(|branch| matches!(facet.lookup(branch), Ok(Some(_))))
-            .count();
-        assert!(
-            found >= 60,
-            "only {found} of {} branches resolved",
-            branches.len()
-        );
+
+        let mut claimed: Vec<(&str, &str)> = Vec::new();
+        for branch in &branches {
+            match facet.lookup(branch) {
+                Ok(Some(entry)) => claimed.push((entry.label.as_str(), branch.short_name.as_str())),
+                Ok(None) => {}
+                Err(error) => panic!("{}: {error}", branch.short_name),
+            }
+        }
+
+        for entry in &facet.entries {
+            let takers: Vec<&str> = claimed
+                .iter()
+                .filter(|(label, _)| *label == entry.label)
+                .map(|(_, branch)| *branch)
+                .collect();
+            let expected = if UNCLAIMED.contains(&entry.label.as_str()) {
+                0
+            } else if SHARED.contains(&entry.label.as_str()) {
+                2
+            } else {
+                1
+            };
+            assert_eq!(
+                takers.len(),
+                expected,
+                "{:?} is claimed by {takers:?}",
+                entry.label
+            );
+        }
     }
 }

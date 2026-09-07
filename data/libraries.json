@@ -2003,7 +2003,8 @@
     "lon": 13.45709,
     "address": "Frankfurter Allee 14 A, 10247 Berlin",
     "match": [
-     "Friedrichshain-Kreuzberg / Bibliothek Frankfurter Allee 14a"
+     "Friedrichshain-Kreuzberg / Bibliothek Frankfurter Allee 14a",
+     "Pablo-Neruda-Bibliothek"
     ]
    },
    {
@@ -2015,7 +2016,9 @@
     "lat": 52.49259,
     "lon": 13.43636,
     "address": "Glogauer Str. 13, 10999 Berlin",
-    "match": []
+    "match": [
+     "Else-Ury-Bibliothek"
+    ]
    },
    {
     "kobvid": "SIG00040",
@@ -2026,7 +2029,9 @@
     "lat": 52.49978,
     "lon": 13.41844,
     "address": "Adalbertstr. 2, 10999 Berlin",
-    "match": []
+    "match": [
+     "Wilhelm-Liebknecht-/Namik-Kemal-Bibliothek"
+    ]
    },
    {
     "kobvid": "BIB000000118",
@@ -2049,7 +2054,8 @@
     "lon": 13.38276,
     "address": "Dudenstr. 18 - 20, 10965 Berlin",
     "match": [
-     "Friedrichshain-Kreuzberg / Bibliothek Dudenstr."
+     "Friedrichshain-Kreuzberg / Bibliothek Dudenstr.",
+     "Friedrich-von-Raumer-Bibliothek"
     ]
    },
    {
@@ -2111,7 +2117,9 @@
     "lat": 52.54722,
     "lon": 13.5567,
     "address": "Marzahner Promenade 54, 12679 Berlin",
-    "match": []
+    "match": [
+     "Mark-Twain-Bibliothek"
+    ]
    },
    {
     "kobvid": "KOB00055",
@@ -2123,7 +2131,8 @@
     "lon": 13.59135,
     "address": "Alte Hellersdorfer Str. 125, 12629 Berlin",
     "match": [
-     "Marzahn-Hellersdorf / Ehm Welk Bibliothek"
+     "Marzahn-Hellersdorf / Ehm Welk Bibliothek",
+     "Ehm-Welk-Bibliothek"
     ]
    },
    {
@@ -2135,7 +2144,9 @@
     "lat": 52.54719,
     "lon": 13.55709,
     "address": "Marzahner Promenade 54, 12679 Berlin",
-    "match": []
+    "match": [
+     "Musikbibliothek"
+    ]
    },
    {
     "kobvid": "BIB000000121",
@@ -2147,7 +2158,8 @@
     "lon": 13.53869,
     "address": "Helene-Weigel-Platz 4, 12681 Berlin",
     "match": [
-     "Marzahn-Hellersdorf / Erich Weinert Bibliothek"
+     "Marzahn-Hellersdorf / Erich Weinert Bibliothek",
+     "Erich-Weinert-Bibliothek"
     ]
    },
    {
@@ -2159,7 +2171,9 @@
     "lat": 52.56823,
     "lon": 13.57394,
     "address": "Havemannstr. 17B, 12689 Berlin",
-    "match": []
+    "match": [
+     "Heinrich-von-Kleist-Bibliothek"
+    ]
    },
    {
     "kobvid": "BIB000000119",
@@ -2170,7 +2184,9 @@
     "lat": 52.52929,
     "lon": 13.59306,
     "address": "Neue Grottkauer Str. 5, 12619 Berlin",
-    "match": []
+    "match": [
+     "Bibl. Kaulsdorf-Nord"
+    ]
    },
    {
     "kobvid": "BIB000000120",
@@ -2181,7 +2197,9 @@
     "lat": 52.50556,
     "lon": 13.61279,
     "address": "Alt-Mahlsdorf 24-26, 12623 Berlin",
-    "match": []
+    "match": [
+     "Bibl. Mahlsdorf"
+    ]
    },
    {
     "kobvid": "KOB00057",
@@ -2192,7 +2210,9 @@
     "lat": 52.53172,
     "lon": 13.39932,
     "address": "Brunnenstr. 181, 10119 Berlin",
-    "match": []
+    "match": [
+     "Philipp-Schaeffer-Bibliothek"
+    ]
    },
    {
     "kobvid": "KOB00062",
@@ -2227,7 +2247,9 @@
     "lat": 52.53128,
     "lon": 13.34766,
     "address": "Perleberger Str. 33, 10559 Berlin",
-    "match": []
+    "match": [
+     "Bruno-Lösche-Bibliothek"
+    ]
    },
    {
     "kobvid": "BIB000000124",
@@ -2251,7 +2273,9 @@
     "lat": 52.53684,
     "lon": 13.3982,
     "address": "Badstr. 39, 13357 Berlin",
-    "match": []
+    "match": [
+     "Fahrbibliothek 2"
+    ]
    },
    {
     "kobvid": "BIB000000368",
@@ -2262,7 +2286,9 @@
     "lat": 52.52354,
     "lon": 13.33175,
     "address": "Badstr. 39, 13357 Berlin",
-    "match": []
+    "match": [
+     "Fahrbibliothek 3"
+    ]
    },
    {
     "kobvid": "KOB00066",
@@ -2536,7 +2562,9 @@
     "lat": 52.59818,
     "lon": 13.35085,
     "address": "Königshorster Str. 6, 13439 Berlin",
-    "match": []
+    "match": [
+     "Fahrbibliothek"
+    ]
    },
    {
     "kobvid": "SIG00047",
@@ -2593,7 +2621,9 @@
     "lat": 52.52585,
     "lon": 13.17435,
     "address": "Lutoner Straße 19, 13581 Berlin",
-    "match": []
+    "match": [
+     "Schulbibliothek Carlo Schmidt (nicht öffentlich)"
+    ]
    },
    {
     "kobvid": "KOB00033",
@@ -2788,7 +2818,9 @@
     "lat": 52.46377,
     "lon": 13.38788,
     "address": "Götzstr. 8/10/12, 12099 Berlin",
-    "match": []
+    "match": [
+     "Bezirkszentralbibliothek"
+    ]
    },
    {
     "kobvid": "KOB00120",
@@ -2880,7 +2912,9 @@
     "lat": 52.43886,
     "lon": 13.54986,
     "address": "Dörpfeldstr. 52/56, 12489 Berlin",
-    "match": []
+    "match": [
+     "Stefan-Heym-Bibliothek"
+    ]
    },
    {
     "kobvid": "BIB000000249",
@@ -2891,7 +2925,9 @@
     "lat": 52.48883,
     "lon": 13.45081,
     "address": "Karl-Kunger-Str. 30, 12435 Berlin",
-    "match": []
+    "match": [
+     "Manfred-Bofinger-Bibliothek"
+    ]
    },
    {
     "kobvid": "BIB000000246",
@@ -2902,7 +2938,9 @@
     "lat": 52.40325,
     "lon": 13.52845,
     "address": "Ortolfstr. 182-184, 12524 Berlin",
-    "match": []
+    "match": [
+     "Altglienicke Stadtteilbibliothek"
+    ]
    },
    {
     "kobvid": "BIB000000250",
@@ -2913,7 +2951,9 @@
     "lat": 52.45484,
     "lon": 13.6214,
     "address": "Peter-Hille-Str.1, 12587 Berlin",
-    "match": []
+    "match": [
+     "Johannes-Bobrowski-Bibliothek"
+    ]
    },
    {
     "kobvid": "BIB000000372",
@@ -2924,7 +2964,9 @@
     "lat": 52.44584,
     "lon": 13.57879,
     "address": "Alter Markt 2, 12555 Berlin",
-    "match": []
+    "match": [
+     "Mittelpunktbibliothek Köpenick, Kleiner Bus"
+    ]
    },
    {
     "kobvid": "BIB000000245",
