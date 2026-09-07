@@ -135,6 +135,16 @@ impl Cache {
         }
     }
 
+    /// Drop one entry, whatever its age.
+    ///
+    /// For the entry that turned out to be unusable: a body that reached the disk intact
+    /// but does not parse is indistinguishable from a service answer here, and leaving it
+    /// would repeat the same failure for the rest of its TTL. Failures are swallowed like
+    /// [`Cache::put`]'s — a cache that cannot delete is still a cache that can be bypassed.
+    pub fn forget(&self, key: &str) {
+        let _ = std::fs::remove_file(self.entry_path(key));
+    }
+
     /// Delete entries older than [`ENTRY_MAX_AGE`], at most once every
     /// [`SWEEP_INTERVAL`], gated by the mtime of a marker file — so that a cold
     /// `blibs libraries` never pays for it.
@@ -276,6 +286,22 @@ mod tests {
         let (_dir, cache) = temp_cache();
         cache.put("abc", "<hello/>");
         assert_eq!(cache.get("abc", ENTRY_TTL).as_deref(), Some("<hello/>"));
+    }
+
+    #[test]
+    fn a_forgotten_entry_is_gone() {
+        let (_dir, cache) = temp_cache();
+        cache.put("abc", "<hello/>");
+        cache.forget("abc");
+        assert_eq!(cache.get("abc", ENTRY_TTL), None);
+    }
+
+    /// Forgetting what was never there is not a failure — the caller cannot know whether
+    /// the entry it wants gone was ever written.
+    #[test]
+    fn forgetting_a_missing_entry_is_survivable() {
+        let (_dir, cache) = temp_cache();
+        cache.forget("never-written");
     }
 
     #[test]

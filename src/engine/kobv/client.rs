@@ -6,7 +6,7 @@
 //! two halves meet, and all it does is call [`Fetch`] and hand the body to `parse`.
 
 use crate::error::Error;
-use crate::http::{CachePolicy, Fetch, Request};
+use crate::http::{self, CachePolicy, Fetch, Request};
 use crate::model::{AvailabilityId, FetchWindow};
 
 use super::parse::availability::{self, AvailabilityResponse};
@@ -100,11 +100,16 @@ impl<'f> KobvClient<'f> {
     /// invalidates the whole envelope: `numberOfRecords` may be present *and* wrong next
     /// to one, and a caller that read it would report a plausible number for a query the
     /// service refused.
+    ///
+    /// A body that does not parse is retried once against the network when it came from
+    /// the cache — see [`crate::http::fetch_parsed`]. This is the only cached path in the
+    /// crate: availability is `CachePolicy::Never`, and every voebb.de request is too.
     fn envelope(&self, request: &Request) -> Result<SruResponse, Error> {
-        let response = self.fetch.fetch(request)?;
-        let envelope = sru::parse(&response.body)?;
-        sru::check(&envelope)?;
-        Ok(envelope)
+        http::fetch_parsed(self.fetch, request, |body| {
+            let envelope = sru::parse(body)?;
+            sru::check(&envelope)?;
+            Ok(envelope)
+        })
     }
 }
 

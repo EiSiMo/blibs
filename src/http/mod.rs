@@ -254,6 +254,48 @@ pub struct Response {
 pub trait Fetch: Sync {
     /// Execute one request.
     fn fetch(&self, request: &Request) -> Result<Response, Error>;
+
+    /// Drop this request's cached answer, if there is one.
+    ///
+    /// Called when a body that came from the cache turned out not to parse: the entry is
+    /// intact on disk but useless, and it would otherwise be replayed for the rest of its
+    /// TTL. Defaults to doing nothing, so an implementation without a cache — every test
+    /// stub — needs no change.
+    fn forget(&self, request: &Request) {
+        let _ = request;
+    }
+}
+
+/// Fetch a request and parse it, retrying once against the network if a **cached** body
+/// is what failed to parse.
+///
+/// A cache may only ever change latency, never a result (`CLAUDE.md`). A corrupted entry
+/// breaks that rule twice over: it fails, and it keeps failing, because nothing evicts it.
+/// So a parse failure on a cached body means the entry is dropped and the request is made
+/// again with the cache bypassed; the second attempt's error is the one that reaches the
+/// user, and it is then honestly about the service.
+///
+/// A body that came from the network is never retried here — a service that answers with
+/// nonsense would otherwise be asked twice for it.
+///
+/// Free function rather than a [`Fetch`] method because it is generic over the parsed
+/// type, and `Fetch` has to stay object-safe: `cli::run` passes `&dyn Fetch` around.
+pub fn fetch_parsed<T>(
+    fetch: &dyn Fetch,
+    request: &Request,
+    parse: impl Fn(&str) -> Result<T, Error>,
+) -> Result<T, Error> {
+    let response = fetch.fetch(request)?;
+    match parse(&response.body) {
+        Ok(parsed) => Ok(parsed),
+        Err(stale) if response.from_cache => {
+            let _ = stale;
+            fetch.forget(request);
+            let fresh = fetch.fetch(&request.clone().cache(CachePolicy::Never))?;
+            parse(&fresh.body)
+        }
+        Err(error) => Err(error),
+    }
 }
 
 /// Any `Fn(&Request) -> Result<Response, Error>` is a [`Fetch`].
@@ -460,6 +502,14 @@ impl Fetch for Http {
         }
         Ok(response)
     }
+
+    /// Drop the entry this request would be served from. A request that never touches the
+    /// cache has no key and nothing to drop.
+    fn forget(&self, request: &Request) {
+        if let (Some(key), Some(cache)) = (self.cache_key(request), self.cache.as_ref()) {
+            cache.forget(&key);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -621,5 +671,91 @@ mod tests {
         };
         let response = ask(&stub).expect("the stub cannot fail");
         assert_eq!(response.body, "https://host.test/p");
+    }
+
+    /// A transport whose cache holds one unusable body until it is told to forget it.
+    struct Poisoned {
+        fetches: Mutex<u32>,
+        forgotten: Mutex<bool>,
+    }
+
+    impl Poisoned {
+        fn new() -> Self {
+            Self {
+                fetches: Mutex::new(0),
+                forgotten: Mutex::new(false),
+            }
+        }
+    }
+
+    impl Fetch for Poisoned {
+        fn fetch(&self, _request: &Request) -> Result<Response, Error> {
+            *lock(&self.fetches) += 1;
+            let served_from_cache = !*lock(&self.forgotten);
+            Ok(Response {
+                status: 200,
+                body: if served_from_cache { "garbage" } else { "<sru/>" }.to_owned(),
+                content_type: None,
+                from_cache: served_from_cache,
+            })
+        }
+
+        fn forget(&self, _request: &Request) {
+            *lock(&self.forgotten) = true;
+        }
+    }
+
+    /// Only `<sru/>` parses; anything else is the failure a corrupt entry produces.
+    fn parse_marker(body: &str) -> Result<String, Error> {
+        if body == "<sru/>" {
+            return Ok(body.to_owned());
+        }
+        Err(UnexpectedError::NotXml {
+            context: "test".to_owned(),
+            snippet: body.to_owned(),
+        }
+        .into())
+    }
+
+    /// The whole point of [`fetch_parsed`]: a cached body that does not parse is dropped
+    /// and asked for again, and the caller never sees the failure.
+    #[test]
+    fn a_cached_body_that_does_not_parse_is_forgotten_and_fetched_again() {
+        let transport = Poisoned::new();
+        let parsed = fetch_parsed(
+            &transport,
+            &Request::get("https://sru.kobv.de/k2"),
+            parse_marker,
+        )
+        .expect("the second attempt answers a parsable body");
+        assert_eq!(parsed, "<sru/>");
+        assert!(*lock(&transport.forgotten), "the entry has to be dropped");
+        assert_eq!(*lock(&transport.fetches), 2, "exactly one retry");
+    }
+
+    /// A body from the network is never retried — a service answering nonsense would
+    /// otherwise be asked for it twice.
+    #[test]
+    fn a_network_body_that_does_not_parse_is_not_retried() {
+        let transport = |_: &Request| {
+            Ok(Response {
+                status: 200,
+                body: "garbage".to_owned(),
+                content_type: None,
+                from_cache: false,
+            })
+        };
+        let attempts = std::cell::Cell::new(0);
+        let error = fetch_parsed(
+            &transport,
+            &Request::get("https://sru.kobv.de/k2"),
+            |body| {
+                attempts.set(attempts.get() + 1);
+                parse_marker(body)
+            },
+        )
+        .expect_err("the body never parses");
+        assert_eq!(attempts.get(), 1, "no second parse, so no second request");
+        assert_eq!(error.kind(), "not_xml");
     }
 }
