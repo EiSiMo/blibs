@@ -466,6 +466,19 @@ pub fn branch_location(library: &Library, branch: &Branch) -> Location {
     }
 }
 
+/// The `--at` location of any entry, whichever kind it is.
+///
+/// The one call a renderer needs: a listing that mixes houses and branches has to print a
+/// key beside every line, and that key must be the one `--at` resolves — not a field that
+/// merely looks like an identifier. Which of the two functions above answers is a detail of
+/// the entry, not of the caller.
+pub fn entry_location(entry: Entry) -> Location {
+    match entry {
+        Entry::Institution(library) => institution_location(library),
+        Entry::Branch { parent, branch } => branch_location(parent, branch),
+    }
+}
+
 /// Every entry the list reaches under one ISIL, in the order [`lookup`] tries them.
 ///
 /// The house first, because a house's ISIL is decided one step before any branch key is
@@ -633,7 +646,8 @@ impl Found {
 ///
 /// Branches are searched but never listed beside houses — see [`Found`] for why that is
 /// what keeps the old reasoning intact. A house appears when it matched itself, when one
-/// of its branches matched, or both.
+/// of its branches matched, or both; [`Found::matched`] is what tells the two apart, and a
+/// renderer that ignored it would offer a heading as an answer.
 ///
 /// An empty query matches **nothing**, not everything: `--find ""` is a query that named
 /// nothing, and the whole list is what the command prints without `--find` at all.
@@ -657,19 +671,6 @@ pub fn find_entries(query: &str) -> Vec<Found> {
                 branches,
             })
         })
-        .collect()
-}
-
-/// The houses [`find_entries`] found, for the callers that still take a flat list.
-///
-/// Exactly the houses that matched on their **own** text — a house that is only a heading
-/// for its branches is not an answer to "which house do I mean", and returning it here
-/// would answer a question about the Amerika-Gedenkbibliothek with the whole VÖBB.
-pub fn find(query: &str) -> Vec<&'static Library> {
-    find_entries(query)
-        .into_iter()
-        .filter(|found| found.matched)
-        .map(|found| found.library)
         .collect()
 }
 
@@ -700,20 +701,6 @@ fn branch_matches_text(branch: &Branch, folded_query: &str) -> bool {
         .any(|field| fold(field).contains(folded_query))
 }
 
-/// All institutions ordered by distance from a point, for the callers of `--near` that
-/// still take houses only. [`near_entries`] is the one that answers the question.
-///
-/// Entries without usable coordinates are left out rather than sorted to the front. Every
-/// entry has coordinates today; the path exists because the list changes.
-pub fn near(point: LatLon) -> Vec<(&'static Library, f64)> {
-    let mut ranked: Vec<(&'static Library, f64)> = all()
-        .iter()
-        .filter_map(|library| Some((library, point.distance_km(library.coords()?))))
-        .collect();
-    ranked.sort_by(|(_, a), (_, b)| a.total_cmp(b));
-    ranked
-}
-
 /// Every entry in the list — houses **and** branches — ordered by distance from a point.
 ///
 /// The branches are the reason this exists. Most of them are the neighbourhood libraries
@@ -722,9 +709,10 @@ pub fn near(point: LatLon) -> Vec<(&'static Library, f64)> {
 /// answers with its own coordinates ([`Entry::coords`]), which is why naming the
 /// Amerika-Gedenkbibliothek measures from Blücherplatz.
 ///
-/// Entries the list places nowhere are left out rather than sorted to the front, exactly
-/// as in [`near`]. The sort is stable, so several entries in one building — a house and
-/// its main branch, say — keep list order instead of shuffling between runs.
+/// Entries the list places nowhere are left out rather than sorted to the front — every
+/// entry has coordinates today, and the path exists because the list changes. The sort is
+/// stable, so several entries in one building — a house and its main branch, say — keep
+/// list order instead of shuffling between runs.
 ///
 /// This is the whole list, not a page of it: how many of 300-odd entries are worth
 /// printing is the caller's decision, and it cannot make it from a set already cut.

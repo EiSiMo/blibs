@@ -119,7 +119,7 @@ fn run_search(
         render::human::search(&result, &plan.locations, out, style).map_err(output)?;
     }
     if let Outcome::Empty(reason) = &outcome {
-        render::human::empty(reason, err).map_err(output)?;
+        render::human::empty(reason, err, style).map_err(output)?;
     }
     Ok(outcome)
 }
@@ -747,7 +747,7 @@ fn run_show(
             // says the same thing without parsing.
             render::json::write(&result, out)?;
         } else {
-            render::human::empty(&reason, err).map_err(output)?;
+            render::human::empty(&reason, err, style).map_err(output)?;
         }
         return Ok(Outcome::Empty(reason));
     }
@@ -760,10 +760,8 @@ fn run_show(
     Ok(Outcome::Found)
 }
 
-/// `libraries`: the compiled-in list, offline in every form.
-///
-/// `--find` and `--near` combine — "the closest of these" is a sensible question — and a
-/// detail key answers on its own.
+/// `libraries`: the compiled-in list, offline in every form. [`list`] decides the shape,
+/// [`write_listing`] writes it.
 fn run_libraries(
     plan: &LibrariesPlan,
     out: &mut dyn Write,
@@ -773,10 +771,7 @@ fn run_libraries(
     if let Some(entry) = plan.detail {
         return show_entry(plan, entry, out, style);
     }
-    match plan.near {
-        Some(point) => list_near(plan, point, out, err, style),
-        None => list_libraries(plan, out, err, style),
-    }
+    write_listing(plan, list(plan), out, err, style)
 }
 
 /// One entry in detail. Never empty and never a failure: the key was resolved in
@@ -810,7 +805,7 @@ fn show_library(
     if plan.json {
         render::json::write(&render::json::LibraryView::from(library), out)?;
     } else {
-        render::human::library_detail(library, out, style).map_err(output)?;
+        render::libraries::library_detail(library, out, style).map_err(output)?;
     }
     Ok(Outcome::Found)
 }
@@ -834,76 +829,166 @@ fn show_branch(
             out,
         )?;
     } else {
-        render::human::branch_detail(parent, branch, &at, out, style).map_err(output)?;
+        render::libraries::branch_detail(parent, branch, &at, out, style).map_err(output)?;
     }
     Ok(Outcome::Found)
 }
 
-/// The list ordered by distance, optionally narrowed by `--find`.
-fn list_near(
-    plan: &LibrariesPlan,
-    point: crate::libraries::LatLon,
-    out: &mut dyn Write,
-    err: &mut dyn Write,
-    style: Style,
-) -> Result<Outcome, Error> {
-    let mut ranked = libraries::near(point);
-    if let Some(query) = &plan.find {
-        let matching = libraries::find(query);
-        ranked.retain(|(library, _)| matching.iter().any(|found| std::ptr::eq(*found, *library)));
-    }
-    if ranked.is_empty() {
-        let query = plan
-            .find
-            .clone()
-            .or_else(|| plan.near_input.clone())
-            .unwrap_or_default();
-        return empty_libraries(plan, query, out, err);
-    }
-    if plan.json {
-        render::json::write(&render::json::library_views_near(&ranked), out)?;
-    } else {
-        render::human::libraries_near(&ranked, out, style).map_err(output)?;
-    }
-    Ok(Outcome::Found)
+/// What a listing invocation asks for, and therefore which shape the answer has.
+///
+/// Three shapes rather than one, because they answer three different questions: the plain
+/// listing is the 123 houses whose columns `plan/cli.md` pins; `--find` is grouped, so that
+/// a house can never be pushed off the answer by its own branches; and `--branches` and
+/// `--near` are flat lists of entries in which a house and a branch stand side by side.
+enum Listing {
+    /// Every house, in list order — and the only shape that carries the branch footer,
+    /// because it is the only one whose omissions the reader cannot see.
+    Houses(Vec<&'static Library>),
+    /// What `--find` matched, one group per house.
+    Groups(Vec<libraries::Found>),
+    /// A flat list of entries, with the distance where `--near` measured one.
+    Entries(Vec<(libraries::Entry, Option<f64>)>),
 }
 
-/// The whole list, or what `--find` matched of it.
-fn list_libraries(
-    plan: &LibrariesPlan,
-    out: &mut dyn Write,
-    err: &mut dyn Write,
-    style: Style,
-) -> Result<Outcome, Error> {
-    let rows: Vec<&'static Library> = match &plan.find {
-        Some(query) => libraries::find(query),
-        None => libraries::all().iter().collect(),
+/// `libraries`: the compiled-in list, offline in every form.
+///
+/// The selectors combine — "the branches closest to me, of the ones called X" is a
+/// sensible question and needs no new syntax. A detail key does **not** combine with any of
+/// them: it answers a different question, and `validate` refuses the pair rather than
+/// letting the key swallow a flag the user typed.
+fn list(plan: &LibrariesPlan) -> Listing {
+    if let Some(point) = plan.near {
+        let mut ranked: Vec<(libraries::Entry, Option<f64>)> = libraries::near_entries(point)
+            .into_iter()
+            .map(|(entry, distance)| (entry, Some(distance)))
+            .collect();
+        narrow(&mut ranked, plan);
+        return Listing::Entries(ranked);
+    }
+    if plan.branches {
+        let mut rows: Vec<(libraries::Entry, Option<f64>)> = libraries::branches()
+            .into_iter()
+            .map(|(parent, branch)| (libraries::Entry::Branch { parent, branch }, None))
+            .collect();
+        narrow(&mut rows, plan);
+        return Listing::Entries(rows);
+    }
+    match &plan.find {
+        Some(query) => Listing::Groups(libraries::find_entries(query)),
+        None => Listing::Houses(libraries::all().iter().collect()),
+    }
+}
+
+/// Narrow a flat listing by the selectors that are not what built it.
+///
+/// `--find` reaches this path as a filter rather than as the search itself: the grouped
+/// answer has no place in a list ordered by distance, and "which of these matched" is the
+/// question that does.
+fn narrow(rows: &mut Vec<(libraries::Entry, Option<f64>)>, plan: &LibrariesPlan) {
+    if plan.branches {
+        rows.retain(|(entry, _)| matches!(entry, libraries::Entry::Branch { .. }));
+    }
+    let Some(query) = &plan.find else {
+        return;
     };
-    if rows.is_empty() {
-        let query = plan.find.clone().unwrap_or_default();
-        return empty_libraries(plan, query, out, err);
+    let matched: Vec<libraries::Entry> = libraries::find_entries(query)
+        .into_iter()
+        .flat_map(|group| {
+            let house = group
+                .matched
+                .then_some(libraries::Entry::Institution(group.library));
+            house
+                .into_iter()
+                .chain(
+                    group
+                        .branches
+                        .into_iter()
+                        .map(move |branch| libraries::Entry::Branch {
+                            parent: group.library,
+                            branch,
+                        }),
+                )
+        })
+        .collect();
+    rows.retain(|(entry, _)| matched.iter().any(|found| same_entry(*found, *entry)));
+}
+
+/// Whether two entries are the same entry of the list.
+///
+/// By address, not by value: both sides come out of the one compiled-in list, so the
+/// pointer is exact — and comparing two houses field by field would compare their whole
+/// branch lists with them.
+fn same_entry(left: libraries::Entry, right: libraries::Entry) -> bool {
+    match (left, right) {
+        (libraries::Entry::Institution(a), libraries::Entry::Institution(b)) => std::ptr::eq(a, b),
+        (
+            libraries::Entry::Branch { branch: a, .. },
+            libraries::Entry::Branch { branch: b, .. },
+        ) => std::ptr::eq(a, b),
+        _ => false,
     }
-    if plan.json {
-        render::json::write(&render::json::library_views(&rows), out)?;
-    } else {
-        render::human::libraries_table(&rows, out, style).map_err(output)?;
+}
+
+/// Write one listing, or say why it is empty.
+fn write_listing(
+    plan: &LibrariesPlan,
+    listing: Listing,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+    style: Style,
+) -> Result<Outcome, Error> {
+    match listing {
+        Listing::Houses(rows) if rows.is_empty() => empty_libraries(plan, out, err, style),
+        Listing::Groups(groups) if groups.is_empty() => empty_libraries(plan, out, err, style),
+        Listing::Entries(rows) if rows.is_empty() => empty_libraries(plan, out, err, style),
+        Listing::Houses(rows) => {
+            if plan.json {
+                render::json::write(&render::json::library_views(&rows), out)?;
+            } else {
+                render::libraries::houses(&rows, out, style).map_err(output)?;
+                // Only here: this is the listing that shows 123 of 334 addressable
+                // libraries without anything on the screen saying so.
+                render::libraries::footer(out, style).map_err(output)?;
+            }
+            Ok(Outcome::Found)
+        }
+        Listing::Groups(groups) => {
+            if plan.json {
+                render::json::write(&render::json::found_views(&groups), out)?;
+            } else {
+                render::libraries::found(&groups, out, style).map_err(output)?;
+            }
+            Ok(Outcome::Found)
+        }
+        Listing::Entries(rows) => {
+            if plan.json {
+                render::json::write(&render::json::entry_views(&rows), out)?;
+            } else {
+                render::libraries::entries(&rows, out, style).map_err(output)?;
+            }
+            Ok(Outcome::Found)
+        }
     }
-    Ok(Outcome::Found)
 }
 
 /// Nothing in the list matched. In JSON that is an empty array — a document, not a
 /// failure — and the reason goes to stderr for the human.
 fn empty_libraries(
     plan: &LibrariesPlan,
-    query: String,
     out: &mut dyn Write,
     err: &mut dyn Write,
+    style: Style,
 ) -> Result<Outcome, Error> {
+    let query = plan
+        .find
+        .clone()
+        .or_else(|| plan.near_input.clone())
+        .unwrap_or_default();
     let reason = EmptyReason::NoLibraryMatched { query };
     if plan.json {
         render::json::write(&Vec::<render::json::LibraryView<'_>>::new(), out)?;
     } else {
-        render::human::empty(&reason, err).map_err(output)?;
+        render::human::empty(&reason, err, style).map_err(output)?;
     }
     Ok(Outcome::Empty(reason))
 }
@@ -993,5 +1078,80 @@ mod tests {
         ];
         assert_eq!(unstated_online(&notes), 1);
         assert_eq!(unstated_online(&[]), 0);
+    }
+    /// A listing plan for the tests below: no key, no JSON, and whichever selectors the
+    /// case is about.
+    fn listing_plan(find: Option<&str>, branches: bool, near: Option<&str>) -> LibrariesPlan {
+        LibrariesPlan {
+            detail: None,
+            find: find.map(str::to_owned),
+            branches,
+            near: near.map(
+                |key| match libraries::look_up(key).expect("a key in the list") {
+                    libraries::Entry::Institution(library) => {
+                        library.coords().expect("coordinates")
+                    }
+                    libraries::Entry::Branch { branch, .. } => {
+                        branch.coords().expect("coordinates")
+                    }
+                },
+            ),
+            near_input: near.map(str::to_owned),
+            json: false,
+        }
+    }
+
+    /// Which shape each invocation asks for. The plain listing is houses, `--find` is
+    /// grouped so that no house can be pushed off the answer by its own branches, and the
+    /// two flat listings are entries of both kinds.
+    #[test]
+    fn each_selector_asks_for_the_shape_that_answers_it() {
+        assert!(matches!(
+            list(&listing_plan(None, false, None)),
+            Listing::Houses(rows) if rows.len() == libraries::all().len()
+        ));
+        assert!(matches!(
+            list(&listing_plan(Some("grimm"), false, None)),
+            Listing::Groups(groups) if groups.len() == 1
+        ));
+        assert!(matches!(
+            list(&listing_plan(None, true, None)),
+            Listing::Entries(rows) if rows.len() == libraries::branch_count()
+        ));
+        assert!(matches!(
+            list(&listing_plan(None, false, Some("HU"))),
+            Listing::Entries(rows)
+                if rows.len() == libraries::all().len() + libraries::branch_count()
+        ));
+    }
+
+    /// The selectors narrow each other rather than cancelling out: `--branches --near`
+    /// ranks only branches, and `--find` keeps only what it matched — house or branch.
+    #[test]
+    fn the_selectors_narrow_one_another() {
+        let Listing::Entries(rows) = list(&listing_plan(None, true, Some("AGB"))) else {
+            panic!("a ranked listing is a list of entries");
+        };
+        assert_eq!(rows.len(), libraries::branch_count());
+        assert!(
+            rows.iter()
+                .all(|(entry, _)| matches!(entry, libraries::Entry::Branch { .. })),
+            "--branches must leave the houses out of the ranking"
+        );
+
+        let Listing::Entries(found) = list(&listing_plan(Some("Frohnau"), false, Some("AGB")))
+        else {
+            panic!("a ranked listing is a list of entries");
+        };
+        let matched: usize = libraries::find_entries("Frohnau")
+            .iter()
+            .map(libraries::Found::count)
+            .sum();
+        assert!(matched > 0, "Frohnau is in the list");
+        assert_eq!(
+            found.len(),
+            matched,
+            "the ranking must hold exactly what --find matched"
+        );
     }
 }

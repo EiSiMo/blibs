@@ -313,6 +313,199 @@ fn find_matches_a_shorthand() {
         .stdout(contains("DE-11"));
 }
 
+/// §1.11: `--find` answers for every name `--at` accepts. Each of these five was
+/// "no library matched" while `--at` searched it and `libraries <name>` described it —
+/// which made the tool deny the existence of a library it had just recommended.
+#[test]
+fn find_answers_for_the_branches_at_accepts() {
+    for query in ["AGB", "PHILBIB", "Philologische", "Frohnau", "DE-11-105"] {
+        blibs()
+            .args(["libraries", "--find", query])
+            .assert()
+            .success()
+            .stdout(contains(query).or(contains("branch of")));
+    }
+}
+
+/// A house is still an answer, and its branches do not bury it: `grimm` is one of HU's
+/// shorthands, and HU has ten branches that must not come with it.
+#[test]
+fn find_does_not_bury_a_house_under_its_branches() {
+    let output = blibs()
+        .args(["libraries", "--find", "grimm"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+    assert!(
+        text.starts_with("HU "),
+        "the house is the hit, not a heading: {text:?}"
+    );
+    assert_eq!(text.lines().count(), 1, "{text:?}");
+}
+
+/// A house that is only the heading its branches hang under says so in words — colour is
+/// not available down a pipe, and a heading offered as a hit is a wrong answer.
+#[test]
+fn a_house_carried_in_by_a_branch_is_written_as_a_heading() {
+    blibs()
+        .args(["libraries", "--find", "Frohnau"])
+        .assert()
+        .success()
+        .stdout(contains("no match in the house itself"))
+        .stdout(contains("Frohnau"));
+}
+
+/// §3.1: 211 addressable libraries used to be invisible unless one already knew which
+/// house to ask about. `--branches` lists them, each with the key that searches it.
+#[test]
+fn the_branch_listing_lists_every_branch_with_a_key() {
+    let output = blibs()
+        .args(["libraries", "--branches"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+    assert_eq!(text.lines().count(), 211, "every branch is one line");
+    assert!(text.contains("AGB "), "{text:?}");
+    for line in text.lines() {
+        let key = line.split_whitespace().next().unwrap_or_default();
+        assert!(!key.is_empty(), "every line names a key: {line:?}");
+    }
+}
+
+/// §3.1: the plain listing cannot show the branches, so it says that they exist and where
+/// to find them. Both counts are read off the list.
+#[test]
+fn the_plain_listing_points_at_the_branches_it_cannot_show() {
+    blibs()
+        .arg("libraries")
+        .assert()
+        .success()
+        .stdout(contains("have branches"))
+        .stdout(contains("--branches"));
+}
+
+/// §3.7: `--near` ranks branches too — 97 of them are the neighbourhood libraries that
+/// "which library is round the corner" is actually about — and every branch in the list
+/// names the house it belongs to.
+#[test]
+fn near_ranks_branches_and_names_their_house() {
+    let output = blibs()
+        .args(["libraries", "--near", "AGB"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+    let first = text.lines().next().unwrap_or_default();
+    assert!(first.starts_with("AGB "), "{first:?}");
+    assert!(first.contains("0.0 km"), "{first:?}");
+    assert!(
+        first.contains("branch of VOEBB"),
+        "a branch names its house: {first:?}"
+    );
+}
+
+/// §3.7: the one place in the tool where a flag was ignored rather than answered or
+/// refused. A key and a listing flag are two questions, and the tool asks which one.
+#[test]
+fn a_library_name_refuses_the_listing_flags() {
+    for flag in [
+        vec!["--find", "x"],
+        vec!["--near", "52.5,13.4"],
+        vec!["--branches"],
+    ] {
+        let mut args = vec!["libraries", "HU"];
+        args.extend(flag.iter().copied());
+        blibs()
+            .args(&args)
+            .assert()
+            .code(2)
+            .stderr(contains("cannot be combined with a library name"));
+    }
+}
+
+/// §1.4: `DE-109` is printed as this branch's ISIL and resolves to a different house.
+/// The one place that can be said is beside the key itself, and it names what to type.
+#[test]
+fn a_branch_whose_isil_answers_elsewhere_says_so_and_what_to_type() {
+    blibs()
+        .args(["libraries", "AGB"])
+        .assert()
+        .success()
+        .stdout(contains("DE-109"))
+        .stdout(contains("shared with"))
+        .stdout(contains("answers for ZLBORG"))
+        .stdout(contains("use AGB or SIG00036"));
+
+    // The ordinary branch says nothing: 136 of the 137 branch ISILs name their branch
+    // back, and a warning on each of them would hide the one that counts.
+    blibs()
+        .args(["libraries", "PHILBIB"])
+        .assert()
+        .success()
+        .stdout(contains("shared with").not());
+}
+
+/// A listing that mixes the two kinds says which each element is, and the branches carry
+/// the house they belong to — an array element cannot be read from its neighbours.
+#[test]
+fn a_branch_listing_is_json_that_tells_the_two_kinds_apart() {
+    let output = blibs()
+        .args(["--json", "libraries", "--branches"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: serde_json::Value =
+        serde_json::from_slice(&output).expect("libraries --json must be valid JSON");
+    let array = value.as_array().expect("a listing is an array");
+    assert_eq!(array.len(), 211, "every branch is one element");
+    for element in array {
+        assert_eq!(element["type"], "branch", "{element}");
+        assert!(element["parent"]["isil"].is_string(), "{element}");
+        assert!(element["search"]["at"].is_string(), "{element}");
+    }
+}
+
+/// The width the user set is the width every line respects — a table shortens what may be
+/// shortened, a sentence wraps, and neither runs past the edge.
+#[test]
+fn the_library_views_respect_the_terminal_width() {
+    for args in [
+        vec!["libraries", "--find", "Philologische"],
+        vec!["libraries", "--near", "AGB"],
+    ] {
+        let output = blibs()
+            .args(&args)
+            .env("COLUMNS", "80")
+            .env("NO_COLOR", "1")
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+        assert!(
+            !text.contains('\u{1b}'),
+            "a pipe is never coloured: {args:?}"
+        );
+        for line in text.lines() {
+            assert!(
+                line.chars().count() <= 80,
+                "{line:?} runs past 80 columns ({args:?})"
+            );
+        }
+    }
+}
+
 /// A detail view shows what the list knows — address included, opening hours never.
 #[test]
 fn the_detail_view_shows_the_address() {

@@ -9,8 +9,8 @@ use blibs::libraries::resolve::{
     houses_with_branches, isil_answers_elsewhere, near_entries, shares_isil, short_name_is_cut,
 };
 use blibs::libraries::{
-    Entry, alias_for, branch_location, by_isil, by_kobvid, by_portal_name, display_name, find,
-    look_up, name_holding, near, resolve, short_name_for,
+    Entry, alias_for, branch_location, by_isil, by_kobvid, by_portal_name, display_name,
+    entry_location, look_up, name_holding, resolve, short_name_for,
 };
 use blibs::model::{Engine, Holding, Isil, Status};
 
@@ -413,26 +413,32 @@ fn branch_location_answers_from_the_parent_network() {
 /// `libraries --find` searches names as well as aliases, case- and diacritic-insensitive.
 #[test]
 fn find_matches_alias_name_and_city() {
-    let hits = find("grimm");
     assert!(
-        hits.iter().any(|library| library.isil == "DE-11"),
+        matched_house("grimm", "DE-11"),
         "grimm must find the Grimm-Zentrum"
     );
 
     // Typed without a German keyboard, and in the wrong case.
     assert!(
-        find("universitat")
-            .iter()
-            .any(|library| library.isil == "DE-11"),
+        matched_house("universitat", "DE-11"),
         "folded search must ignore the umlaut"
     );
     assert!(
-        find("FURSTENWALDE")
-            .iter()
-            .any(|library| library.isil == "DE-Fur5"),
+        matched_house("FURSTENWALDE", "DE-Fur5"),
         "folded search must ignore case and umlaut in the city"
     );
-    assert!(find("   ").is_empty(), "an empty query matches nothing");
+    assert!(
+        find_entries("   ").is_empty(),
+        "an empty query matches nothing"
+    );
+}
+
+/// Whether a query answers with one house on the house's **own** text — `matched`, not
+/// merely a group that carries the house as the heading of its branches.
+fn matched_house(query: &str, isil: &str) -> bool {
+    find_entries(query)
+        .iter()
+        .any(|group| group.matched && group.library.isil == isil)
 }
 
 /// `--near` puts the point's own house first, and the walk from the Grimm-Zentrum to the
@@ -440,16 +446,20 @@ fn find_matches_alias_name_and_city() {
 #[test]
 fn near_orders_by_distance() {
     let hu = by_isil(&Isil::new("DE-11")).expect("DE-11 is in the list");
-    let ranked = near(hu.coords().expect("DE-11 has coordinates"));
+    let ranked = near_entries(hu.coords().expect("DE-11 has coordinates"));
 
-    assert_eq!(ranked.len(), 123, "every house has coordinates");
+    assert_eq!(
+        ranked.len(),
+        parsed().len() + parsed_branches().len(),
+        "every house and every branch has coordinates"
+    );
     let (first, distance) = ranked[0];
-    assert_eq!(first.isil, "DE-11");
+    assert_eq!(entry_location(first).isil.as_str(), "DE-11");
     assert!(distance < 1e-9, "distance to itself was {distance}");
 
     let (_, stabi) = ranked
         .iter()
-        .find(|(library, _)| library.isil == "DE-1")
+        .find(|(entry, _)| matches!(entry, Entry::Institution(library) if library.isil == "DE-1"))
         .expect("DE-1 is in the list");
     assert!(
         (0.2..0.6).contains(stabi),
@@ -807,10 +817,10 @@ fn find_still_answers_for_houses() {
     assert!(group.matched, "the house matched on its own text");
     assert!(group.count() >= 1);
 
-    // The flat view keeps answering exactly the houses that matched themselves, so the
-    // callers that have not moved over yet see no change.
-    assert!(find("grimm").iter().any(|library| library.isil == "DE-11"));
-    assert!(find("   ").is_empty(), "an empty query matches nothing");
+    assert!(
+        find_entries("   ").is_empty(),
+        "an empty query matches nothing"
+    );
 }
 
 /// A house that is only a heading says so, so a renderer does not offer it as a hit.
@@ -826,10 +836,10 @@ fn a_house_carried_in_by_a_branch_is_not_itself_a_hit() {
         group.library.isil
     );
     assert!(
-        !find("Frohnau")
+        !find_entries("Frohnau")
             .iter()
-            .any(|library| library.isil == group.library.isil),
-        "the flat view must not answer a branch question with its house"
+            .any(|other| other.matched && other.library.isil == group.library.isil),
+        "a heading must not be offered as a hit"
     );
 }
 
@@ -929,10 +939,13 @@ fn near_entries_ranks_branches_beside_houses() {
         previous = *distance;
     }
 
-    // The house-only ranking is still there and is still houses only, so the caller that
-    // has not moved over yet sees no change.
-    let houses = near(branch.coords().expect("coordinates"));
-    assert_eq!(houses.len(), libraries.len());
+    // Houses are still in it, and still all of them: ranking branches must not have made
+    // the answer a branch listing.
+    let houses = ranked
+        .iter()
+        .filter(|(entry, _)| matches!(entry, Entry::Institution(_)))
+        .count();
+    assert_eq!(houses, libraries.len());
 }
 
 /// The directory cuts a branch name at a fixed width, and the tool has to say so rather

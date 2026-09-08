@@ -12,7 +12,7 @@
 use std::io::Write;
 
 use crate::error::{Error, ErrorEnvelope};
-use crate::libraries::{Branch, Library};
+use crate::libraries::{Branch, Entry, Found, Library};
 use crate::model::{Engine, Location};
 
 /// Write one document, pretty-printed and closed by a newline.
@@ -100,10 +100,20 @@ pub struct LibraryView<'a> {
     pub branches: Vec<BranchView<'a>>,
 }
 
-/// One branch of a library. Only branches that are actually spoken about carry a
-/// shorthand; the rest have none rather than an invented one.
+/// One branch of a library, as it appears **inside** its house's document. Only branches
+/// that are actually spoken about carry a shorthand; the rest have none rather than an
+/// invented one.
+///
+/// The standalone form is [`BranchDetailView`], which adds the house and how to search it.
+/// This one is nested under a house that states both already.
 #[derive(Debug, serde::Serialize)]
 pub struct BranchView<'a> {
+    /// Always [`EntryKind::Branch`], and the first member, exactly as in every other
+    /// object of this command — `plan/cli.md` promises that of *every* element, and an
+    /// agent that walks a document should not have to know whether it descended into a
+    /// house to know what it is holding.
+    #[serde(rename = "type")]
+    pub kind_of_entry: EntryKind,
     /// The portal's own id for the branch, which is what `items[].branch` carries.
     pub kobvid: &'a str,
     /// The branch's own ISIL, where it has one.
@@ -149,6 +159,7 @@ impl<'a> From<&'a Library> for LibraryView<'a> {
 impl<'a> From<&'a Branch> for BranchView<'a> {
     fn from(branch: &'a Branch) -> Self {
         BranchView {
+            kind_of_entry: EntryKind::Branch,
             kobvid: &branch.kobvid,
             isil: branch.isil.as_deref(),
             name: &branch.name,
@@ -182,6 +193,16 @@ pub struct BranchDetailView<'a> {
     /// The branch's own ISIL, where it has one. A KOBV record never states it — it names
     /// the house — so this identifies the branch in the directory, not in a record.
     pub isil: Option<&'a str>,
+    /// What `--at <this branch's own ISIL>` actually answers about, when that is not this
+    /// branch.
+    ///
+    /// Absent in the ordinary case, which is every branch but one: the ISIL names its
+    /// branch back and there is nothing to say. Present, it carries the `--at` key the
+    /// code really resolves to — the search then runs, succeeds and answers about
+    /// somewhere else, with nothing in the result that looks wrong, so an agent that
+    /// validates a key has to be able to read this rather than infer it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub isil_answers_elsewhere: Option<String>,
     /// Full name, as the list states it.
     pub name: &'a str,
     /// Short name, which is what a block heading and the voebb.de house facet use.
@@ -196,6 +217,10 @@ pub struct BranchDetailView<'a> {
     pub parent: ParentView<'a>,
     /// How, and whether, `--at` reaches this branch.
     pub search: BranchSearchView,
+    /// Distance in kilometres, present only for `--near` — the same member, in the same
+    /// unit, that a house carries there.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub distance_km: Option<f64>,
 }
 
 /// The house a branch belongs to, named the three ways a caller might need it: to type
@@ -256,7 +281,21 @@ impl<'a> BranchDetailView<'a> {
                 short_name: &parent.short_name,
             },
             search: BranchSearchView::new(at),
+            isil_answers_elsewhere: crate::libraries::isil_answers_elsewhere(branch)
+                .map(|entry| crate::libraries::entry_location(entry).key),
+            distance_km: None,
         }
+    }
+
+    /// The same view for a branch in a listing, which has no `at` computed yet.
+    ///
+    /// It is computed here rather than left to the caller for the reason the detail view
+    /// takes one at all: [`crate::libraries::branch_location`] is the single place that
+    /// decides how a branch is searched, and a listing that answered differently from the
+    /// detail view of the same branch would be the worst kind of wrong.
+    pub fn of(parent: &'a Library, branch: &'a Branch) -> Self {
+        let at = crate::libraries::branch_location(parent, branch);
+        Self::new(parent, branch, &at)
     }
 }
 
@@ -277,19 +316,74 @@ impl BranchSearchView {
     }
 }
 
-/// The document `blibs libraries --json` writes.
+/// One element of a listing that may hold both kinds of entry.
+///
+/// Untagged: each variant already states its own kind in its first member, so a wrapper
+/// object would say the same thing twice and force an agent to unwrap before it could
+/// read anything. `type` is the discriminator, in a listing exactly as in a detail view.
+#[derive(Debug, serde::Serialize)]
+#[serde(untagged)]
+pub enum EntryView<'a> {
+    /// A whole house.
+    Institution(LibraryView<'a>),
+    /// One branch, with the house it belongs to and how to search it.
+    Branch(BranchDetailView<'a>),
+}
+
+impl EntryView<'static> {
+    /// One entry of the library list, with the distance where one was measured.
+    fn of(entry: Entry, distance: Option<f64>) -> Self {
+        match entry {
+            Entry::Institution(library) => {
+                let mut view = LibraryView::from(library);
+                view.distance_km = distance;
+                EntryView::Institution(view)
+            }
+            Entry::Branch { parent, branch } => {
+                let mut view = BranchDetailView::of(parent, branch);
+                view.distance_km = distance;
+                EntryView::Branch(view)
+            }
+        }
+    }
+}
+
+/// The document `blibs libraries --json` writes: the houses, as they always were.
 pub fn library_views<'a>(libraries: &[&'a Library]) -> Vec<LibraryView<'a>> {
     libraries.iter().copied().map(LibraryView::from).collect()
 }
 
-/// The same, with the distance `--near` measured.
-pub fn library_views_near<'a>(libraries: &[(&'a Library, f64)]) -> Vec<LibraryView<'a>> {
-    libraries
+/// The document a listing of entries writes — `--branches`, and `--near`, which ranks
+/// both kinds.
+pub fn entry_views(rows: &[(Entry, Option<f64>)]) -> Vec<EntryView<'static>> {
+    rows.iter()
+        .map(|(entry, distance)| EntryView::of(*entry, *distance))
+        .collect()
+}
+
+/// The document `--find` writes: every entry that matched, in the order the grouped human
+/// output prints them.
+///
+/// **Only what matched.** A house that is in the grouped output as the heading its
+/// branches hang under is not one of the answers, and an array element cannot be a
+/// heading; the branches carry their `parent` with them, so nothing is lost by leaving it
+/// out.
+pub fn found_views(groups: &[Found]) -> Vec<EntryView<'static>> {
+    groups
         .iter()
-        .map(|(library, distance)| {
-            let mut view = LibraryView::from(*library);
-            view.distance_km = Some(*distance);
-            view
+        .flat_map(|group| {
+            let house = group
+                .matched
+                .then(|| EntryView::of(Entry::Institution(group.library), None));
+            house.into_iter().chain(group.branches.iter().map(|branch| {
+                EntryView::of(
+                    Entry::Branch {
+                        parent: group.library,
+                        branch,
+                    },
+                    None,
+                )
+            }))
         })
         .collect()
 }
@@ -439,13 +533,86 @@ mod tests {
             .expect("the view serialises")
     }
 
+    /// `--near` measures both kinds of entry, and states the distance the same way for
+    /// both — one member, one unit, whatever kind the element is.
     #[test]
-    fn near_adds_the_distance_it_measured() {
+    fn near_adds_the_distance_it_measured_to_either_kind() {
         let library = crate::libraries::all()
             .first()
             .expect("the compiled-in list is not empty");
-        let views = library_views_near(&[(library, 1.25)]);
+        let crate::libraries::Entry::Branch { parent, branch } =
+            crate::libraries::look_up("AGB").expect("AGB is in the list")
+        else {
+            panic!("AGB is a branch");
+        };
+        let views = entry_views(&[
+            (crate::libraries::Entry::Institution(library), Some(1.25)),
+            (
+                crate::libraries::Entry::Branch { parent, branch },
+                Some(0.5),
+            ),
+        ]);
         let json = serde_json::to_value(&views).expect("the views serialise");
+        assert_eq!(json[0]["type"], "institution");
         assert_eq!(json[0]["distance_km"], 1.25);
+        assert_eq!(json[1]["type"], "branch");
+        assert_eq!(json[1]["distance_km"], 0.5);
+        assert_eq!(json[1]["parent"]["isil"], "DE-609");
+    }
+
+    /// §1.11: `--find` answers for branches, and the answer says which of the two kinds
+    /// each element is. A house that is only a heading in the terminal is not an element
+    /// here at all — an array element cannot be a heading.
+    #[test]
+    fn find_publishes_the_branches_it_matched_and_not_their_headings() {
+        let groups = crate::libraries::find_entries("AGB");
+        let views = serde_json::to_value(found_views(&groups)).expect("the views serialise");
+        let elements = views.as_array().expect("an array");
+        assert!(!elements.is_empty(), "AGB must be found: {views}");
+        for element in elements {
+            assert!(
+                element["type"] == "institution" || element["type"] == "branch",
+                "every element states its kind: {element}"
+            );
+        }
+        assert!(
+            elements
+                .iter()
+                .any(|element| element["type"] == "branch" && element["alias"] == "AGB"),
+            "{views}"
+        );
+        assert!(
+            !elements
+                .iter()
+                .any(|element| element["type"] == "institution" && element["isil"] == "DE-609"),
+            "the public network is the heading of its branch, not a hit: {views}"
+        );
+    }
+
+    /// §1.4: the one branch ISIL that two entries claim says so in its own document, so an
+    /// agent validating a key does not have to work it out from a list of claimants.
+    #[test]
+    fn a_shared_isil_is_stated_in_the_branch_document() {
+        let agb = branch_document("AGB");
+        assert_eq!(agb["isil"], "DE-109");
+        assert_eq!(agb["isil_answers_elsewhere"], "ZLBORG");
+
+        let philbib = branch_document("PHILBIB");
+        assert!(
+            philbib.get("isil_answers_elsewhere").is_none(),
+            "an ISIL that names its branch back states nothing: {philbib}"
+        );
+    }
+
+    /// A branch nested in its house's document says what it is, exactly as a standalone
+    /// one does — `plan/cli.md` promises the member of *every* element.
+    #[test]
+    fn a_nested_branch_states_its_kind_too() {
+        let library = crate::libraries::all()
+            .iter()
+            .find(|library| !library.branches.is_empty())
+            .expect("some houses have branches");
+        let json = serde_json::to_value(LibraryView::from(library)).expect("the view serialises");
+        assert_eq!(json["branches"][0]["type"], "branch");
     }
 }

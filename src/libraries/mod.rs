@@ -18,7 +18,9 @@ pub mod text;
 pub use data::{Branch, Library, all};
 pub use geo::{LatLon, NotAPoint};
 pub use resolve::{
-    Entry, PATH_SEPARATOR, VOEBB_NETWORK, alias_for, branch_location, by_isil, by_kobvid,
-    by_portal_name, display_name, find, institution_location, look_up, name_holding, near, resolve,
-    short_name_for, suggest,
+    Entry, Found, PATH_SEPARATOR, VOEBB_NETWORK, alias_for, branch_count, branch_label,
+    branch_location, branches, by_isil, by_kobvid, by_portal_name, display_name,
+    distinguishing_name, entries, entry_location, find_entries, houses_with_branches,
+    institution_location, isil_answers_elsewhere, look_up, name_holding, near_entries, resolve,
+    shares_isil, short_name_for, short_name_is_cut, suggest,
 };

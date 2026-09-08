@@ -35,6 +35,10 @@
 //! shrunken column spends its padding on its own text, so a title that had to give way
 //! would otherwise end up glued to the author beside it.
 //!
+//! The **library views** are not here: [`super::libraries`] renders the compiled-in list,
+//! this module renders search results. The two share the primitives below — a field block,
+//! a wrapped line, a laid-out row — and nothing else.
+//!
 //! **Everything that is not a table row is word-wrapped** to the same width, with a
 //! hanging indent where the line has a label (`write_paragraph`). A note, a library name
 //! and a heading are sentences, not cells: they are continued rather than cut, and the
@@ -44,7 +48,6 @@ use std::io::{self, Write};
 
 use crate::counts::{records, results};
 use crate::error::{EmptyReason, Error};
-use crate::libraries::{Branch, Library};
 use crate::model::note_kinds;
 use crate::model::{
     AvailabilityMode, Engine, Format, Holding, Item, Location, Note, Record, SearchResult, SortKey,
@@ -1105,6 +1108,10 @@ fn write_field_block(out: &mut dyn Write, record: &Record, style: Style) -> io::
 
 /// Write a `Label   value` block, aligning every value in one column.
 ///
+/// Shared with [`super::libraries`], which writes the same block for a house and for a
+/// branch: `show` and the detail views must not come to disagree about where a value
+/// starts or how a long one is continued.
+///
 /// A value too wide for the terminal is **wrapped into the value column**, not cut: the
 /// subject headings of a record run past 80 columns routinely, and the terminal's own break
 /// would put the continuation under the label, where it reads as a field of its own. The
@@ -1114,7 +1121,11 @@ fn write_field_block(out: &mut dyn Write, record: &Record, style: Style) -> io::
 /// The value column starts at a width the content cannot move — [`FIELD_LABEL`] is
 /// [`Column::Fixed`] — so the wrap width is known before the layout is computed, and the
 /// two cannot disagree.
-fn write_fields(out: &mut dyn Write, fields: &[(String, String)], style: Style) -> io::Result<()> {
+pub(crate) fn write_fields(
+    out: &mut dyn Write,
+    fields: &[(String, String)],
+    style: Style,
+) -> io::Result<()> {
     let layout = Layout::new(vec![Column::Fixed(FIELD_LABEL), Column::Last]);
     let value_width = available(style, SHOW_INDENT + FIELD_LABEL + DEFAULT_GAP);
     let rows: Vec<Vec<Cell>> = fields
@@ -1181,7 +1192,7 @@ fn record_fields(record: &Record) -> Vec<(String, String)> {
 }
 
 /// Append a field unless its value is empty. Nothing is ever printed as an empty value.
-fn push_field(fields: &mut Vec<(String, String)>, label: &str, value: String) {
+pub(crate) fn push_field(fields: &mut Vec<(String, String)>, label: &str, value: String) {
     if !value.is_empty() {
         fields.push((label.to_owned(), value));
     }
@@ -1513,256 +1524,18 @@ fn write_show_notes(out: &mut dyn Write, notes: &[Note], style: Style) -> io::Re
     Ok(())
 }
 
-/// Render the library table: shorthand, ISIL, short name, full name, city.
-pub fn libraries_table(rows: &[&Library], out: &mut dyn Write, style: Style) -> io::Result<()> {
-    let rows: Vec<(&Library, Option<f64>)> = rows.iter().map(|library| (*library, None)).collect();
-    write_library_table(out, &rows, style)
-}
-
-/// The same table with a distance column, for `libraries --near`.
-pub fn libraries_near(
-    rows: &[(&Library, f64)],
-    out: &mut dyn Write,
-    style: Style,
-) -> io::Result<()> {
-    let rows: Vec<(&Library, Option<f64>)> = rows
-        .iter()
-        .map(|(library, distance)| (*library, Some(*distance)))
-        .collect();
-    write_library_table(out, &rows, style)
-}
-
-/// The library table, with or without distances.
-///
-/// The first three columns are at least as wide as the example in `plan/cli.md` and
-/// widen only if the data demands it: a shorthand is what the user types back into
-/// `--at`, so it is never shortened. The name column absorbs a narrow terminal.
-///
-/// One column of separation, not the usual two: the example's shorthand column ends one
-/// space before the ISIL, and the widest short name in the list fills its column exactly.
-fn write_library_table(
-    out: &mut dyn Write,
-    rows: &[(&Library, Option<f64>)],
-    style: Style,
-) -> io::Result<()> {
-    let alias_width = column_width(
-        8,
-        rows.iter()
-            .map(|(library, _)| library.alias().unwrap_or("")),
-    );
-    let isil_width = column_width(10, rows.iter().map(|(library, _)| library.isil.as_str()));
-    let short_width = column_width(
-        16,
-        rows.iter().map(|(library, _)| library.short_name.as_str()),
-    );
-    let city_width = column_width(1, rows.iter().map(|(library, _)| library.city.as_str()));
-    let layout = Layout::new(vec![
-        Column::Fixed(alias_width),
-        Column::Fixed(isil_width),
-        Column::Fixed(short_width),
-        Column::Flex { ideal: 16, min: 16 },
-        Column::Fixed(city_width),
-        Column::Last,
-    ])
-    .with_gap(1);
-
-    let cells: Vec<Vec<Cell>> = rows
-        .iter()
-        .map(|(library, distance)| {
-            let mut row = vec![
-                Cell::new(library.alias().unwrap_or("").to_owned())
-                    .styled(style.bold())
-                    .whole(),
-                Cell::new(library.isil.clone()).styled(style.dim()).whole(),
-                Cell::new(library.short_name.clone()),
-                Cell::new(library.name.clone()),
-                Cell::new(library.city.clone()),
-            ];
-            if let Some(distance) = distance {
-                row.push(Cell::new(distance_text(*distance)).styled(style.dim()));
-            }
-            row
-        })
-        .collect();
-    let widths = layout.widths(&cells, style.width());
-    for row in &cells {
-        write_row(out, &layout, row, &widths, 0, style)?;
-    }
-    Ok(())
-}
-
-/// A column at least `minimum` wide, and as wide as its widest value when that is wider.
-///
-/// Nothing in these columns may be shortened — a shorthand is what the user types back
-/// into `--at` — so the column grows instead, and the layout's gap keeps the separation.
-fn column_width<'a>(minimum: usize, values: impl Iterator<Item = &'a str>) -> usize {
-    values
-        .map(display_width)
-        .max()
-        .map_or(minimum, |widest| minimum.max(widest))
-}
-
-/// A distance, rounded to the precision the coordinates actually support.
-fn distance_text(km: f64) -> String {
-    format!("{km:.1} km")
-}
-
-/// Render one library in detail: what the list knows and nothing it does not.
-///
-/// Opening hours are deliberately absent — the compiled list would be days out of date
-/// (`plan/cli.md`, `plan/libraries.md`).
-pub fn library_detail(library: &Library, out: &mut dyn Write, style: Style) -> io::Result<()> {
-    write_line(out, &library.name, 0, style.bold(), style)?;
-    writeln!(out)?;
-    let mut fields = Vec::new();
-    push_field(&mut fields, "Shorthand", library.aliases.join(" · "));
-    push_field(&mut fields, "ISIL", library.isil.clone());
-    push_field(&mut fields, "Short name", library.short_name.clone());
-    push_field(
-        &mut fields,
-        "Type",
-        library.kind.clone().unwrap_or_default(),
-    );
-    push_field(&mut fields, "Address", library.address.clone());
-    push_field(&mut fields, "City", library.city.clone());
-    if let Some(coords) = library.coords() {
-        push_field(
-            &mut fields,
-            "Coordinates",
-            format!("{:.5}, {:.5}", coords.lat, coords.lon),
-        );
-    }
-    push_field(
-        &mut fields,
-        "Phone",
-        library.phone.clone().unwrap_or_default(),
-    );
-    push_field(
-        &mut fields,
-        "Email",
-        library.email.clone().unwrap_or_default(),
-    );
-    push_field(
-        &mut fields,
-        "Website",
-        library.url.clone().unwrap_or_default(),
-    );
-    push_field(
-        &mut fields,
-        "OPAC",
-        library.opac.clone().unwrap_or_default(),
-    );
-    if !library.branches.is_empty() {
-        fields.push(("Branches".to_owned(), branch_count(&library.branches)));
-        // The key, not only the name: this listing is the one place a branch without a
-        // shorthand becomes addressable at all, and a name with nothing to type next to
-        // it is a dead end (`plan/libraries.md` §11.9). Padded to the widest key, because
-        // the ids come in two lengths and a ragged column reads as two columns.
-        let keys: Vec<&str> = library
-            .branches
-            .iter()
-            .map(|branch| branch.alias().unwrap_or(&branch.kobvid))
-            .collect();
-        let width = keys
-            .iter()
-            .map(|key| key.chars().count())
-            .max()
-            .unwrap_or(0);
-        for (branch, key) in library.branches.iter().zip(keys) {
-            fields.push((
-                String::new(),
-                format!("{key:width$}  {}", branch.short_name),
-            ));
-        }
-    }
-    write_fields(out, &fields, style)
-}
-
-/// Render one branch in detail: the branch itself, the house it belongs to, and how it
-/// can be searched.
-///
-/// **Not the parent's detail view.** Someone who asks about the Amerika-Gedenkbibliothek
-/// wants the house at Blücherplatz, not the 98-branch listing of the network it belongs
-/// to; the parent is named in one line and the listing stays with the question it answers.
-///
-/// `at` is [`crate::libraries::branch_location`] verbatim — this function prints it and
-/// decides nothing itself, so the view and `--at` cannot come to differ about which
-/// engine searches a branch.
-pub fn branch_detail(
-    parent: &Library,
-    branch: &Branch,
-    at: &Location,
-    out: &mut dyn Write,
-    style: Style,
-) -> io::Result<()> {
-    write_line(out, &branch.name, 0, style.bold(), style)?;
-    writeln!(out)?;
-    let mut fields = Vec::new();
-    push_field(&mut fields, "Shorthand", branch.aliases.join(" · "));
-    push_field(&mut fields, "Branch of", parent_line(parent));
-    push_field(&mut fields, "ISIL", branch.isil.clone().unwrap_or_default());
-    push_field(&mut fields, "KOBV id", branch.kobvid.clone());
-    push_field(&mut fields, "Short name", branch.short_name.clone());
-    push_field(
-        &mut fields,
-        "Address",
-        branch.address.clone().unwrap_or_default(),
-    );
-    if let Some(coords) = branch.coords() {
-        push_field(
-            &mut fields,
-            "Coordinates",
-            format!("{:.5}, {:.5}", coords.lat, coords.lon),
-        );
-    }
-    push_search_field(&mut fields, at);
-    write_fields(out, &fields, style)
-}
-
-/// The house behind a branch: its shorthand and its full name, or just the name where the
-/// list carries no shorthand for it.
-fn parent_line(parent: &Library) -> String {
-    match parent.alias() {
-        Some(alias) => format!("{alias} — {}", parent.name),
-        None => parent.name.clone(),
-    }
-}
-
-/// The `Search` field: the `--at` value that searches this branch, and — where the answer
-/// has an edge — what that edge is.
-///
-/// A `kobv` branch is not filtered upstream: its *house* is, and the branch is read off
-/// the copies of the records that come back. Saying so here is the whole point of the
-/// field, because it is the difference between "nothing there" and "nothing on this page".
-fn push_search_field(fields: &mut Vec<(String, String)>, at: &Location) {
-    push_field(
-        fields,
-        "Search",
-        format!("--at {} ({} engine)", at.key, at.engine),
-    );
-    if at.engine == Engine::Kobv && at.branch.is_some() {
-        fields.push((
-            String::new(),
-            "narrowed from the copies of its house's records, so a page \
-             can be short and absence is never proven"
-                .to_owned(),
-        ));
-    }
-}
-
-/// `3 branches`, or `1 branch`.
-fn branch_count(branches: &[Branch]) -> String {
-    if branches.len() == 1 {
-        "1 branch".to_owned()
-    } else {
-        format!("{} branches", branches.len())
-    }
-}
-
 /// Say why there is nothing to show. Never a bare "no results": the reason decides what
 /// the user should try next.
-pub fn empty(reason: &EmptyReason, out: &mut dyn Write) -> io::Result<()> {
-    writeln!(out, "{}", reason.message())
+///
+/// Wrapped like every other sentence this renderer writes. It was the one piece of output
+/// that could not respect `COLUMNS`, because it took no [`Style`] — and it is two
+/// sentences long in most of its variants, so it was also the one most likely to be broken
+/// by the terminal wherever the character happened to fall.
+pub fn empty(reason: &EmptyReason, out: &mut dyn Write, style: Style) -> io::Result<()> {
+    for line in reason.message().lines() {
+        write_line(out, line, 0, anstyle::Style::new(), style)?;
+    }
+    Ok(())
 }
 
 /// Render an error and its hint to stderr.
@@ -1800,12 +1573,12 @@ pub fn error(error: &Error, out: &mut dyn Write, style: Style) -> io::Result<()>
 }
 
 /// The columns a row may use: the terminal, minus what the indent already spent.
-fn available(style: Style, indent: usize) -> usize {
+pub(crate) fn available(style: Style, indent: usize) -> usize {
     style.width().saturating_sub(indent)
 }
 
 /// Write one laid-out row at an indent, without the trailing space padding leaves behind.
-fn write_row(
+pub(crate) fn write_row(
     out: &mut dyn Write,
     layout: &Layout,
     cells: &[Cell],
@@ -1827,7 +1600,7 @@ fn write_row(
 /// the width at all: a heading, a note and a library name used to run past the edge and be
 /// broken by the terminal wherever the character happened to fall (round 2, §3.4). Nothing
 /// is shortened — [`wrap`] only chooses where the line continues.
-fn write_line(
+pub(crate) fn write_line(
     out: &mut dyn Write,
     text: &str,
     indent: usize,
@@ -3771,139 +3544,6 @@ almafu_BV008885798
         assert!(output.contains(&expected), "{output:?}");
     }
 
-    /// The library table of `plan/cli.md`, character for character.
-    #[test]
-    fn the_library_table_is_reproduced() {
-        let libraries = crate::libraries::all();
-        let wanted = ["DE-1", "DE-11", "DE-B1533", "DE-609"];
-        let rows: Vec<&Library> = wanted
-            .iter()
-            .filter_map(|isil| libraries.iter().find(|library| library.isil == *isil))
-            .collect();
-        assert_eq!(
-            rows.len(),
-            wanted.len(),
-            "the four example houses are listed"
-        );
-        let mut out = Vec::new();
-        libraries_table(&rows, &mut out, Style::plain(WIDE)).expect("bytes");
-        let output = String::from_utf8(out).expect("UTF-8");
-        for line in output.lines() {
-            assert_eq!(
-                &line[5..9],
-                "    ",
-                "the shorthand column is nine wide: {line:?}"
-            );
-        }
-        assert!(output.starts_with("STABI    DE-1       Stabi Berlin     "));
-        assert!(output.contains("\nHU       DE-11      HU Berlin        "));
-        assert!(output.contains("\nASH      DE-B1533   Alice Salomon HS "));
-    }
-
-    /// `--near` adds one column and changes nothing else.
-    #[test]
-    fn the_near_table_carries_the_distance() {
-        let library = crate::libraries::all()
-            .first()
-            .expect("the list is not empty");
-        let mut out = Vec::new();
-        libraries_near(&[(library, 3.42)], &mut out, Style::plain(WIDE)).expect("bytes");
-        let output = String::from_utf8(out).expect("UTF-8");
-        assert!(output.trim_end().ends_with(" 3.4 km"), "{output:?}");
-        assert!(output.contains(&library.short_name), "{output:?}");
-    }
-
-    /// The detail view states what the list knows and leaves out what it does not.
-    #[test]
-    fn the_detail_view_leaves_out_what_is_not_stated() {
-        let library = crate::libraries::all()
-            .iter()
-            .find(|library| library.isil == "DE-1")
-            .expect("the Stabi is in the list");
-        let mut out = Vec::new();
-        library_detail(library, &mut out, Style::plain(WIDE)).expect("bytes");
-        let output = String::from_utf8(out).expect("UTF-8");
-        assert!(output.starts_with(&library.name));
-        assert!(output.contains("\n  Shorthand    STABI · SBB\n"));
-        assert!(output.contains("\n  ISIL         DE-1\n"));
-        assert!(output.contains("\n  Coordinates  52.51755, 13.39162\n"));
-        assert!(!output.contains("Opening"), "hours are never compiled in");
-        assert!(
-            output.contains(" branches\n"),
-            "the branch count comes before the branch names"
-        );
-    }
-
-    /// The two entries the list holds for one branch alias, for the branch tests below.
-    fn branch_of(alias: &str) -> (&'static Library, &'static Branch) {
-        match crate::libraries::look_up(alias).expect("the alias is in the list") {
-            crate::libraries::Entry::Branch { parent, branch } => (parent, branch),
-            other @ crate::libraries::Entry::Institution(_) => {
-                panic!("{alias} must be a branch, got {other:?}")
-            }
-        }
-    }
-
-    fn branch_output(alias: &str) -> String {
-        let (parent, branch) = branch_of(alias);
-        let at = crate::libraries::branch_location(parent, branch);
-        let mut out = Vec::new();
-        branch_detail(parent, branch, &at, &mut out, Style::plain(WIDE)).expect("bytes");
-        String::from_utf8(out).expect("UTF-8")
-    }
-
-    /// A branch of the public library network: its own address, its house named in one
-    /// line, and the `--at` that searches it.
-    ///
-    /// The house's own branch list must **not** be here — answering "where is the
-    /// Amerika-Gedenkbibliothek" with 98 branch names answers a different question.
-    #[test]
-    fn the_branch_view_states_the_branch_and_how_to_search_it() {
-        let output = branch_output("AGB");
-        let (parent, branch) = branch_of("AGB");
-
-        assert!(output.starts_with(&branch.name), "{output:?}");
-        assert!(output.contains("\n  Shorthand    AGB\n"), "{output:?}");
-        assert!(output.contains("\n  KOBV id      SIG00036\n"), "{output:?}");
-        assert!(
-            output.contains("Blücherplatz 1, 10961 Berlin"),
-            "the branch's own address, not the house's: {output:?}"
-        );
-        assert!(
-            output.contains("\n  Branch of    VOEBB — "),
-            "the house is named: {output:?}"
-        );
-        assert!(
-            output.contains("\n  Search       --at AGB (voebb engine)\n"),
-            "{output:?}"
-        );
-        assert!(
-            !output.contains(" branches\n"),
-            "the house's branch list belongs to the house: {output:?}"
-        );
-        for other in parent.branches.iter().filter(|b| b.kobvid != branch.kobvid) {
-            assert!(
-                !output.contains(&other.short_name),
-                "{} must not appear: {output:?}",
-                other.short_name
-            );
-        }
-    }
-
-    /// A branch outside the public network: the same view, the `--at` that searches it —
-    /// and the edge that `--at` has there, because `kobv` can only filter its house.
-    #[test]
-    fn a_kobv_branch_states_the_edge_of_its_search() {
-        let output = branch_output("PHILBIB");
-
-        assert!(output.contains("\n  Branch of    FU — "), "{output:?}");
-        assert!(
-            output.contains("\n  Search       --at PHILBIB (kobv engine)\n"),
-            "{output:?}"
-        );
-        assert!(output.contains("from the copies"), "{output:?}");
-    }
-
     /// "Nothing found" is never a bare line: the reason decides what to try next.
     #[test]
     fn an_empty_result_says_why() {
@@ -3916,6 +3556,7 @@ almafu_BV008885798
                 value: "video".to_owned(),
             },
             &mut out,
+            Style::plain(WIDE),
         )
         .expect("bytes");
         let output = String::from_utf8(out).expect("UTF-8");

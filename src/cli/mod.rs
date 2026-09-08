@@ -48,7 +48,7 @@ Examples:
   blibs search --author Kafka --year 1953 --format book
   blibs search --isbn 978-3-596-29433-6 --json
   blibs show almafu_BV008885798 --at STABI,HU
-  blibs libraries --find grimm
+  blibs libraries --find AGB
   blibs libraries --near 52.52,13.39
 
 Quoting is the whole trick: an argument in shell quotes is searched as a phrase,
@@ -100,7 +100,8 @@ Examples:
   blibs libraries AGB                one branch in detail, and how to search it
   blibs libraries HU/Germanistik     a branch of a house that has no shorthand
   blibs libraries SIG00036           the same, by the KOBV id blibs libraries prints
-  blibs libraries --find grimm       search short names, names and cities
+  blibs libraries --branches         every branch, with the key that searches it
+  blibs libraries --find grimm       search names, shorthands, ISILs and branches
   blibs libraries --near HU          nearest first, measured from another library
   blibs libraries --near 52.52,13.39 nearest first, measured from a point\
 ";
@@ -449,13 +450,23 @@ pub struct LibrariesArgs {
     #[arg(value_name = "LIBRARY")]
     pub key: Option<String>,
 
-    /// Search short names, names and cities.
+    /// Search shorthands, names, cities, ISILs and KOBV ids — branches included.
     ///
-    /// Case- and accent-insensitive substring matching over the institutions. Branches
-    /// are not searched — the question this answers is "which house do I mean", and 212
-    /// branch names would bury the 123 houses.
+    /// Case- and accent-insensitive substring matching over everything --at accepts, so a
+    /// key this command prints is a key this command finds. Branches are grouped under
+    /// their house: the question is still "which library do I mean", and a house can never
+    /// be pushed off the answer by its own branches.
     #[arg(long, value_name = "TEXT")]
     pub find: Option<String>,
+
+    /// List the branches instead of the houses.
+    ///
+    /// The houses are what `blibs libraries` shows; every one of their branches is
+    /// addressable too, and this is where they are listed with the key that searches each.
+    /// Combines with --find and --near, which then narrow the branches rather than the
+    /// houses.
+    #[arg(long)]
+    pub branches: bool,
 
     /// Order by distance from "lat,lon" or from another library's short name.
     ///
@@ -610,6 +621,8 @@ pub struct LibrariesPlan {
     pub detail: Option<Entry>,
     /// The `--find` query.
     pub find: Option<String>,
+    /// Whether the listing is of branches rather than of houses.
+    pub branches: bool,
     /// The point `--near` resolved to.
     pub near: Option<LatLon>,
     /// What `--near` was given, for the message when nothing matched.

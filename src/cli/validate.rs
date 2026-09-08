@@ -180,12 +180,35 @@ pub fn validate_show(args: &ShowArgs, json: bool, cache: bool) -> Result<ShowPla
 ///
 /// The two text arguments are checked for being empty first, so that `--find "$NAME"`
 /// with `NAME` unset is refused as the empty flag it is rather than searched for.
+///
+/// **A key and a listing flag are refused together**, before either is looked up. The key
+/// used to win in silence, which made `libraries HU --find x` the one place in the tool
+/// where a flag the user typed was ignored rather than answered or refused (round 2, §3.7)
+/// — and an ignored `--find` looks exactly like a `--find` that matched the house.
 pub fn validate_libraries(args: &LibrariesArgs, json: bool) -> Result<LibrariesPlan, Error> {
-    let near = args.near.as_deref().map(str::trim).map(point).transpose()?;
     let key = text_argument(args.key.as_deref(), "a library name")?;
+    let find = text_argument(args.find.as_deref(), "--find")?;
+    if key.is_some() {
+        let listing = [
+            ("--find", find.is_some()),
+            ("--near", args.near.is_some()),
+            ("--branches", args.branches),
+        ];
+        for (flag, given) in listing {
+            if given {
+                return Err(UsageError::ConflictingFlags {
+                    flag: flag.to_owned(),
+                    with: "a library name".to_owned(),
+                }
+                .into());
+            }
+        }
+    }
+    let near = args.near.as_deref().map(str::trim).map(point).transpose()?;
     Ok(LibrariesPlan {
         detail: key.as_deref().map(libraries::look_up).transpose()?,
-        find: text_argument(args.find.as_deref(), "--find")?,
+        find,
+        branches: args.branches,
         near,
         near_input: args.near.clone(),
         json,
