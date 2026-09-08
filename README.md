@@ -15,19 +15,26 @@ the Berlin public library network (VÖBB) holds a given copy.
 - **No online article index.** KOBV federates catalogue records, not article databases.
 - **No nationwide search.** Scope is Berlin/Brandenburg; that is the whole point of a
   regional tool.
-- **No return dates or holds.** Those live behind a library account, and `blibs` signs in
-  nowhere — a copy that is out is reported as `on loan`, never with a guessed due date.
-- **No holdings runs for journals.** The service answers one traffic light for the
-  *title*. Where it lists the copies of a serial it does name the range each covers, and
-  `blibs` prints them, one line and one light per copy:
+- **No holds — and a return date only where the catalogue prints one.** A hold queue lives
+  behind a library account, and `blibs` signs in nowhere. A due date is different:
+  `voebb.de` writes one beside the status of a copy that is out, so those lines read
+  `on loan, due 15 Sep 2026`. KOBV states none at all, and a copy that is out with nothing
+  said about it stays a bare `on loan` — never a guessed date.
+- **No holdings runs for journals, with one exception.** The availability service answers
+  one traffic light for the *title*. Where it lists the copies of a serial it does name
+  the range each covers, and `blibs` prints them, one line and one light per copy:
 
   ```
-  1911,643(24.Dez.) - 1920,134(13.März); 19…  Fremdsignatur M 038  available
-  1911,643(24.Dez.) - 1934,77(31.März)        Ztg 1621 MR       available
+  [1.]1872,1.Jan. - 68.1939,51…  Fremdsignatur M 208          available
+  1898,11.Dez. - 1908,Dez.       Ztg 9018 MR                  available
   ```
 
-  What no answer contains is the holdings *run* — which volumes a library has altogether —
-  so a note on every serial says to ask the library's own catalogue or the ZDB.
+  What that still does not give is the holdings *run* — which volumes a library has
+  altogether — and a note on such a record says to ask the library's own catalogue or the
+  ZDB. The exception is `voebb.de`: for its serials and newspapers it states the run as
+  one line of prose, which `blibs` carries as `holdings[].holdings_statement` and prints
+  above the copies — **whole**, because the `Standort:` and `Signatur:` inside it are free
+  text and not a grammar. Not every such record has one, and no KOBV record does.
 
 ## Installation
 
@@ -66,36 +73,36 @@ without is a word, and several words must all occur.
 ### With `--at`: grouped by location
 
 ```
-$ blibs search "Der Vorleser" --at HU,AGB --limit 3
+$ blibs search "Der Herr der Ringe" --at HU,AGB --limit 3
 
-HU Berlin · 35 results · showing 3
+HU Berlin · 11 results · showing 3
 
-  ●  Der Vorleser                          Schlink, Bernhard     2019   almahu_BV047459758
-       ZwB Naturwissenschaften, Lieblingsbüc…  S344 V9(.019)        available
-  ●  Bernhard Schlink: Der Vorleser        Heigenmoser, Manfred  2005   almahu_BV020008568
-       ZwB Germanistik/Skandinavistik, UG -…   GN 8896 H465         available
-  ●  Erläuterungen zu Bernhard Schlink:…   Möckel, Magret        2003   almahu_BV017167903
-       ZwB Germanistik/Skandinavistik, UG -…   GN 8896 M693(2)      available
+  ●  Der Herr der Ringe            Jackson, Peter           2004   almafu_BV036622058
+       ZB Grimm-Zentrum, 7. OG - Mediathek  2025 DVDM 21         available
+  ●  Der Hobbit und Der Herr der…  Rittstieg, Jana          2015   almahu_9948326315502882
+       Online-Zugriff · nur im Netz der HU                       available
+  ●  From Page to Screen / Vom B…  Almagro-Jiménez, Manuel  2020   almahu_9950338104802882
+       1 copy                                                    available
 
-AGB (VÖBB) · 137 results · showing 3
+AGB (VÖBB) · 214 results · showing 3
 
-  ●  Der Vorleser                        Schlink, Bernhard   2012   voebb_SAK34846185
-  ?  Der Vorleser                        Schlink, Bernhard   2012   voebb_SAK34672596
-  ○  Der Vorleser : Roman                Schlink, Bernhard   2002   voebb_SAK13363539
-       ZLB: Amerik…  L 248 Schlin 50 p    on loan               Standardausleihe - Vormerkung möglich
+  ?  Der Herr der Ringe                  Tolkien, J. R. R.          voebb_SAK11034413
+  ?  Der Herr der Ringe                  Tolkien, J. R. R.   2003   voebb_SAK34704391
+  ○  Der Herr der Ringe : die Chronik                        2022   voebb_SAK34954522
+       ZLB: Amerik…  Th 722/79            on loan, due 15 Sep 2026  Standardausleihe - Vormerkung möglich
 
 ●  available      ○  on loan      ?  status not confirmed
 
-note: this is an electronic title (Link zur Onleihe): it has no copies on a shelf, and its
-      loan status is the one its lending link states — "Zugang zum Titel erhalten Sie
-      hier. (Das Medium ist verfügbar / Ausleihe keine Vormerkung möglich)"
-note: this is an electronic title (Link zu Overdrive): it has no copies on a shelf, and
-      its lending link states no loan status this tool can read — "Zugang zum Titel
-      erhalten Sie hier."
+note: voebb.de lists no copies for a multi-part work — the copies belong to its volumes,
+      which are records of their own; search for the volume
+      record: voebb_SAK11034413
+note: an electronic title has no copies on a shelf, and the Link zu Overdrive row states
+      no loan status this tool can read — "Zugang zum Titel erhalten Sie hier."
+      record: voebb_SAK34704391
 ```
 
 One block per location, in the order given to `--at`, and a KOBV institution reads the
-same way. Each block's heading carries that location's true hit count (`137 results`), not
+same way. Each block's heading carries that location's true hit count (`214 results`), not
 the count of the combined search; `showing N` appears whenever the block prints fewer than
 that. A record can appear in more than one block if more than one of your locations holds
 it — that is intentional, not a duplicate. Under each hit stand the copies **of that
@@ -104,6 +111,11 @@ them. `--no-availability` is the flag that turns those lines off.
 
 The legend names only the symbols that occurred. `?` is one of them and is common: it
 means the service was asked and stated nothing, which is never the same as "not there".
+
+Under each note stands the line that says **which** records it is about — `record: <id>`,
+`4 records: …`, or `all 10 records` when it is every one of them. A note never spells its
+records into the sentence, so two records with the same limitation print one paragraph and
+not two; `notes[].records` in `--json` is the same list.
 
 ### Without `--at`: one flat line per hit
 
@@ -123,7 +135,11 @@ $ blibs search Kafka Prozess --limit 4
 No location to group by, so no item lines here — run `show` on a record id for those. The
 heading echoes the query as it was searched, field flags included (`133 results for
 title: Process, author: Kafka`), because the count belongs to all of it. Output fits the
-terminal down to 40 columns and uses the room it has above that.
+terminal down to 40 columns and uses the room it has above that. A shelfmark, a status and
+a record id are never shortened — half a shelfmark finds no book, half a date is a
+different deadline, and a cut id cannot be typed back into `show`. The columns that may be
+cut give way for them instead: the title and author here, the location under a hit, and
+each says so with an ellipsis.
 
 ### `show`: one title in full
 
@@ -149,14 +165,14 @@ Das Schloss
 Holdings
 
   ● UdK Berlin — Universität der Künste Berlin, Universitätsbibliothek
-      UdK Universitätsbibliothek, Mediathek       SK 7871           available
+      UdK Universitätsbibliothek, Med…  SK 7871                     available
   ● Berlin VÖBB/ZLB — Verbund der Öffentlichen Bibliotheken Berlins - VÖBB
     · 3 of 5 available
-      Amerika-Gedenkbibliothek (AGB)              Film 10 Hane 8:DVD.Video  available
-      Pankow / Kurt Tucholsky Bibliothek          DVD 2345          available
-      Treptow-Köpenick / Mittelpunktbibliothek…   Spielfilm Schlos  available
-      Amerika-Gedenkbibliothek (AGB)              Film 10 Hane 8 a:DVD.Video  on loan
-      Neukölln / Helene-Nathan-Bibliothek         Spielfilm Schlos  on loan
+      Amerika-Gedenkbibliothek (AGB)    Film 10 Hane 8:DVD.Video    available
+      Pankow / Kurt Tucholsky Bibliot…  DVD 2345                    available
+      Treptow-Köpenick / Mittelpunktb…  Spielfilm Schlos            available
+      Amerika-Gedenkbibliothek (AGB)    Film 10 Hane 8 a:DVD.Video  on loan
+      Neukölln / Helene-Nathan-Biblio…  Spielfilm Schlos            on loan
 
   a copy on loan carries no due date here — return dates and holds are only in the
   library's own catalogue, behind a patron login
@@ -199,7 +215,8 @@ JSON. A shortened `search` document:
   ],
   "availability": "fetched",
   "notes": [
-    { "kind": "voebb_online_only", "message": "this is an electronic title (Link zur Onleihe): …",
+    { "kind": "voebb_online_only",
+      "message": "an electronic title has no copies on a shelf; the loan status shown is …",
       "records": ["voebb_SAK34846185"] }
   ],
   "records": [
@@ -219,13 +236,15 @@ JSON. A shortened `search` document:
           "alias": "HU",
           "library": "Humboldt-Universität zu Berlin, Universitätsbibliothek, …",
           "short_name": "HU Berlin",
+          "local_id": "BV047459758",
           "mine": true,
           "summary": "available",
+          "holdings_statement": null,
           "items": [
             { "location": "ZwB Germanistik/Skandinavistik, UG", "branch": "HUB00043",
               "branch_name": "Zweigbibliothek Germanistik/Skandinavistik",
               "call_number": "GM 5000 S345 V9", "volume": null,
-              "status": "available", "order_option": null }
+              "status": "available", "due_date": null, "order_option": null }
           ]
         }
       ]
@@ -305,6 +324,19 @@ see the copies branch by branch.
   `authors[].role_code` the MARC relator code (`aut`, `trl`). Neither vocabulary is
   closed — the data carries German extensions no LoC list contains — and `voebb` never
   states a code at all, so `null` there means "not stated in this catalogue".
+- `items[].due_date` is the return date of a copy that is out, as **ISO-8601**
+  (`"2026-09-22"`). Only `voebb.de` states one, so it is `null` throughout a KOBV answer
+  and `null` for a copy that is in. It never decides `items[].status`, which comes from
+  the traffic light alone; a date stated in a form this tool cannot read stays `null` and
+  raises `voebb_due_date_unreadable` rather than being bent into shape.
+- `holdings[].holdings_statement` is what a library says about its run **in prose**,
+  verbatim and undivided — voebb.de's `Bestand` line for a serial or a newspaper
+  (`"Bestand in ZLB: 1994/95,1 - 1998/99,17(22.Apr.) Mikrofilm Standort: BStB Signatur: A
+  80 ZC 181 Beil.:Mikro"`). The `Standort:` and `Signatur:` inside it look like structure
+  and are free text, so it is never split: a guessed shelfmark would be quoted as though
+  the catalogue had stated one. Such a record normally has an **empty** `items[]` — the
+  statement is where its holdings are, not a loss — and it is `null` for every KOBV
+  holding, whose `924` fields arrive as items.
 
 ### `notes[]`
 
@@ -331,13 +363,18 @@ field is *absent* when there is nothing to say, rather than an empty array.
 | `availability_status_conflict` | ✓ | ✓ | a voebb copy's two status signals disagree; the worse one won |
 | `holding_without_isil` | ✓ | ✓ | a copy block matched no ISIL and is shown under the portal's name |
 | `voebb_multivolume` | ✓ | ✓ | the copies belong to the volumes, which are records of their own |
+| `voebb_no_copies_listed` | ✓ | ✓ | the item table is present and empty, and the page says nothing about why |
 | `voebb_online_only` | ✓ | ✓ | a lending-platform title; its state was read from the link text |
 | `voebb_online_state_unstated` | ✓ | ✓ | the same, with a link that states no status this tool knows |
+| `voebb_online_url_only` | ✓ | ✓ | an electronic title reachable only by a plain URL; no loan state anywhere |
+| `voebb_due_date_unreadable` | ✓ | ✓ | a return date was stated in a form this tool cannot read; none was guessed |
+| `voebb_page_unreadable` | ✓ | ✓ | one record page changed shape: that record lost its copies, the answer stands |
 | `branch_from_copies` | ✓ | ✓ | a KOBV branch was sieved from the copies; no total, never absence |
 | `branch_needs_copies` | ✓ | ✓ | `--no-availability` left no copies to read the branch from |
+| `location_key_ambiguous` | ✓ | ✓ | the `--at` key is claimed by several libraries; the first one answered |
 | `location_other_catalogue` | | ✓ | `--at` names a location the other catalogue answers for |
-| `serial_volumes_unknown` | | ✓ | one status for the title; which volumes are held is not derivable |
-| `loan_without_due_date` | | ✓ | a copy is out and no return date exists without a patron login |
+| `serial_volumes_unknown` | | ✓ | one status for the title, and the record states no run of its own |
+| `loan_without_due_date` | | ✓ | a copy is out and states **no** date; for that copy only a patron login has one |
 
 ### `show` and `libraries`
 
