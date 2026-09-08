@@ -40,12 +40,19 @@ fn dispatch(json: bool) -> ExitCode {
     }
 }
 
-/// Report what clap refused: an unknown subcommand, an unknown flag, a missing value.
+/// Report what clap refused: an unknown subcommand, an unknown flag, a missing value —
+/// the three commonest mistakes an agent makes.
 ///
 /// In human form clap prints it itself, because only clap knows *which* help to point at
 /// — the top-level one for an unknown subcommand, the subcommand's for a flag inside it.
-/// In JSON form that text would be unparseable noise, so it goes through the same error
-/// envelope as everything else.
+/// **That output stays clap's, byte for byte**; nothing here improves on a usage block
+/// written for a terminal.
+///
+/// In JSON form clap prints nothing at all, so the envelope is the entire answer. It used
+/// to carry clap's whole rendering inside `message` — its own `error: ` prefix, blank
+/// lines, a usage line that reads as though `--at` were mandatory, and a pointer to
+/// `--help` that no agent can follow. [`UsageError::Cli`] now reduces that to clap's first
+/// line and turns what was actionable in the rest into a hint.
 fn refused(clap_error: clap::Error, json: bool) -> ExitCode {
     if !json {
         let _ = clap_error.print();

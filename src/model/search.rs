@@ -649,7 +649,7 @@ impl ShowResult {
         availability: AvailabilityMode,
     ) -> Self {
         let mut notes = Vec::new();
-        notes.extend(other_catalogue_note(engine, locations));
+        notes.extend(other_catalogue_note(record.as_ref(), engine, locations));
         notes.extend(kobv_branch_note(locations, availability));
         if let Some(record) = &record {
             notes.extend(record_notes(record));
@@ -698,13 +698,42 @@ fn kobv_branch_note(locations: &[Location], availability: AvailabilityMode) -> O
 /// The note for a `--at` entry the other catalogue answers for.
 ///
 /// `show voebb_SAK… --at HU` and `show almafu_BV… --at AGB` are the two shapes of it. The
-/// location cannot narrow anything — the KOBV record does not know the branch, the voebb
-/// record does not know the institution — and being ignored without a word is what makes
-/// it read as "not held there", which is the one thing it does not mean.
-fn other_catalogue_note(engine: Engine, locations: &[Location]) -> Option<Note> {
+/// *engines* are unrelated — the KOBV record does not know the voebb branch, the voebb
+/// record does not know the KOBV institution — but that does not mean the location found
+/// nothing: a ZLB record reached through the KOBV union index routinely carries the very
+/// `DE-609` holding the voebb engine would have shown, so the note fires only when **none
+/// of the record's holdings claim the location** — checked with
+/// [`crate::select::holding_is_at`], the exact predicate [`crate::select::mark_mine`]
+/// uses to set `holding.mine`. Reusing it rather than a bare ISIL comparison is the fix:
+/// a second, looser test is exactly how this note came to contradict a `mine: true`
+/// sitting next to it. That also settles the harder case a branch of the other catalogue
+/// poses — the ISIL alone can match (every VÖBB copy is catalogued under `DE-609`)
+/// without proving the copy stands in *that* branch — because `holding_is_at` already
+/// carries the branch rule: it credits the branch when a copy names it, and, when no copy
+/// names any branch at all, treats that as "not stated" rather than "elsewhere" and
+/// credits the location anyway, the same leniency [`crate::select::mark_mine`] shows. So
+/// this note and `mine: true` are never in tension: whichever way `holding_is_at` answers
+/// for a holding is *also* the answer `mine` carries for it.
+///
+/// This note must **never** fire for a location a holding of the record claims. When the
+/// record itself is unknown (`show` found nothing to check) there are no holdings to
+/// consult, so it fires for every location of the other catalogue, exactly as before —
+/// there is nothing for it to contradict.
+fn other_catalogue_note(
+    record: Option<&Record>,
+    engine: Engine,
+    locations: &[Location],
+) -> Option<Note> {
     let elsewhere: Vec<&Location> = locations
         .iter()
         .filter(|location| location.engine != engine)
+        .filter(|location| match record {
+            Some(record) => !record
+                .holdings
+                .iter()
+                .any(|holding| crate::select::holding_is_at(holding, location)),
+            None => true,
+        })
         .collect();
     let other = elsewhere.first()?.engine;
     let keys: Vec<&str> = elsewhere
@@ -1359,6 +1388,68 @@ mod tests {
             .expect("a voebb branch on a kobv record is stated");
         assert!(note.message.contains("--at AGB"), "{}", note.message);
         assert!(note.message.contains("voebb"), "{}", note.message);
+    }
+
+    /// The bug this module used to have: a `kobvindex_` record reached through the union
+    /// index can carry the very `DE-609` holding a VÖBB branch would show, with a copy
+    /// that even names the branch — so `--at AGB` *did* apply, `mine: true` says so, and
+    /// the note must stay silent rather than claim the opposite right next to it.
+    #[test]
+    fn a_kobvindex_record_with_a_de609_holding_gets_no_other_catalogue_note() {
+        let mut record = kobv_record();
+        record.id = RecordId::parse("kobvindex_ZLB34296964").expect("a prefixed id parses");
+        record.holdings.push(Holding {
+            isil: Some(Isil::new("DE-609")),
+            alias: Some("VOEBB".to_owned()),
+            library: "Berlin VÖBB/ZLB".to_owned(),
+            short_name: None,
+            local_id: Some("ZLB34296964".to_owned()),
+            mine: true,
+            summary: Status::Available,
+            items: vec![Item {
+                location: None,
+                branch: Some("SIG00036".to_owned()),
+                branch_name: Some("Amerika-Gedenkbibliothek".to_owned()),
+                call_number: Some("112/000 106 782".to_owned()),
+                volume: None,
+                status: Status::Available,
+                order_option: None,
+            }],
+        });
+        let result = ShowResult::new(
+            Some(record),
+            Engine::Kobv,
+            &[agb()],
+            AvailabilityMode::Fetched,
+        );
+        assert!(
+            result
+                .notes
+                .iter()
+                .all(|note| note.kind != note_kinds::LOCATION_OTHER_CATALOGUE),
+            "{:?}",
+            result.notes
+        );
+    }
+
+    /// The case the note exists for: a `gbv_` record with no `DE-609` holding at all —
+    /// nothing here claims AGB, so the note must still fire.
+    #[test]
+    fn a_gbv_record_without_a_de609_holding_still_gets_the_note() {
+        let mut record = kobv_record();
+        record.id = RecordId::parse("gbv_123456789").expect("a prefixed id parses");
+        let result = ShowResult::new(
+            Some(record),
+            Engine::Kobv,
+            &[agb()],
+            AvailabilityMode::Fetched,
+        );
+        let note = result
+            .notes
+            .iter()
+            .find(|note| note.kind == note_kinds::LOCATION_OTHER_CATALOGUE)
+            .expect("no holding claims AGB, so the note is still owed");
+        assert!(note.message.contains("--at AGB"), "{}", note.message);
     }
 
     /// A location of the record's own catalogue is what `--at` is for, and says nothing.

@@ -358,12 +358,16 @@ fn availability_is_one_record_page_per_displayed_record() {
     );
 }
 
-/// `--available` hides the Onleihe record — its copies are not on a shelf and this tool
-/// does not read the loan status voebb.de writes into its `Link zu …` row — and the
-/// footnote has to say **that**, not that no status was stated. The catalogue said
-/// something; blibs did not read it.
+/// `--available` hides the Onleihe record, and hides it as a record it **judged**.
+///
+/// Changed in round 2 (§3.6): this test used to require the
+/// `availability_filter_unstated` note, because the tool left an electronic title at
+/// [`Status::Unknown`] while printing its own translation of `(Das Medium ist
+/// ausgeliehen / …)` two lines below. The status is read now, so the record is hidden
+/// for a *stated* reason and there is nothing left for that note to explain — a note
+/// that fired here would be the contradiction, not the fix.
 #[test]
-fn the_availability_filter_names_the_electronic_titles_it_hid() {
+fn an_electronic_title_that_is_out_is_hidden_as_a_judged_record() {
     let fetch = voebb_fetch();
     let ran = invoke(
         &[
@@ -380,25 +384,26 @@ fn the_availability_filter_names_the_electronic_titles_it_hid() {
     );
 
     let document = ran.json();
+    let records = document["records"].as_array().expect("records is an array");
+    assert!(
+        !records
+            .iter()
+            .any(|record| record["id"] == "voebb_SAK16112988"),
+        "the Onleihe copy is out, so --available hides it: {records:?}"
+    );
+
     let notes = document["notes"].as_array().expect("notes is an array");
-    let unstated = notes
-        .iter()
-        .find(|note| note["kind"] == "availability_filter_unstated")
-        .unwrap_or_else(|| panic!("the filter hid a record it could not judge: {notes:?}"));
-    let message = unstated["message"]
-        .as_str()
-        .expect("a note carries a message");
     assert!(
-        !message.contains("no status was stated"),
-        "voebb.de states it, this tool does not read it: {message:?}"
+        !notes
+            .iter()
+            .any(|note| note["kind"] == "availability_filter_unstated"),
+        "the loan state was read, so nothing about this page is unjudged: {notes:?}"
     );
+    // The empty copy list of an electronic title is still never silent — that note says
+    // where the status came from, and it is a different statement from the one above.
     assert!(
-        message.contains("electronic title"),
-        "the footnote names the e-media: {message:?}"
-    );
-    assert!(
-        message.contains("lending link"),
-        "and says where their status stands: {message:?}"
+        notes.iter().any(|note| note["kind"] == "voebb_online_only"),
+        "{notes:?}"
     );
 }
 
@@ -759,6 +764,31 @@ fn show_fetches_one_record_page_without_a_session() {
     assert!(ran.out.contains("Der Vorleser"), "{}", ran.out);
     // The id is printed in full — it is the argument for the next invocation.
     assert!(ran.out.contains("voebb_SAK13776205"), "{}", ran.out);
+}
+
+/// A copy the item table cannot place keeps its house name and borrows no id.
+///
+/// `SAK13776205` stands in `ZLB: Außenmagazin`, and the ZLB runs **two** outlying stacks
+/// (round 2, §2.6). A human reads the cell text either way; an agent reads
+/// `items[].branch` and would have believed the AGB. The name survives, the id does not.
+#[test]
+fn a_copy_in_an_ambiguously_named_store_names_no_branch() {
+    let fetch = voebb_fetch();
+    let ran = invoke(&["--json", "show", "voebb_SAK13776205"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let items: Vec<&serde_json::Value> = document["record"]["holdings"]
+        .as_array()
+        .expect("holdings is an array")
+        .iter()
+        .flat_map(|holding| holding["items"].as_array().into_iter().flatten())
+        .collect();
+    let [item] = items.as_slice() else {
+        panic!("this record has exactly one copy: {items:?}");
+    };
+    assert_eq!(item["branch_name"], "ZLB: Außenmagazin");
+    assert_eq!(item["branch"], serde_json::Value::Null);
 }
 
 /// A record number voebb.de does not hold is answered with its search entry page. That

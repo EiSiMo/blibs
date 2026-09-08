@@ -15,6 +15,8 @@
 
 use std::fmt;
 
+use clap::error::ContextKind;
+
 use crate::counts;
 use crate::model::{Engine, RecordId};
 
@@ -81,9 +83,9 @@ impl Outcome {
     }
 }
 
-/// Why a run produced no records. Never collapsed into a bare "no results": the seven
-/// reasons call for seven different next steps, and only `NoHits` means the catalogue
-/// really has nothing.
+/// Why a run produced no records. Never collapsed into a bare "no results": every reason
+/// here calls for a different next step, and only `NoHits` and `NoHitsAnywhere` mean the
+/// catalogue really has nothing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EmptyReason {
     /// The catalogue returned zero records for this query.
@@ -102,6 +104,23 @@ pub enum EmptyReason {
         /// The query as the user typed it, echoed back.
         terms: String,
         /// The `--at` locations, as the user wrote them.
+        locations: Vec<String>,
+    },
+    /// `--at` was in play, the restricted search came back empty — and so did the
+    /// unrestricted one. The sibling of [`EmptyReason::NoHitsAtLocations`], and the
+    /// distinction is not cosmetic: there, `--at` *is* the cause and naming more
+    /// libraries is the way out; here it is not, and that advice is guaranteed to fail
+    /// again because the words find nothing anywhere in the region.
+    ///
+    /// Only ever built where an **unfiltered** total is actually known. The `kobv` engine
+    /// filters upstream and has no such total, so it must keep saying
+    /// [`EmptyReason::NoHitsAtLocations`]; voebb.de answers with the network-wide count
+    /// beside the branch facet, which is where the difference comes from.
+    NoHitsAnywhere {
+        /// The query as the user typed it, echoed back.
+        terms: String,
+        /// The `--at` locations, as the user wrote them. Named so the message can say
+        /// which restriction was *not* to blame.
         locations: Vec<String>,
     },
     /// Records were fetched, but a client-side filter removed all of them. Carries the
@@ -151,6 +170,24 @@ pub enum EmptyReason {
         /// The last page that holds anything.
         last: u32,
     },
+    /// The pages of a **sorted** window ran out. The sibling of
+    /// [`EmptyReason::PastTheLastMatch`] for the other reason a window is anchored:
+    /// ordering needs one set to order, so `--sort` pins the window to a single block and
+    /// `--page` walks the records inside it.
+    ///
+    /// Its own variant rather than a field on `PastTheLastMatch`, because a sort has
+    /// neither a filter nor a value to name, and the sentence it needs is a different
+    /// one: nothing was *dropped* here — the records simply ran out.
+    PastTheLastSorted {
+        /// How many records the anchored window holds, after dedup.
+        sorted: usize,
+        /// The sort key as the user asked for it, e.g. `year`.
+        sort: String,
+        /// The page that was asked for.
+        page: u32,
+        /// The last page that holds anything.
+        last: u32,
+    },
     /// Hits existed, but none of them is held at any of the requested locations.
     NoHoldings {
         /// The `--at` locations, as the user wrote them.
@@ -189,6 +226,14 @@ impl EmptyReason {
                      or drop it to ask the whole region"
                 )
             }
+            EmptyReason::NoHitsAnywhere { terms, locations } => {
+                let locations = locations.join(", ");
+                format!(
+                    "no results for {terms} — not at {locations}, and not anywhere in the region\n\
+                     the words are what came back empty, not the restriction: try fewer or more \
+                     general words, since naming more libraries in --at cannot help here"
+                )
+            }
             EmptyReason::FilteredOut {
                 total,
                 fetched,
@@ -212,31 +257,7 @@ impl EmptyReason {
                 total,
                 judged,
                 unstated,
-            } => {
-                // The counts are phrased, not interpolated: a single page otherwise
-                // reads "none of the 1 records", and one record without a statement
-                // "1 of them state no status at all". `counts` holds the wording that
-                // `render::human` says about the same numbers, because `error` must not
-                // depend on `render` and two copies of a phrase drift.
-                let page = counts::records(*judged);
-                let head = match total {
-                    Some(total) => format!(
-                        "{}, but none of the {page} on this page is in right now",
-                        counts::results(*total)
-                    ),
-                    None => format!("none of the {page} on this page is in right now"),
-                };
-                let silent = if *unstated > 0 {
-                    let state = if *unstated == 1 { "states" } else { "state" };
-                    format!(", and {unstated} of them {state} no status at all")
-                } else {
-                    String::new()
-                };
-                format!(
-                    "{head}{silent}\n\
-                     try a larger --limit, another --page, or drop --available"
-                )
-            }
+            } => nothing_available_message(*total, *judged, *unstated),
             EmptyReason::PastTheLastMatch {
                 matched,
                 filter,
@@ -249,6 +270,18 @@ impl EmptyReason {
                  pages 1 to {last} hold them — a client-side filter only ever sees the \
                  window the catalogue delivered, so there is no page beyond it",
                 counts::records(*matched)
+            ),
+            EmptyReason::PastTheLastSorted {
+                sorted,
+                sort,
+                page,
+                last,
+            } => format!(
+                "{} in the fetched window are what --sort {sort} put in order, and page {page} \
+                 begins after the last of them\n\
+                 pages 1 to {last} hold them — sorting needs one set to put in order, so the \
+                 window is anchored and there is no page beyond it",
+                counts::records(*sorted)
             ),
             EmptyReason::NoHoldings { locations } => {
                 let locations = locations.join(", ");
@@ -268,12 +301,44 @@ impl EmptyReason {
                  they came from — almafu_, almahu_, kobvindex_, gbv_, b3kat_ and voebb_ are \
                  among them; they also change when a record is merged upstream"
             ),
+            // "the full list" was a dead end for the group most likely to read this:
+            // `blibs libraries` names houses, and not one of the 211 branches, so the
+            // advice has to name where a branch *is* listed as well.
             EmptyReason::NoLibraryMatched { query } => format!(
                 "no library matched {query:?}\n\
-                 run `blibs libraries` to see the full list"
+                 run `blibs libraries` for the houses, or `blibs libraries VOEBB` for the \
+                 branches of one"
             ),
         }
     }
+}
+
+/// The two counted cases of `--available`, phrased rather than interpolated: a single
+/// page otherwise reads *"none of the 1 records"*, and one record without a statement
+/// *"1 of them state no status at all"*.
+///
+/// A free function only because [`EmptyReason::message`] has an arm per reason and this is
+/// the longest of them; `counts` holds the wording so that `render::human` says the same
+/// sentence about the same numbers without `error` depending on `render`.
+fn nothing_available_message(total: Option<u64>, judged: usize, unstated: usize) -> String {
+    let page = counts::records(judged);
+    let head = match total {
+        Some(total) => format!(
+            "{}, but none of the {page} on this page is in right now",
+            counts::results(total)
+        ),
+        None => format!("none of the {page} on this page is in right now"),
+    };
+    let silent = if unstated > 0 {
+        let state = if unstated == 1 { "states" } else { "state" };
+        format!(", and {unstated} of them {state} no status at all")
+    } else {
+        String::new()
+    };
+    format!(
+        "{head}{silent}\n\
+         try a larger --limit, another --page, or drop --available"
+    )
 }
 
 /// The crate's only error type. Five categories, one per exit code.
@@ -411,6 +476,25 @@ pub enum UsageError {
         /// What the user typed.
         input: String,
     },
+    /// `--language` was given the ISO-639-2/**T** code of a language whose records carry
+    /// the **B** variant — `deu` for `ger`, `fra` for `fre`, `zho` for `chi`.
+    ///
+    /// Its own variant, and its own `kind`, because the remedy is a different one:
+    /// [`UsageError::LanguageCode`] says "that is not a code" and can only describe the
+    /// shape of one, while this says "that is the wrong one of two codes" and knows
+    /// which one was meant. An agent can substitute it without reading prose.
+    ///
+    /// It is a usage error rather than an empty result on purpose: the shape check passes
+    /// for `deu`, so the filter used to run, match nothing, and exit 1 — "searched, does
+    /// not exist" for what is really a typo, with advice that sends the reader off to
+    /// narrow a search that was never the problem.
+    #[error("--language {input:?} is the terminology code; the records carry {bibliographic:?}")]
+    LanguageCodeVariant {
+        /// The ISO-639-2/T code the user typed.
+        input: String,
+        /// The ISO-639-2/B code the records actually carry.
+        bibliographic: String,
+    },
     /// A flag, or a search term, was given a value with no text in it.
     ///
     /// Never dropped silently: an empty value almost always comes from a shell variable
@@ -421,6 +505,17 @@ pub enum UsageError {
         /// The flag as spelled on the command line — or `a search term` for a positional
         /// argument, which has no flag to name.
         flag: String,
+    },
+    /// A search word with not one letter or digit in it.
+    ///
+    /// Refused rather than sent, although it parses: the catalogue reads a term of pure
+    /// punctuation as *no* term and answers with its whole index — `search '@and'`
+    /// returned 8.55 million records, measured 2026-09-07 — which looks like a successful
+    /// search and answers nothing.
+    #[error("{term:?} contains no letters or digits")]
+    TermWithoutText {
+        /// The term as the user typed it.
+        term: String,
     },
     /// An empty query is diagnostic 1/10 upstream.
     #[error("empty query")]
@@ -438,6 +533,20 @@ pub enum UsageError {
         /// The value given.
         value: u32,
     },
+    /// A flag that counts was given a negative number.
+    ///
+    /// Never left to clap: a leading `-` makes clap read the value as another flag, and
+    /// the tip it prints then — *"to pass '-1' as a value, use '-- -1'"* — would turn the
+    /// number into a **search term**, quietly answering a different question. The two
+    /// counting flags already have first-class messages for `0` and `51`; this is the
+    /// same mistake with a sign in front of it.
+    #[error("{flag} must be a positive number, got {value}")]
+    NegativeNumber {
+        /// The flag as spelled on the command line.
+        flag: String,
+        /// The value as the user wrote it, sign and all.
+        value: String,
+    },
     /// `--page` must be 1-based.
     #[error("--page must be 1 or greater, got {value}")]
     PageOutOfRange {
@@ -445,6 +554,14 @@ pub enum UsageError {
         value: u32,
     },
     /// `--page` and `--limit` together name a window past where a catalogue can be paged.
+    ///
+    /// **Only the `voebb` engine reaches this, and that is a limit of what can be known
+    /// locally rather than an inconsistency.** voebb.de stops at a fixed position, so the
+    /// window can be measured against a constant before anything is sent — exit 2, in
+    /// 0.01 s. The KOBV catalogue publishes no such ceiling: how deep a result set can be
+    /// paged depends on the result set, so the same mistake can only be found out by
+    /// asking, and comes back as [`RejectedError::Diagnostic`] `1/61` — exit 5. One user
+    /// mistake, two exit codes, because one of them is a refusal and the other an answer.
     #[error(
         "--page {page} with --limit {limit} reaches result {position}, past where the \
          {engine} catalogue can be paged"
@@ -522,11 +639,16 @@ pub enum UsageError {
         expected: String,
     },
     /// Anything clap itself rejected — unknown flag, unknown subcommand, missing value.
+    /// The three commonest mistakes an agent makes, so this is the variant it reads most.
     ///
-    /// Only ever built in `main`, from a real parse failure, and only ever printed by
-    /// clap: it is the one variant whose `Display` already carries an `error:` prefix and
-    /// whose usage line only clap can choose. Nothing inside the library raises it.
-    #[error(transparent)]
+    /// Only ever built in `main`, from a real parse failure; nothing inside the library
+    /// raises it. In **human** form it is never rendered at all: clap prints its own
+    /// text, because only clap knows which help to point at. In **JSON** form clap prints
+    /// nothing, so this object is the entire answer — and it therefore may not be clap's
+    /// terminal rendering poured into a data field. `Display` is clap's first line, its
+    /// summary, without the `error: ` prefix that belongs to the terminal; what was
+    /// actionable in the rest of that rendering comes back as a hint.
+    #[error("{}", clap_message(.0))]
     Cli(#[from] clap::Error),
 }
 
@@ -541,10 +663,13 @@ impl UsageError {
             UsageError::YearFormat { .. } => "invalid_year",
             UsageError::Isbn { .. } => "invalid_isbn",
             UsageError::LanguageCode { .. } => "invalid_language",
+            UsageError::LanguageCodeVariant { .. } => "language_code_variant",
+            UsageError::TermWithoutText { .. } => "term_without_text",
             UsageError::EmptyValue { .. } => "empty_value",
             UsageError::EmptyQuery => "empty_query",
             UsageError::QueryTooLong { .. } => "query_too_long",
             UsageError::LimitOutOfRange { .. } => "limit_out_of_range",
+            UsageError::NegativeNumber { .. } => "negative_number",
             UsageError::PageOutOfRange { .. } => "page_out_of_range",
             UsageError::WindowTooDeep { .. } => "window_too_deep",
             UsageError::FlagUnsupportedByEngine { .. } => "unsupported_by_engine",
@@ -558,18 +683,17 @@ impl UsageError {
         }
     }
 
-    /// The way out of this mistake. `None` only for [`UsageError::Cli`], where clap has
-    /// already printed the usage line and a second pointer would just be noise.
+    /// The way out of this mistake. Never `None`: every one of these is something the
+    /// user typed, so there is always a next step to name — including for
+    /// [`UsageError::Cli`], which used to have none on the grounds that clap had printed
+    /// a usage line already. Under `--json` clap prints nothing at all, and that left the
+    /// three commonest agent mistakes with no advice whatsoever.
+    ///
+    /// The signature stays `Option` because [`Error::hint`] is one function over five
+    /// categories and the JSON object's `hint` member is nullable by contract.
     pub fn hint(&self) -> Option<String> {
         let hint = match self {
-            UsageError::UnknownLibrary { suggestions, .. } => {
-                let lookup = "run `blibs libraries --find <name>` to look up a library";
-                if suggestions.is_empty() {
-                    lookup.to_string()
-                } else {
-                    format!("did you mean {}? {lookup}", suggestions.join(", "))
-                }
-            }
+            UsageError::UnknownLibrary { suggestions, .. } => unknown_library_hint(suggestions),
             UsageError::AmbiguousBranch { candidates, .. } => {
                 format!("name one of them: {}", candidates.join(", "))
             }
@@ -594,6 +718,16 @@ impl UsageError {
                  --language ger for German, eng for English, fre for French"
                     .to_string()
             }
+            UsageError::LanguageCodeVariant { bibliographic, .. } => format!(
+                "use --language {bibliographic} — MARC carries the bibliographic code, \
+                 which differs from the terminology one for about twenty languages"
+            ),
+            UsageError::TermWithoutText { .. } => {
+                "the catalogue reads a term without letters or digits as no term at all and \
+                 answers with millions of unrelated records — give at least one word, \
+                 e.g. `blibs search Kafka`"
+                    .to_string()
+            }
             UsageError::EmptyValue { flag } => format!(
                 "an empty value is almost always a shell variable that did not expand — \
                  check what {flag} was given, or leave it out"
@@ -611,6 +745,10 @@ impl UsageError {
                  and --page 2 fetches the next window"
                     .to_string()
             }
+            UsageError::NegativeNumber { flag, value } => format!(
+                "{flag} counts upward from 1, e.g. {flag} 10 — and never as `-- {value}`, \
+                 which would search for {value} instead"
+            ),
             UsageError::PageOutOfRange { .. } => {
                 "pages are 1-based: the first page is --page 1".to_string()
             }
@@ -649,10 +787,106 @@ impl UsageError {
                 "blibs advertises a value its own tables do not accept — that is a bug in \
                  blibs, please report it at {REPORT_URL}"
             ),
-            UsageError::Cli(_) => return None,
+            UsageError::Cli(error) => clap_hint(error),
         };
         Some(hint)
     }
+}
+
+/// The way out of an unresolvable `--at`, avoiding two dead ends that were both measured.
+///
+/// `blibs libraries` prints the 123 houses and not one of the 211 branches, so an advice
+/// line that calls it "the full list" strands exactly the reader who typed a branch name.
+/// And `--at` splits on commas, so the 63 branch short names that carry one cannot be
+/// written out at all: what arrives here is *half* a name, and accusing that half without
+/// naming the comma sends the user hunting for a typo that is not there. The escape has to
+/// be named with it, because no spelling of the name itself can work.
+///
+/// The comma line is held back when the list produced a near miss: there the suggestion is
+/// the answer, and a second paragraph would bury it.
+fn unknown_library_hint(suggestions: &[String]) -> String {
+    let lookup = "run `blibs libraries --find <name>` to look one up, or \
+                  `blibs libraries VOEBB` to list the branches of a house";
+    if suggestions.is_empty() {
+        format!(
+            "{lookup}\n--at splits on commas, so a branch whose name carries one has to be \
+             given by its KOBV id instead, e.g. BIB000000240"
+        )
+    } else {
+        format!("did you mean {}? {lookup}", suggestions.join(", "))
+    }
+}
+
+/// clap's own summary of what went wrong: the first line of its rendering, without the
+/// `error: ` prefix that belongs to a terminal rather than to a data field.
+///
+/// The rest of that rendering is dropped on purpose. The usage line reads as a list of
+/// *required* arguments — `Usage: blibs search --at <LIST> <TERMS>...` announces `--at`
+/// as mandatory, which it is not — and "For more information, try '--help'" is advice no
+/// agent can act on. What is genuinely useful in it comes back through [`clap_hint`].
+fn clap_message(error: &clap::Error) -> String {
+    let rendered = error.render().to_string();
+    let first = rendered.lines().next().unwrap_or_default().trim();
+    let message = first.strip_prefix("error: ").unwrap_or(first).trim();
+    if message.is_empty() {
+        // clap always renders a summary; an empty `message` would leave the JSON object
+        // saying nothing at all, which is worse than saying something generic.
+        return "the command line could not be parsed".to_string();
+    }
+    message.to_string()
+}
+
+/// Which help to run, plus clap's own suggestion when it made one.
+///
+/// clap's `SuggestedArg`/`SuggestedSubcommand` are kept, because *"a similar argument
+/// exists: '--at'"* is the most useful sentence in the whole rendering and it names the
+/// fix outright. `ContextKind::Suggested` is deliberately **not**: for a negative number
+/// it says *"to pass '-1' as a value, use '-- -1'"*, which would turn a mistyped `--limit`
+/// into a search term — see [`UsageError::NegativeNumber`], which catches those before
+/// clap sees them.
+fn clap_hint(error: &clap::Error) -> String {
+    let help = format!(
+        "run `{} --help` to see what it accepts",
+        clap_command_path(error)
+    );
+    match clap_suggestion(error) {
+        Some(suggestion) => format!("did you mean {suggestion}? {help}"),
+        None => help,
+    }
+}
+
+/// The command the failure happened in — `blibs search` for a flag inside `search`,
+/// `blibs` for an unknown subcommand — read off clap's usage line, the only place that
+/// knows it. Everything from the first `-`, `<` or `[` on describes the *shape* of the
+/// call rather than its name, so the name ends there. A clap error without a usage
+/// context (a hand-built one, or a missing value) falls back to the top-level help
+/// instead of guessing.
+fn clap_command_path(error: &clap::Error) -> String {
+    let Some(usage) = error.get(ContextKind::Usage).map(ToString::to_string) else {
+        return "blibs".to_string();
+    };
+    let line = usage.lines().next().unwrap_or_default();
+    let line = line.trim().strip_prefix("Usage:").unwrap_or(line).trim();
+    let path: Vec<&str> = line
+        .split_whitespace()
+        .take_while(|word| !word.starts_with(['-', '<', '[']))
+        .collect();
+    if path.is_empty() {
+        "blibs".to_string()
+    } else {
+        path.join(" ")
+    }
+}
+
+/// The near miss clap found, if it found one — a subcommand first, because an unknown
+/// subcommand is the coarser mistake of the two.
+fn clap_suggestion(error: &clap::Error) -> Option<String> {
+    [ContextKind::SuggestedSubcommand, ContextKind::SuggestedArg]
+        .into_iter()
+        .filter_map(|kind| error.get(kind))
+        .map(ToString::to_string)
+        .find(|text| !text.trim().is_empty())
+        .map(|text| text.trim().to_string())
 }
 
 /// Which part of an ISBN failed validation. Structured so that the hint can name it —
@@ -802,6 +1036,12 @@ impl ServiceError {
 #[derive(Debug, thiserror::Error)]
 pub enum RejectedError {
     /// A top-level SRU diagnostic.
+    ///
+    /// Diagnostic `1/61` is the KOBV half of the boundary documented on
+    /// [`UsageError::WindowTooDeep`]: a `--page` past the end of the result set is exit 2
+    /// for voebb, whose ceiling is a constant blibs can check locally, and exit 5 here,
+    /// where only the catalogue knows where its result set ends. Nothing is wrong with
+    /// the words in that case — the window is — and the hint says so.
     #[error("the catalogue rejected the query: {message}")]
     Diagnostic {
         /// The diagnostic URI, e.g. `info:srw/diagnostic/1/48`.
@@ -1066,7 +1306,7 @@ impl<'a> From<&'a Error> for ErrorEnvelope<'a> {
 }
 
 /// One constructed example of every variant in the enum, split by category only so that
-/// neither half outgrows a readable function. The list is the test: a new variant that is
+/// no part outgrows a readable function. The list is the test: a new variant that is
 /// not added here fails the uniqueness and hint checks in this module.
 ///
 /// It sits outside `mod tests` so that `render` can hold its renderers to the same list.
@@ -1076,6 +1316,7 @@ impl<'a> From<&'a Error> for ErrorEnvelope<'a> {
 #[cfg(test)]
 pub fn every_variant_for_tests() -> Vec<Error> {
     let mut all = tests::usage_variants();
+    all.extend(tests::query_variants());
     all.extend(tests::remote_variants());
     all
 }
@@ -1090,7 +1331,8 @@ mod tests {
         every_variant_for_tests()
     }
 
-    /// Everything the user can get wrong before a byte goes out.
+    /// What the user can get wrong about *where* to search and *how much* of it to
+    /// fetch — the flags, the window, the library list.
     pub(super) fn usage_variants() -> Vec<Error> {
         vec![
             UsageError::UnknownLibrary {
@@ -1106,28 +1348,6 @@ mod tests {
                 ],
             }
             .into(),
-            UsageError::Wildcard {
-                term: "Proze*".to_string(),
-            }
-            .into(),
-            UsageError::Range {
-                input: "1990-2000".to_string(),
-            }
-            .into(),
-            UsageError::YearFormat {
-                input: "199".to_string(),
-            }
-            .into(),
-            UsageError::Isbn {
-                input: "978-3-596-29433-4".to_string(),
-                problem: IsbnProblem::CheckDigit {
-                    expected: '1',
-                    found: '4',
-                },
-            }
-            .into(),
-            UsageError::EmptyQuery.into(),
-            UsageError::QueryTooLong { chars: 2400 }.into(),
             UsageError::LimitOutOfRange { value: 200 }.into(),
             UsageError::PageOutOfRange { value: 0 }.into(),
             UsageError::WindowTooDeep {
@@ -1152,16 +1372,9 @@ mod tests {
                 input: "Alexanderplatz 1".to_string(),
             }
             .into(),
-            UsageError::RecordId {
-                input: "BV008885798".to_string(),
-            }
-            .into(),
-            UsageError::LanguageCode {
-                input: "de".to_string(),
-            }
-            .into(),
-            UsageError::EmptyValue {
-                flag: "--at".to_string(),
+            UsageError::NegativeNumber {
+                flag: "--limit".to_string(),
+                value: "-1".to_string(),
             }
             .into(),
             UsageError::NearCoordinatesOutOfRange {
@@ -1182,6 +1395,56 @@ mod tests {
                 clap::error::ErrorKind::UnknownArgument,
                 "unexpected argument '--nope' found",
             ))
+            .into(),
+        ]
+    }
+
+    /// What the user can get wrong about *what* to search for — the words, the codes,
+    /// the identifiers.
+    pub(super) fn query_variants() -> Vec<Error> {
+        vec![
+            UsageError::Wildcard {
+                term: "Proze*".to_string(),
+            }
+            .into(),
+            UsageError::Range {
+                input: "1990-2000".to_string(),
+            }
+            .into(),
+            UsageError::YearFormat {
+                input: "199".to_string(),
+            }
+            .into(),
+            UsageError::Isbn {
+                input: "978-3-596-29433-4".to_string(),
+                problem: IsbnProblem::CheckDigit {
+                    expected: '1',
+                    found: '4',
+                },
+            }
+            .into(),
+            UsageError::EmptyQuery.into(),
+            UsageError::QueryTooLong { chars: 2400 }.into(),
+            UsageError::RecordId {
+                input: "BV008885798".to_string(),
+            }
+            .into(),
+            UsageError::LanguageCode {
+                input: "de".to_string(),
+            }
+            .into(),
+            UsageError::LanguageCodeVariant {
+                input: "deu".to_string(),
+                bibliographic: "ger".to_string(),
+            }
+            .into(),
+            UsageError::TermWithoutText {
+                term: "@and".to_string(),
+            }
+            .into(),
+            UsageError::EmptyValue {
+                flag: "--at".to_string(),
+            }
             .into(),
         ]
     }
@@ -1284,14 +1547,13 @@ mod tests {
         }
     }
 
+    /// Was `every_variant_but_clap_says_what_to_do`, which asserted that
+    /// [`UsageError::Cli`] has **no** hint — true only while one believed clap had
+    /// printed a usage line already. Under `--json` clap prints nothing, so that
+    /// exemption left the three commonest agent mistakes without a next step.
     #[test]
-    fn every_variant_but_clap_says_what_to_do() {
+    fn every_variant_says_what_to_do() {
         for error in all_variants() {
-            // clap has already printed its own usage line; a second pointer is noise.
-            if matches!(error, Error::Usage(UsageError::Cli(_))) {
-                assert!(error.hint().is_none(), "clap error carries a hint");
-                continue;
-            }
             let hint = error.hint().unwrap_or_default();
             assert!(!hint.trim().is_empty(), "no hint for {error:?}");
         }
@@ -1314,6 +1576,11 @@ mod tests {
     }
 
     /// The exact object from `plan/cli.md` § Fehler — members, order and wording.
+    ///
+    /// The `hint` moved with §1.11/§3.7: it used to say "run `blibs libraries --find
+    /// <name>` to look up a library", a pointer into a list that contains no branch, and
+    /// it never mentioned that `--at` splits on commas. `plan/cli.md` carries the old
+    /// wording and is corrected in phase 6.
     #[test]
     fn unknown_library_serialises_exactly_as_specified() {
         let error: Error = UsageError::UnknownLibrary {
@@ -1325,7 +1592,7 @@ mod tests {
             .expect("the error envelope contains only strings and a number");
         assert_eq!(
             json,
-            r#"{"error":{"code":2,"kind":"unknown_library","message":"unknown library \"STABI2\"","hint":"run `blibs libraries --find <name>` to look up a library"}}"#
+            r#"{"error":{"code":2,"kind":"unknown_library","message":"unknown library \"STABI2\"","hint":"run `blibs libraries --find <name>` to look one up, or `blibs libraries VOEBB` to list the branches of a house\n--at splits on commas, so a branch whose name carries one has to be given by its KOBV id instead, e.g. BIB000000240"}}"#
         );
     }
 
@@ -1339,22 +1606,151 @@ mod tests {
         assert_eq!(
             error.hint().as_deref(),
             Some(
-                "did you mean STABI, SBB? run `blibs libraries --find <name>` to look up a library"
+                "did you mean STABI, SBB? run `blibs libraries --find <name>` to look one up, \
+                 or `blibs libraries VOEBB` to list the branches of a house"
             )
         );
     }
 
+    /// §3.7: 63 of the 211 branch short names carry a comma, and `--at` splits on commas,
+    /// so what reaches this error is half a name. Blaming that half without naming the
+    /// comma sends the user after a typo that is not there — and the escape has to be
+    /// named too, because no spelling of the name itself can work.
+    ///
+    /// A near miss outranks it: there the suggestion is the answer, and a second
+    /// paragraph would bury it.
     #[test]
-    fn a_missing_hint_serialises_as_null() {
-        let error: Error = UsageError::Cli(clap::Error::raw(
-            clap::error::ErrorKind::UnknownArgument,
-            "unexpected argument",
-        ))
-        .into();
-        let value = serde_json::to_value(ErrorEnvelope::from(&error))
+    fn an_unknown_library_names_the_comma_when_nothing_came_close() {
+        let stranded = UsageError::UnknownLibrary {
+            input: "Bibliothek am Schäfersee".to_string(),
+            suggestions: Vec::new(),
+        }
+        .hint()
+        .unwrap_or_default();
+        assert!(stranded.contains("splits on commas"), "{stranded}");
+        assert!(stranded.contains("KOBV id"), "{stranded}");
+
+        let near_miss = UsageError::UnknownLibrary {
+            input: "STABI2".to_string(),
+            suggestions: vec!["STABI".to_string()],
+        }
+        .hint()
+        .unwrap_or_default();
+        assert!(near_miss.starts_with("did you mean STABI?"), "{near_miss}");
+        assert!(!near_miss.contains("splits on commas"), "{near_miss}");
+    }
+
+    /// §1.11: neither advice line may claim that `blibs libraries` shows everything —
+    /// it shows the 123 houses and none of the 211 branches.
+    #[test]
+    fn no_advice_line_calls_the_house_list_complete() {
+        let unknown = UsageError::UnknownLibrary {
+            input: "Frohnau".to_string(),
+            suggestions: Vec::new(),
+        }
+        .hint()
+        .unwrap_or_default();
+        let unmatched = EmptyReason::NoLibraryMatched {
+            query: "Frohnau".to_string(),
+        }
+        .message();
+        for text in [&unknown, &unmatched] {
+            assert!(!text.contains("full list"), "{text}");
+            assert!(text.contains("branches"), "{text}");
+        }
+    }
+
+    /// Was `a_missing_hint_serialises_as_null`, built from a [`UsageError::Cli`] back
+    /// when that was the one variant without a hint. It has one now, and no variant is
+    /// left that has none — but the member stays nullable by contract, so the shape is
+    /// pinned directly instead of through a variant that no longer produces it.
+    #[test]
+    fn an_absent_hint_serialises_as_null_rather_than_disappearing() {
+        let envelope = ErrorEnvelope {
+            error: ErrorBody {
+                code: 2,
+                kind: "usage",
+                message: "unexpected argument '--quatsch' found".to_string(),
+                hint: None,
+            },
+        };
+        let value = serde_json::to_value(&envelope)
             .expect("the error envelope contains only strings and a number");
         assert_eq!(value["error"]["hint"], serde_json::Value::Null);
-        assert_eq!(value["error"]["code"], 2);
+        assert!(
+            value["error"]
+                .as_object()
+                .is_some_and(|o| o.contains_key("hint"))
+        );
+    }
+
+    /// §2.4: under `--json` clap prints nothing, so this object is the whole answer. It
+    /// used to carry clap's entire terminal rendering — prefix, blank line, a usage line
+    /// announcing `--at` as mandatory, and "try '--help'" — inside `message`.
+    #[test]
+    fn a_clap_refusal_is_one_line_with_the_pointer_in_the_hint() {
+        let refusal = clap::Error::raw(
+            clap::error::ErrorKind::UnknownArgument,
+            "unexpected argument '--quatsch' found\n\n  tip: a similar argument exists: \
+             '--at'\n\nUsage: blibs search --at <LIST> <TERMS>...\n\nFor more information, \
+             try '--help'.\n",
+        );
+        let error: Error = UsageError::Cli(refusal).into();
+        assert_eq!(error.kind(), "usage");
+        assert_eq!(error.exit(), ExitCode::Usage);
+        let message = error.to_string();
+        assert_eq!(message, "unexpected argument '--quatsch' found");
+        assert!(!message.contains("error:"), "{message}");
+        assert!(!message.contains('\n'), "{message}");
+        let hint = error.hint().unwrap_or_default();
+        assert!(hint.contains("--help"), "{hint}");
+    }
+
+    /// The usage line is the only place that knows *which* help to point at, and it is
+    /// also the line that must not reach `message`.
+    #[test]
+    fn the_hint_points_at_the_help_of_the_command_that_failed() {
+        assert_eq!(clap_command_path(&raw_with_usage("")), "blibs");
+        assert_eq!(
+            clap_command_path(&raw_with_usage(
+                "Usage: blibs search --at <LIST> <TERMS>..."
+            )),
+            "blibs search"
+        );
+        assert_eq!(
+            clap_command_path(&raw_with_usage("Usage: blibs [OPTIONS] [COMMAND]")),
+            "blibs"
+        );
+        assert_eq!(
+            clap_command_path(&raw_with_usage("Usage: blibs libraries [OPTIONS] [NAME]")),
+            "blibs libraries"
+        );
+    }
+
+    /// A hand-built clap error carries no context at all; the hint must still name a
+    /// help that exists rather than an empty command.
+    #[test]
+    fn a_clap_error_without_context_still_points_somewhere() {
+        let error: Error = UsageError::Cli(clap::Error::raw(
+            clap::error::ErrorKind::InvalidValue,
+            "a value is required for '--at <LIST>' but none was supplied",
+        ))
+        .into();
+        assert_eq!(
+            error.hint().as_deref(),
+            Some("run `blibs --help` to see what it accepts")
+        );
+    }
+
+    fn raw_with_usage(usage: &str) -> clap::Error {
+        let mut error = clap::Error::raw(clap::error::ErrorKind::UnknownArgument, "boom");
+        if !usage.is_empty() {
+            error.insert(
+                ContextKind::Usage,
+                clap::error::ContextValue::String(usage.to_string()),
+            );
+        }
+        error
     }
 
     /// The remedy for a rejected query hangs off the diagnostic URI: the four measured
@@ -1528,6 +1924,10 @@ mod tests {
                 terms: "Kafka Prozess".to_string(),
                 locations: vec!["ASH".to_string()],
             },
+            EmptyReason::NoHitsAnywhere {
+                terms: "Xylophonquark".to_string(),
+                locations: vec!["AGB".to_string()],
+            },
             EmptyReason::FilteredOut {
                 total: None,
                 fetched: 10,
@@ -1538,6 +1938,19 @@ mod tests {
                 total: Some(774),
                 judged: 10,
                 unstated: 0,
+            },
+            EmptyReason::PastTheLastMatch {
+                matched: 26,
+                filter: "--format".to_string(),
+                value: "book".to_string(),
+                page: 7,
+                last: 6,
+            },
+            EmptyReason::PastTheLastSorted {
+                sorted: 49,
+                sort: "year".to_string(),
+                page: 6,
+                last: 5,
             },
             EmptyReason::NoHoldings {
                 locations: vec!["STABI".to_string(), "HU".to_string()],
@@ -1593,6 +2006,113 @@ mod tests {
         for claim in ["elsewhere", "exists", "held", "other libraries"] {
             assert!(!message.contains(claim), "{claim:?} claimed in: {message}");
         }
+    }
+
+    /// §1.2: when the unrestricted search found nothing either, `--at` was not the cause,
+    /// and "name more libraries in --at" is advice that is guaranteed to fail again. The
+    /// two reasons must therefore read differently, and only the one that knows a
+    /// network-wide zero may say so.
+    #[test]
+    fn a_network_wide_zero_does_not_blame_the_location() {
+        let anywhere = EmptyReason::NoHitsAnywhere {
+            terms: "Xylophonquark Zwitscherbold".to_string(),
+            locations: vec!["AGB".to_string()],
+        }
+        .message();
+        assert!(
+            anywhere.starts_with(
+                "no results for Xylophonquark Zwitscherbold — not at AGB, and not anywhere in \
+                 the region"
+            ),
+            "{anywhere}"
+        );
+        assert!(anywhere.contains("more general words"), "{anywhere}");
+        assert!(!anywhere.contains("name more libraries"), "{anywhere}");
+
+        // The restricted sibling keeps saying the opposite, because there it is true.
+        let at = EmptyReason::NoHitsAtLocations {
+            terms: "Xylophonquark".to_string(),
+            locations: vec!["AGB".to_string()],
+        }
+        .message();
+        assert!(at.contains("name more libraries in --at"), "{at}");
+    }
+
+    /// The filtered wording is quoted approvingly in the round-2 report, so it is pinned
+    /// byte for byte here. Its sorted sibling says the equivalent for the other reason a
+    /// window is anchored, and must not borrow the words `filter` or `matched`: nothing
+    /// was dropped, the records simply ran out.
+    #[test]
+    fn a_page_past_an_anchored_window_says_which_kind_of_anchor_it_was() {
+        assert_eq!(
+            EmptyReason::PastTheLastMatch {
+                matched: 26,
+                filter: "--format".to_string(),
+                value: "book".to_string(),
+                page: 7,
+                last: 6,
+            }
+            .message(),
+            "26 records in the fetched window matched --format book, and page 7 begins \
+             after the last of them\n\
+             pages 1 to 6 hold them — a client-side filter only ever sees the window the \
+             catalogue delivered, so there is no page beyond it"
+        );
+        assert_eq!(
+            EmptyReason::PastTheLastSorted {
+                sorted: 49,
+                sort: "year".to_string(),
+                page: 6,
+                last: 5,
+            }
+            .message(),
+            "49 records in the fetched window are what --sort year put in order, and page 6 \
+             begins after the last of them\n\
+             pages 1 to 5 hold them — sorting needs one set to put in order, so the window \
+             is anchored and there is no page beyond it"
+        );
+    }
+
+    /// §1.7: `deu` is not a random string, it is the terminology code for the language
+    /// whose records carry `ger`. The two language errors must not share a `kind`,
+    /// because only one of them knows the answer.
+    #[test]
+    fn the_language_variant_names_the_code_that_was_meant() {
+        let redirect: Error = UsageError::LanguageCodeVariant {
+            input: "deu".to_string(),
+            bibliographic: "ger".to_string(),
+        }
+        .into();
+        assert_eq!(redirect.kind(), "language_code_variant");
+        assert_eq!(redirect.exit(), ExitCode::Usage);
+        assert!(redirect.to_string().contains("\"ger\""), "{redirect}");
+        assert!(
+            redirect
+                .hint()
+                .unwrap_or_default()
+                .contains("--language ger"),
+            "{redirect:?}"
+        );
+        let shape: Error = UsageError::LanguageCode {
+            input: "de".to_string(),
+        }
+        .into();
+        assert_ne!(redirect.kind(), shape.kind());
+    }
+
+    /// §3.7: clap's own advice for `--limit -1` is "to pass '-1' as a value, use '-- -1'",
+    /// which would search for `-1`. The variant that replaces it must not repeat it.
+    #[test]
+    fn a_negative_count_is_never_offered_as_a_search_term() {
+        let error: Error = UsageError::NegativeNumber {
+            flag: "--limit".to_string(),
+            value: "-1".to_string(),
+        }
+        .into();
+        assert_eq!(error.kind(), "negative_number");
+        let hint = error.hint().unwrap_or_default();
+        assert!(hint.contains("--limit 10"), "{hint}");
+        assert!(hint.contains("never"), "{hint}");
     }
 
     /// A prefix that is none of these is almost certainly not an id at all — but the list

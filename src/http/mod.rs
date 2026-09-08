@@ -272,12 +272,35 @@ pub trait Fetch: Sync {
 ///
 /// A cache may only ever change latency, never a result (`CLAUDE.md`). A corrupted entry
 /// breaks that rule twice over: it fails, and it keeps failing, because nothing evicts it.
-/// So a parse failure on a cached body means the entry is dropped and the request is made
-/// again with the cache bypassed; the second attempt's error is the one that reaches the
-/// user, and it is then honestly about the service.
+/// So a parse failure on a cached body drops the entry ([`Fetch::forget`]) and asks again
+/// — with the request **unchanged**, cache policy included. That matters: this arm is
+/// only ever reached for a request whose cache was actually read (see below), which means
+/// its policy was already [`CachePolicy::Normal`]; forcing `Never` on the retry, as an
+/// earlier version of this function did, would suppress the write as well as the read
+/// (`cache::is_cacheable`) and evict the entry with nothing to replace it — one corrupted
+/// body would then cost a fresh upstream request forever, in every later run. Retrying
+/// with the same, still-`Normal` request instead lets the retry miss the now-empty cache,
+/// go to the network, and — if it parses — repopulate the entry, so the cost of the
+/// corruption is exactly one extra request, not one per invocation from here on.
 ///
-/// A body that came from the network is never retried here — a service that answers with
-/// nonsense would otherwise be asked twice for it.
+/// This cannot loop. `response.from_cache` is `true` only when the response was served
+/// from a cache entry that existed at the time of that particular `fetch` call — and by
+/// the time this arm's retry fires, [`Fetch::forget`] has just deleted the only entry that
+/// could have produced it. The retry therefore cannot itself be served from that cache, so
+/// its `Response::from_cache` comes back `false`, and the guard `if response.from_cache`
+/// cannot match a second time: a second parse failure falls through to
+/// `Err(error) => Err(error)` below and reaches the caller as the service's own answer, not
+/// as an infinite retry.
+///
+/// A request built with [`CachePolicy::Never`] (availability, every voebb.de call) never
+/// takes this branch in the first place: such a request is never cacheable
+/// (`cache::is_cacheable`), so its response is never served `from_cache: true`, so the
+/// guard above never matches for it. A parse failure on it always falls straight to
+/// `Err(error) => Err(error)` on the first attempt — this function changes nothing about
+/// that path, and never writes such a request to the cache either.
+///
+/// A body that came from the network on the first attempt is never retried here — a
+/// service that answers with nonsense would otherwise be asked twice for it.
 ///
 /// Free function rather than a [`Fetch`] method because it is generic over the parsed
 /// type, and `Fetch` has to stay object-safe: `cli::run` passes `&dyn Fetch` around.
@@ -292,7 +315,7 @@ pub fn fetch_parsed<T>(
         Err(stale) if response.from_cache => {
             let _ = stale;
             fetch.forget(request);
-            let fresh = fetch.fetch(&request.clone().cache(CachePolicy::Never))?;
+            let fresh = fetch.fetch(request)?;
             parse(&fresh.body)
         }
         Err(error) => Err(error),
@@ -763,5 +786,119 @@ mod tests {
         .expect_err("the body never parses");
         assert_eq!(attempts.get(), 1, "no second parse, so no second request");
         assert_eq!(error.kind(), "not_xml");
+    }
+
+    /// A `Fetch` built on the *real* cache module (`cache::is_cacheable`, `Cache::get`,
+    /// `Cache::put`, `Cache::forget`), so these tests exercise the actual read → network →
+    /// write cycle `Http::fetch` implements, not a hand-rolled approximation of it.
+    struct RealisticUpstream {
+        cache: cache::Cache,
+        /// What the network answers with, every time it is actually asked.
+        network_body: &'static str,
+        network_calls: Mutex<u32>,
+    }
+
+    impl RealisticUpstream {
+        fn new(cache: cache::Cache, network_body: &'static str) -> Self {
+            Self {
+                cache,
+                network_body,
+                network_calls: Mutex::new(0),
+            }
+        }
+    }
+
+    impl Fetch for RealisticUpstream {
+        fn fetch(&self, request: &Request) -> Result<Response, Error> {
+            let cacheable = cache::is_cacheable(request);
+            let key = cache::cache_key(request);
+            if cacheable {
+                if let Some(body) = self.cache.get(&key, cache::ENTRY_TTL) {
+                    return Ok(Response {
+                        status: 200,
+                        body,
+                        content_type: None,
+                        from_cache: true,
+                    });
+                }
+            }
+            *lock(&self.network_calls) += 1;
+            if cacheable {
+                self.cache.put(&key, self.network_body);
+            }
+            Ok(Response {
+                status: 200,
+                body: self.network_body.to_owned(),
+                content_type: None,
+                from_cache: false,
+            })
+        }
+
+        fn forget(&self, request: &Request) {
+            self.cache.forget(&cache::cache_key(request));
+        }
+    }
+
+    /// `plan/feedback_round_2.md` §3.7: a discarded cache entry has to be replaced in the
+    /// *same* run, not just made to fail more gracefully. This proves the whole cycle: a
+    /// poisoned entry costs exactly one extra upstream call, and the entry it leaves
+    /// behind is the fresh body — a second `fetch_parsed` for the same request reads it
+    /// straight from the cache and never touches the network again.
+    #[test]
+    fn a_forgotten_entry_is_replaced_so_the_next_call_never_hits_the_network() {
+        let dir = tempfile::tempdir().expect("the test needs a writable temp directory");
+        let cache = cache::Cache::at(dir.path().to_path_buf());
+        let request = Request::get("https://sru.kobv.de/k2");
+        // The corruption: a body already on disk that will never parse.
+        cache.put(&cache::cache_key(&request), "garbage");
+
+        let upstream = RealisticUpstream::new(cache, "<sru/>");
+
+        let first = fetch_parsed(&upstream, &request, parse_marker)
+            .expect("the retry answers a parsable body");
+        assert_eq!(first, "<sru/>");
+        assert_eq!(
+            *lock(&upstream.network_calls),
+            1,
+            "the poisoned entry costs exactly one upstream call"
+        );
+
+        let second =
+            fetch_parsed(&upstream, &request, parse_marker).expect("the repopulated entry parses");
+        assert_eq!(second, "<sru/>");
+        assert_eq!(
+            *lock(&upstream.network_calls),
+            1,
+            "the second call must be served from the entry the retry just wrote, \
+             not from a second upstream request"
+        );
+    }
+
+    /// The guarantee this fix must not weaken: an availability-style request
+    /// (`CachePolicy::Never`) is still never written to the cache, even when its body
+    /// fails to parse — the retry path in `fetch_parsed` only ever concerns a request that
+    /// was cacheable to begin with (see the doc comment on `fetch_parsed`).
+    #[test]
+    fn a_never_cached_request_is_still_never_written_even_on_a_parse_failure() {
+        let dir = tempfile::tempdir().expect("the test needs a writable temp directory");
+        let cache = cache::Cache::at(dir.path().to_path_buf());
+        let request = Request::get("https://sru.kobv.de/k2").cache(CachePolicy::Never);
+        let key = cache::cache_key(&request);
+
+        let upstream = RealisticUpstream::new(cache, "garbage");
+
+        let error =
+            fetch_parsed(&upstream, &request, parse_marker).expect_err("the body never parses");
+        assert_eq!(error.kind(), "not_xml");
+        assert_eq!(
+            *lock(&upstream.network_calls),
+            1,
+            "no retry: a Never response is never from_cache, so the guard cannot match"
+        );
+        assert_eq!(
+            upstream.cache.get(&key, cache::ENTRY_TTL),
+            None,
+            "a Never request must never leave an entry behind"
+        );
     }
 }

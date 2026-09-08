@@ -23,16 +23,18 @@
 //! **The item table has three states, and two of them are empty for different reasons.**
 //! Present with rows is the normal case; present without a header row is a multi-part
 //! work whose volumes are records of their own (`detail_multivolume`); absent altogether
-//! is an electronic title whose loan state sits in the link text (`detail_online`,
-//! `detail_overdrive`). Each
+//! is an electronic title whose loan state sits in the *text* of its lending link
+//! (`detail_online`, `detail_online_available`, `detail_overdrive`) and is read from
+//! there by [`lending_status`]. Each
 //! empty item list carries a note saying which — an empty list on its own is
 //! indistinguishable from "held nowhere", which is the worst answer this tool can give.
 //!
 //! **The item table names no ISIL and no branch id.** The branch is matched from the text
 //! of the *Bibliothek* column against the VÖBB branches of the library list, folded and
-//! in stages. A name the list does not carry keeps its text in
-//! [`crate::model::Item::branch_name`] and leaves [`crate::model::Item::branch`] empty —
-//! it is never guessed at, and the copy is never dropped.
+//! in stages. A name the list does not carry — **and a name it carries twice**, such as
+//! the `ZLB: Außenmagazin` that is either of the ZLB's two outlying stacks — keeps its
+//! text in [`crate::model::Item::branch_name`] and leaves [`crate::model::Item::branch`]
+//! empty: it is never guessed at, and the copy is never dropped.
 
 use std::sync::OnceLock;
 
@@ -107,8 +109,11 @@ fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> 
     let (title, subtitle) = title_of(bibliographic.first("Titel").unwrap_or_default());
     let publication = bibliographic.first("Veröffentlichung").unwrap_or_default();
     let (place, publisher) = imprint_of(publication);
-    let online = lending_link(bibliographic).is_some();
-    let (format, online) = format_of(bibliographic.first("Medienart").unwrap_or_default(), online);
+    let link = lending_link(bibliographic);
+    let (format, online) = format_of(
+        bibliographic.first("Medienart").unwrap_or_default(),
+        link.is_some(),
+    );
 
     Record {
         id: id.clone(),
@@ -126,7 +131,7 @@ fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> 
         isbns: isbns_of(bibliographic.values("ISBN")),
         subjects: subjects_of(bibliographic.values("Schlagwortkette")),
         urls: urls_of(bibliographic),
-        holdings: vec![holding_of(id, items)],
+        holdings: vec![holding_of(id, items, lending_status(link))],
     }
 }
 
@@ -136,7 +141,18 @@ fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> 
 /// and the branches live in its copies. An empty item list means "the page stated no
 /// copies", never "held nowhere" — the note that comes with it says which of the two
 /// states of the item table produced it.
-fn holding_of(id: &RecordId, items: Vec<Item>) -> Holding {
+///
+/// `without_items` is the light for exactly that case: an electronic title has no copies
+/// to summarise and states its loan state in the text of its lending link instead
+/// ([`lending_status`]). It is only ever consulted when `items` is empty — a copy on a
+/// shelf is a stronger statement than a sentence in a link, and where both exist the
+/// copies decide.
+fn holding_of(id: &RecordId, items: Vec<Item>, without_items: Status) -> Holding {
+    let summary = if items.is_empty() {
+        without_items
+    } else {
+        Status::summarize(items.iter().map(|item| item.status))
+    };
     let mut holding = Holding {
         isil: Some(Isil::new(VOEBB_NETWORK)),
         alias: None,
@@ -144,7 +160,7 @@ fn holding_of(id: &RecordId, items: Vec<Item>) -> Holding {
         short_name: None,
         local_id: Some(id.local_id().to_string()),
         mine: false,
-        summary: Status::summarize(items.iter().map(|item| item.status)),
+        summary,
         items,
     };
     // The naming rule lives in one place for both engines; this parser only supplies the
@@ -402,6 +418,44 @@ fn lending_link(bibliographic: &Bibliographic) -> Option<&BibRow> {
         .find(|row| row.label.starts_with(LENDING_LINK))
 }
 
+/// The two loan states an e-lending link states about itself, folded.
+///
+/// Transcribed from the live site (`plan/voebb.md`); the three measured wordings are
+///
+/// ```text
+/// Zugang zum Titel erhalten Sie hier. (Das Medium ist verfügbar / Ausleihe keine Vormerkung möglich)
+/// Zugang zum Titel erhalten Sie hier. (Das Medium ist ausgeliehen / Vormerkung möglich)
+/// Zugang zum Titel erhalten Sie hier.                                  ← Overdrive, no parenthesis
+/// ```
+///
+/// Both entries are **positive** markers, and that is the point: the absence of one is
+/// never read as the other. Overdrive states nothing, and "nothing" stays
+/// [`Status::Unknown`] rather than becoming the optimistic half of a guess.
+const LENDING_STATES: [(&str, Status); 2] = [
+    ("ist verfugbar", Status::Available),
+    ("ist ausgeliehen", Status::Unavailable),
+];
+
+/// The loan state an electronic title states in the text of its lending link.
+///
+/// [`Status::Unknown`] for a record with no such link, for one whose link carries no
+/// parenthesis (Overdrive), and for a parenthesis worded in a way this parser has not
+/// seen — a wording nobody measured must never become a guess, and the row's raw text
+/// travels on in [`note_kinds::VOEBB_ONLINE_ONLY`] so that a new wording is visible
+/// rather than silently swallowed.
+///
+/// The platform's name is never matched on; see [`LENDING_LINK`].
+fn lending_status(row: Option<&BibRow>) -> Status {
+    let Some(row) = row else {
+        return Status::Unknown;
+    };
+    let text = fold(&row.values.join(" "));
+    LENDING_STATES
+        .iter()
+        .find(|(marker, _)| text.contains(marker))
+        .map_or(Status::Unknown, |(_, status)| *status)
+}
+
 /// The links of the bibliographic tables, classified by the label of their row.
 ///
 /// Only labelled rows are read. The unlabelled first row of every page is the record's
@@ -443,7 +497,7 @@ fn url_kind(label: &str) -> UrlKind {
 /// | --- | --- | --- |
 /// | table with rows | a normal record | the copies |
 /// | table without rows (and without `<thead>`) | a multi-part work; the volumes are records of their own | empty, [`note_kinds::VOEBB_MULTIVOLUME`] |
-/// | no table, but a `Link zu …` row | an electronic title; the loan state is in the link text | empty, [`note_kinds::VOEBB_ONLINE_ONLY`] |
+/// | no table, but a `Link zu …` row | an electronic title; the loan state is in the link text, and [`lending_status`] reads it into the holding | empty, [`note_kinds::VOEBB_ONLINE_ONLY`] |
 ///
 /// A missing table on a record that has no lending link is a named error: at that
 /// point the page has stopped being the page this parser knows, and an empty copy list
@@ -921,6 +975,8 @@ mod tests {
     const ON_LOAN: &str = include_str!("../../../../tests/fixtures/voebb/detail_on_loan.html");
     const REFERENCE: &str = include_str!("../../../../tests/fixtures/voebb/detail_reference.html");
     const ONLINE: &str = include_str!("../../../../tests/fixtures/voebb/detail_online.html");
+    const ONLINE_AVAILABLE: &str =
+        include_str!("../../../../tests/fixtures/voebb/detail_online_available.html");
     const MULTIVOLUME: &str =
         include_str!("../../../../tests/fixtures/voebb/detail_multivolume.html");
     const UNKNOWN: &str = include_str!("../../../../tests/fixtures/voebb/detail_unknown.html");
@@ -1043,7 +1099,12 @@ mod tests {
             panic!("detail_available has exactly one copy");
         };
         assert_eq!(item.branch_name.as_deref(), Some("ZLB: Außenmagazin"));
-        assert_eq!(item.branch.as_deref(), Some("SIG00036"));
+        // Changed in round 2 (§2.6): this used to assert `SIG00036`. The ZLB runs **two**
+        // outlying stacks — the facet tree lists `ZLB: Außenmagazin Amerika-Gedenk-
+        // bibliothek` and `… Berliner Stadtbibliothek` — and the item table writes only
+        // `ZLB: Außenmagazin`, so crediting the AGB was a coin flip an agent read as fact.
+        // See `an_ambiguous_house_name_resolves_to_no_branch_at_all` for the mechanism.
+        assert_eq!(item.branch, None);
         assert_eq!(item.location.as_deref(), Some("Magazin (OG1)"));
         assert_eq!(item.call_number.as_deref(), Some("004/000 042 193"));
         assert_eq!(
@@ -1194,7 +1255,10 @@ mod tests {
         assert!(items(&page).is_empty());
         assert!(page.record.online);
         assert_eq!(page.record.format, Format::Ebook);
-        assert_eq!(page.record.holdings[0].summary, Status::Unknown);
+        // Changed in round 2 (§3.6): this used to assert `Unknown`. The link text says
+        // `(Das Medium ist ausgeliehen / …)` and the tool printed that sentence in a note
+        // while reporting "not known to be on loan" one line above it.
+        assert_eq!(page.record.holdings[0].summary, Status::Unavailable);
 
         let note = page
             .notes
@@ -1214,6 +1278,100 @@ mod tests {
             .find(|url| url.kind == UrlKind::Fulltext)
             .expect("the Onleihe link is the resource itself");
         assert!(onleihe.url.contains("onleihe.de"));
+    }
+
+    /// `detail_online_available` (derived from `detail_online`, §3.6): the other half of
+    /// the same sentence. `(Das Medium ist verfügbar / …)` is a statement that the title
+    /// can be borrowed right now, and it is the marker that `--available` keeps a record
+    /// on.
+    #[test]
+    fn an_onleihe_title_that_is_in_is_read_as_available() {
+        let page = parsed(ONLINE_AVAILABLE, "SAK16112988");
+        assert!(items(&page).is_empty());
+        assert_eq!(page.record.holdings[0].summary, Status::Available);
+        // The empty copy list still says why it is empty: the status came from prose.
+        assert!(
+            page.notes
+                .iter()
+                .any(|note| note.kind == note_kinds::VOEBB_ONLINE_ONLY),
+            "{:?}",
+            page.notes
+        );
+    }
+
+    /// A parenthesis worded in a way nobody measured stays [`Status::Unknown`], with the
+    /// raw text in the note. The two markers are matched **positively**: a wording this
+    /// parser has not seen is a gap to notice, never an availability to guess.
+    #[test]
+    fn an_unrecognised_loan_wording_stays_unknown_and_keeps_its_text() {
+        let broken = ONLINE.replace(
+            "(Das Medium ist ausgeliehen / Vormerkung möglich)",
+            "(Das Medium wird gerade eingearbeitet)",
+        );
+        let page = parse_detail(&broken, &RecordId::voebb("SAK16112988"))
+            .expect("an unknown wording is not a parse failure");
+        assert_eq!(page.record.holdings[0].summary, Status::Unknown);
+        let note = page
+            .notes
+            .iter()
+            .find(|note| note.kind == note_kinds::VOEBB_ONLINE_ONLY)
+            .expect("an empty copy list is never silent");
+        assert!(
+            note.message.contains("eingearbeitet"),
+            "the wording nobody knows has to be readable: {}",
+            note.message
+        );
+    }
+
+    /// The three measured wordings, against the function that reads them. Overdrive's
+    /// link has no parenthesis at all, and that is an answer of "nothing stated" rather
+    /// than a gap in this table.
+    #[test]
+    fn only_the_two_measured_markers_state_a_loan_status() {
+        let row = |text: &str| BibRow {
+            label: "Link zur Onleihe".to_string(),
+            values: vec![text.to_string()],
+            links: Vec::new(),
+        };
+        assert_eq!(
+            lending_status(Some(&row(
+                "Zugang zum Titel erhalten Sie hier. (Das Medium ist verfügbar / \
+                 Ausleihe keine Vormerkung möglich)"
+            ))),
+            Status::Available
+        );
+        assert_eq!(
+            lending_status(Some(&row(
+                "Zugang zum Titel erhalten Sie hier. (Das Medium ist ausgeliehen / \
+                 Vormerkung möglich)"
+            ))),
+            Status::Unavailable
+        );
+        assert_eq!(
+            lending_status(Some(&row("Zugang zum Titel erhalten Sie hier."))),
+            Status::Unknown
+        );
+        assert_eq!(lending_status(None), Status::Unknown);
+    }
+
+    /// A house name the item table writes for **two** of the list's branches resolves to
+    /// none of them (round 2, §2.6). The ZLB runs two outlying stacks and the cell says
+    /// only `ZLB: Außenmagazin`; the table carries no feature that separates them, so the
+    /// copy keeps its text and borrows no id. This is the same rule that already covers a
+    /// name the list does not carry at all — an ambiguous hit counts as no hit.
+    #[test]
+    fn an_ambiguous_house_name_resolves_to_no_branch_at_all() {
+        assert_eq!(branch_of("ZLB: Außenmagazin"), None);
+        // The two houses it could be are each still reachable under their own name, so
+        // the ambiguity costs nothing but the guess it removes.
+        assert_eq!(
+            branch_of("ZLB: Amerika-Gedenkbibliothek (AGB)").map(|branch| branch.kobvid.as_str()),
+            Some("SIG00036")
+        );
+        assert_eq!(
+            branch_of("ZLB: Berliner Stadtbibliothek (BStB)").map(|branch| branch.kobvid.as_str()),
+            Some("BIB000000072")
+        );
     }
 
     /// `detail_multivolume` (`SAK13927817`): the table is there and empty, without a
@@ -1287,6 +1445,11 @@ mod tests {
         let page = parsed(OVERDRIVE, "SAK34672596");
         assert!(items(&page).is_empty());
         assert!(page.record.online, "an e-lending title is online");
+        // Overdrive writes no parenthesis behind "Zugang zum Titel erhalten Sie hier.",
+        // so nothing is stated about the loan — and nothing stated stays `Unknown`. The
+        // two markers of §3.6 are matched positively; the absence of one is never the
+        // other (round 2, §3.6).
+        assert_eq!(page.record.holdings[0].summary, Status::Unknown);
         let note = page
             .notes
             .iter()

@@ -674,19 +674,21 @@ fn a_show_that_asked_for_no_copies_says_so() {
     assert!(items.is_empty(), "nothing was asked: {items:?}");
 }
 
-/// A VÖBB branch in `--at` against a KOBV record is a contradiction the tool used to
-/// swallow. It is a note now — in the document and on the terminal — and never a claim
-/// that the branch does not hold the book.
+/// A VÖBB branch in `--at` against a KOBV record that the branch's network does not hold
+/// is a contradiction the tool used to swallow. It is a note now — in the document and on
+/// the terminal — and never a claim that the branch does not hold the book.
 #[test]
 fn a_branch_of_the_other_catalogue_in_at_is_stated() {
-    let fetch = FixtureFetch::new()
-        .route(
-            is_availability,
-            read_fixture("kobv/availability/mixed.json"),
-        )
-        .fallback("kobv/sru/record.xml");
+    let fetch = FixtureFetch::new().fallback("kobv/sru/mono_kafka.xml");
     let ran = invoke(
-        &["--json", "show", "almafu_BV008885798", "--at", "AGB"],
+        &[
+            "--json",
+            "show",
+            "b3kat_BV044513648",
+            "--at",
+            "AGB",
+            "--no-availability",
+        ],
         &fetch,
     );
 
@@ -699,18 +701,53 @@ fn a_branch_of_the_other_catalogue_in_at_is_stated() {
         "the branch cannot narrow a KOBV record, and that is said: {notes:?}"
     );
 
-    let fetch = FixtureFetch::new()
-        .route(
-            is_availability,
-            read_fixture("kobv/availability/mixed.json"),
-        )
-        .fallback("kobv/sru/record.xml");
-    let ran = invoke(&["show", "almafu_BV008885798", "--at", "AGB"], &fetch);
+    let fetch = FixtureFetch::new().fallback("kobv/sru/mono_kafka.xml");
+    let ran = invoke(
+        &[
+            "show",
+            "b3kat_BV044513648",
+            "--at",
+            "AGB",
+            "--no-availability",
+        ],
+        &fetch,
+    );
     assert!(
         ran.out
             .contains("--at AGB is answered by the voebb catalogue"),
         "{}",
         ran.out
+    );
+}
+
+/// The other half of the same rule (§2.8 of the second test round): where the location's
+/// ISIL *does* occur in the record, the location applied, the holding is marked `mine`,
+/// and the note must stay silent — it used to fire three lines under a `mine: true` that
+/// said the opposite.
+#[test]
+fn a_record_the_branch_network_does_hold_gets_no_such_note() {
+    let fetch = FixtureFetch::new().fallback("kobv/sru/record.xml");
+    let ran = invoke(
+        &[
+            "--json",
+            "show",
+            "almafu_BV008885798",
+            "--at",
+            "AGB",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    let document = ran.json();
+    let notes = document["notes"]
+        .as_array()
+        .map_or_else(Vec::new, Clone::clone);
+    assert!(
+        !notes
+            .iter()
+            .any(|note| note["kind"] == "location_other_catalogue"),
+        "the record is held at DE-609, so the location applied: {notes:?}"
     );
 }
 

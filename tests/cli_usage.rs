@@ -503,3 +503,89 @@ fn an_institution_document_says_it_is_an_institution() {
     assert_eq!(document["isil"], "DE-1");
     assert!(document["branches"].is_array());
 }
+
+/// §2.4: under `--json` clap prints **nothing** — stdout is empty and the envelope on
+/// stderr is the whole answer. It used to be clap's terminal rendering poured into
+/// `message`: the `error: ` prefix, a blank line, a usage line announcing `--at` as
+/// though it were mandatory, and "try '--help'", with `hint` null. One line now, and the
+/// pointer where a pointer belongs.
+#[test]
+fn a_clap_refusal_is_one_line_with_a_hint_in_json() {
+    let refusal = |args: &[&str]| -> serde_json::Value {
+        let output = blibs()
+            .args(args)
+            .assert()
+            .code(2)
+            .stdout(predicates::str::is_empty())
+            .get_output()
+            .stderr
+            .clone();
+        let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+        serde_json::from_str(&text).expect("one JSON document on stderr")
+    };
+
+    for (args, expected, help) in [
+        (
+            ["search", "Kafka", "--quatsch", "--json"].as_slice(),
+            "unexpected argument '--quatsch' found",
+            "blibs search --help",
+        ),
+        (
+            ["serch", "--json"].as_slice(),
+            "unrecognized subcommand 'serch'",
+            "blibs --help",
+        ),
+    ] {
+        let value = refusal(args);
+        assert_eq!(value["error"]["kind"], "usage", "{value}");
+        assert_eq!(value["error"]["code"], 2, "{value}");
+
+        let message = value["error"]["message"]
+            .as_str()
+            .unwrap_or_else(|| panic!("message is a string: {value}"));
+        assert_eq!(message, expected);
+        assert!(!message.contains("error:"), "{message:?}");
+        assert!(!message.contains('\n'), "{message:?}");
+        assert!(!message.contains("Usage:"), "{message:?}");
+
+        let hint = value["error"]["hint"]
+            .as_str()
+            .unwrap_or_else(|| panic!("hint is not null: {value}"));
+        assert!(hint.contains(help), "{hint:?} does not point at {help}");
+    }
+}
+
+/// clap's near miss is the most useful sentence in its whole rendering, and it survives
+/// into the hint — where the usage line and "try '--help'" do not.
+#[test]
+fn clap_s_own_suggestion_survives_into_the_hint() {
+    let output = blibs()
+        .args(["serch", "--json"])
+        .assert()
+        .code(2)
+        .get_output()
+        .stderr
+        .clone();
+    let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+    let value: serde_json::Value = serde_json::from_str(&text).expect("one JSON document");
+    let hint = value["error"]["hint"].as_str().unwrap_or_default();
+    assert!(hint.starts_with("did you mean search?"), "{hint:?}");
+}
+
+/// The other half of the same fix: the **human** path is untouched. clap prints its own
+/// text there — usage block, tip and help pointer — because only clap knows which help
+/// this invocation should be looked up in, and blibs adds nothing to it.
+#[test]
+fn a_clap_refusal_still_prints_clap_s_own_text_for_a_human() {
+    blibs()
+        .args(["search", "Kafka", "--quatsch"])
+        .assert()
+        .code(2)
+        .stdout(predicates::str::is_empty())
+        .stderr(contains("error: unexpected argument '--quatsch' found"))
+        .stderr(contains("Usage: blibs search"))
+        .stderr(contains("For more information, try '--help'."))
+        // No second, blibs-authored hint underneath: the whole point of letting clap
+        // print is that it is the only voice on that stream.
+        .stderr(contains("run `blibs search --help`").not());
+}

@@ -59,6 +59,30 @@ gezogen (`GET …/prod00?sp=SPROD00&sp=<SAK…>`, `-L`, Cookie-Jar, ehrlicher UA
 | `detail_overdrive.html` | `SAK34672596` | **Die Onleihe ist nicht die einzige Ausleihplattform.** Dieselbe Bauart wie `detail_online`, aber die Zeile heißt `Link zu Overdrive` statt `Link zur Onleihe`, und daneben steht eine zusätzliche `URL`-Zeile. Ein Parser, der auf „Onleihe“ prüft, hält den Satz für eine kaputte Seite und bricht mit `resptable-1 matched nothing` ab — genau so ist der erste Live-Lauf gescheitert. Erkannt wird deshalb das Präfix `Link zu`, nie der Name der Plattform |
 | `detail_unknown.html` | `SAK00000000` | **Eine unbekannte Satznummer beantwortet voebb.de mit der Suchstartseite**: HTTP 200, gültiges `Form0`, **kein `table.gi`**, **kein `div#R03`** (das hat jede echte Satzseite), dafür `div#R04`/`div#R05` wie `start.html`. Das ist der einzige Weg, „diesen Satz gibt es nicht“ (Exit 1) von „die Seite hat sich geändert“ (Exit 6) zu unterscheiden — deshalb werden **zwei** positive Merkmale geprüft und nicht nur das fehlende `table.gi` |
 
+### Nachtrag 2026-09-08 (Runde 2, §3.6) — eine **abgeleitete** Datei
+
+`detail_online_available.html` ist die einzige Datei hier, die **nicht** vom Server
+stammt. Sie ist aus `detail_online.html` abgeleitet: eine einzige Zeile ist geändert, der
+Linktext der `Link zur Onleihe`-Zeile, und sonst kein Byte (`diff` zeigt genau eine Zeile).
+
+| Datei | Herkunft | Was sie belegt |
+| --- | --- | --- |
+| `detail_online_available.html` | **abgeleitet** aus `detail_online.html`: `(Das Medium ist ausgeliehen / Vormerkung möglich)` → `(Das Medium ist verfügbar / Ausleihe keine Vormerkung möglich)` | Der Leihstand einer E-Ressource im Klartext des Ausleihlinks, **positiver** Fall. `detail_online.html` deckt nur „ausgeliehen“ ab, `detail_overdrive.html` den Fall ganz **ohne** Klammer |
+
+Warum abgeleitet und nicht gemessen: die drei Wortlaute sind in der Testrunde vom
+Livesystem wörtlich mitgeschrieben worden (`plan/feedback_round_2.md` §3.6) —
+
+```
+Zugang zum Titel erhalten Sie hier. (Das Medium ist verfügbar / Ausleihe keine Vormerkung möglich)
+Zugang zum Titel erhalten Sie hier. (Das Medium ist ausgeliehen / Vormerkung möglich)
+Zugang zum Titel erhalten Sie hier.                      ← Overdrive, ganz ohne Klammer
+```
+
+— aber der Satz, der beim Abruf „verfügbar“ sagte, ist wenige Minuten später wieder
+ausgeliehen. Ein zweiter Abruf hätte also nicht garantiert den fehlenden Fall geliefert.
+Die Struktur ist deshalb **nicht erfunden**, sondern die gemessene: geändert ist nur der
+Statuswortlaut innerhalb desselben `<a>`, und zwar der wörtlich mitgeschriebene.
+
 Dazu eine Falle ohne eigene Fixture, belegt an `advanced_form.html`: die Seite trägt
 **zwei** Schaltflächen mit der Beschriftung *Suchen* — die des Kopfzeilen-Suchschlitzes
 (`$Button`, `$$GFBO_1`, zuerst im Dokument) und die des Formulars selbst (`$Button$6`,

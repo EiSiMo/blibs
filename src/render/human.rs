@@ -1578,12 +1578,15 @@ mod tests {
     /// whose own `Display` already begins with the prefix.
     #[test]
     fn the_prefix_guard_catches_a_display_that_prefixes_itself() {
-        let doubled = rendered_error(&Error::Usage(crate::error::UsageError::Cli(
-            clap::Error::raw(
-                clap::error::ErrorKind::InvalidValue,
-                "--language takes a three-letter code\n",
-            ),
-        )));
+        // Not `UsageError::Cli` any more: since the second test round it reports clap's
+        // first line with the `error: ` prefix stripped, so it no longer has the shape
+        // this guard is here to catch. Any `Display` that prefixes itself will do.
+        let doubled = rendered_error(&Error::Unexpected(
+            crate::error::UnexpectedError::HttpStatus {
+                host: "error: sru.kobv.de".to_owned(),
+                status: 500,
+            },
+        ));
         let first = doubled.lines().next().unwrap_or_default();
         assert!(
             first
@@ -2467,10 +2470,32 @@ almafu_BV008885798
 
     /// A branch of the other catalogue on a KOBV record is stated under the holdings,
     /// with the same sentence the JSON carries — never ignored in silence.
+    ///
+    /// The record must be one the location genuinely does not reach. `prozess()` is not:
+    /// its ZLB copy stands in the Amerika-Gedenkbibliothek, and §2.8 of the second test
+    /// round is precisely that the note used to fire there too, three lines under a
+    /// `mine: true` that said the opposite. So this builds a ZLB record whose copy is in
+    /// a different house of the network.
     #[test]
     fn a_branch_of_the_other_catalogue_is_printed_as_a_note() {
+        let mut elsewhere = prozess();
+        elsewhere.holdings = vec![holding(
+            "DE-609",
+            "ZLB",
+            "Zentral- und Landesbibliothek Berlin",
+            Status::Unavailable,
+            vec![Item {
+                location: Some("Berliner Stadtbibliothek".to_owned()),
+                branch: Some("BIB000000072".to_owned()),
+                branch_name: Some("Berliner Stadtbibliothek".to_owned()),
+                call_number: Some("Kaf 3".to_owned()),
+                volume: None,
+                status: Status::Unavailable,
+                order_option: None,
+            }],
+        )];
         let output = rendered_show(
-            &prozess(),
+            &elsewhere,
             &[branch(
                 "AGB",
                 "DE-609",
