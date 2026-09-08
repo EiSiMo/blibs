@@ -44,7 +44,7 @@ pub use validate::{validate, validate_libraries, validate_show};
 const AFTER_HELP: &str = "\
 Examples:
   blibs search Kafka Prozess
-  blibs search \"Der Prozess\" --at HU,FU
+  blibs search \"Der Vorleser\" --at HU,FU
   blibs search --author Kafka --year 1953 --format book
   blibs search --isbn 978-3-596-29433-6 --json
   blibs show almafu_BV008885798 --at STABI,HU
@@ -71,7 +71,7 @@ Exit codes:
 const SEARCH_AFTER_HELP: &str = "\
 Examples:
   blibs search Kafka Prozess                       two words, both must occur
-  blibs search \"Der Prozess\"                       one phrase
+  blibs search \"Der Vorleser\"                      one phrase
   blibs search \"Der Vorleser\" --at HU,STABI,AGB    one block per location
   blibs search --author Kafka --year 1953          flags combine with AND
   blibs search --isbn 978-3-596-29433-6 --json     for scripts and agents
@@ -231,8 +231,8 @@ pub struct SearchArgs {
 
     /// Words from the title.
     ///
-    /// Quote the value to search it as a phrase: --title "Der Prozess" finds the phrase,
-    /// --title Prozess finds the word.
+    /// Quote the value to search it as a phrase: --title "Der Vorleser" finds the phrase,
+    /// --title Vorleser finds the word.
     #[arg(long, value_name = "TEXT")]
     pub title: Option<String>,
 
@@ -240,8 +240,8 @@ pub struct SearchArgs {
     ///
     /// Always searched as a word list, never as a phrase, and the order of the name
     /// therefore does not matter. The index holds authority forms: "Kafka, Franz" finds
-    /// 2911 records while "Franz Kafka" as a phrase finds 40, so a name written the
-    /// natural way would otherwise find almost nothing. Roles are never filtered — an
+    /// 2914 records as a phrase while "Franz Kafka" as a phrase finds 40, so a name
+    /// written the natural way would otherwise find almost nothing. Roles are never filtered — an
     /// editor or translator you search for stays findable.
     #[arg(long, value_name = "NAME")]
     pub author: Option<String>,
@@ -272,9 +272,10 @@ pub struct SearchArgs {
 
     /// ISBN or ISSN, with or without hyphens.
     ///
-    /// The check digit is verified here, before anything is sent. The identifier index
-    /// upstream discards it, so a mistyped ISBN does not come back empty — it comes back
-    /// as a different book. An ISSN is passed on, where the check digit does count.
+    /// Eight digits are read as an ISSN, ten or thirteen as an ISBN, and the check digit
+    /// of each is verified here, before anything is sent. The identifier index upstream
+    /// discards that digit, so a mistyped number does not come back empty — it comes back
+    /// as a different title.
     #[arg(long, value_name = "NUMBER")]
     pub isbn: Option<String>,
 
@@ -301,6 +302,11 @@ pub struct SearchArgs {
     /// is refused instead of quietly ignored. Each shown record costs one extra request
     /// for its availability, which is why nothing beyond the shown records is asked
     /// about.
+    ///
+    /// A KOBV window is fetched a few records wider than this, so that a record the
+    /// catalogue delivered twice can be dropped and still replaced. At --limit 50 there
+    /// is no room left for that, and a repeat is then the one case where the page comes
+    /// back one record short — a note under the result says when that happened.
     // Taken as an `i64` so that a negative value reaches [`validate`]: see [`COUNT_MAX`].
     #[arg(
         long,
@@ -312,7 +318,11 @@ pub struct SearchArgs {
 
     /// Which page of results, 1-based [default: 1].
     ///
-    /// All location blocks page together. A VÖBB branch in --at is the one limit:
+    /// All location blocks page together. With --format, --language or any --sort but
+    /// relevance the window is anchored: one block of 50 records starting at the first,
+    /// and --page walks the matches inside it rather than stepping the result.
+    ///
+    /// A VÖBB branch in --at is the one limit:
     /// voebb.de has no offset and every page past the first is another request on the
     /// same session, so --page times --limit may not reach past result 220 and a deeper
     /// window is refused instead of walked.
@@ -330,8 +340,15 @@ pub struct SearchArgs {
     /// Client-side, over the fetched records only — the catalogue cannot sort at all. So
     /// --limit 20 --sort year means "the 20 most relevant hits, the newest of those
     /// first", not "the 20 newest hits". title sorts by the displayed title with its
-    /// leading article; availability costs no extra request, because the data is already
-    /// there for every shown record.
+    /// leading article, folding ä/ö/ü/ß into ae/oe/ue/ss so that Öhler sorts before
+    /// Zander; availability costs no extra request, because the data is already there for
+    /// every shown record — and is refused together with --no-availability, which
+    /// switches that data off.
+    ///
+    /// Anything but relevance anchors the window, exactly as --format does: one block of
+    /// 50 records, with --page walking the ordered records inside it. Pages that stepped
+    /// the result would not partition one ordered set. On a VÖBB branch that block costs
+    /// up to three sequential requests instead of one.
     #[arg(long, value_name = "KEY", value_parser = PossibleValuesParser::new(SORT_VALUES))]
     pub sort: Option<String>,
 
@@ -339,7 +356,8 @@ pub struct SearchArgs {
     ///
     /// A client-side filter over the fetched records only: there is no index for
     /// material type, so an empty result can mean "none in this window" instead of "none
-    /// at all", and the footer says which of the two it was. book means printed and
+    /// at all", and the footer says which of the two it was. That window is anchored —
+    /// one block of 50 records, with --page walking the matches inside it. book means printed and
     /// ebook means online; every record additionally carries an online flag, so nothing
     /// is lost for the material types that have no separate online value.
     #[arg(long, value_name = "TYPE", value_parser = PossibleValuesParser::new(FORMAT_VALUES))]
@@ -348,7 +366,9 @@ pub struct SearchArgs {
     /// Keep only records in this language, as a three-letter code.
     ///
     /// Bibliographic ISO-639-2/B codes as the records carry them: ger, eng, fre — not de
-    /// and not German. Client-side over the fetched records only, exactly like --format.
+    /// and not German, and not the terminology codes deu, eng, fra: deu is refused with
+    /// ger in the message rather than answered with nothing. Client-side over the fetched
+    /// records only, exactly like --format, so it anchors the window too.
     #[arg(long, value_name = "CODE")]
     pub language: Option<String>,
 
@@ -369,9 +389,16 @@ pub struct SearchArgs {
 
     /// Do not ask whether the copies are in.
     ///
-    /// Faster and quieter: availability is one request per shown record. Holdings are
-    /// still listed, only without a status, and the JSON marks that as skipped so an
-    /// empty copy list cannot be mistaken for "we asked and got nothing back".
+    /// Faster and quieter, and how much of the answer goes with it depends on the
+    /// catalogue. On kobv it saves one request per shown record, and the copy lines under
+    /// each hit go with it — this is the flag that turns those off. The libraries the
+    /// record itself names are still there in the JSON, with no status and no copies. On
+    /// voebb the record page *is* the holdings, so nothing beyond the result list is
+    /// fetched at all: the hits come back without libraries, copies or shelfmarks, in
+    /// about a fifth of the time.
+    ///
+    /// Either way the JSON marks availability as skipped, so an empty copy list cannot be
+    /// mistaken for "we asked and got nothing back".
     #[arg(long = "no-availability")]
     pub no_availability: bool,
 }
@@ -421,14 +448,24 @@ pub struct ShowArgs {
 
     /// Mark these libraries as mine and list them first.
     ///
-    /// Short names or ISILs, comma-separated. Everything else is summarised in one
-    /// "also at" line. Without it, all holdings are simply listed and nothing is marked.
+    /// Short names, ISILs or branches, comma-separated — everything --at accepts on a
+    /// search. Everything else is summarised in one "also at" line. Without it, all
+    /// holdings are simply listed and nothing is marked.
+    ///
+    /// A branch narrows the copies as well: the traffic light, the "n of m available"
+    /// count and the JSON's at[].status then answer "is it in *there*", and the copies of
+    /// the same library standing at other branches are named in one line instead. Note
+    /// that holdings[].summary is the other question — what the catalogue says about the
+    /// whole institution — so a copy on loan at one branch sits under a library the
+    /// catalogue calls available, and both statements are true.
     #[arg(long, value_name = "LIST", value_delimiter = ',')]
     pub at: Vec<String>,
 
     /// Do not ask whether the copies are in.
     ///
-    /// The holdings are still listed, only without a status.
+    /// On a kobv record the holdings are still listed, only without a status and without
+    /// their copies. A voebb record states its copies on the page this command fetches
+    /// anyway, so there is nothing cheaper to ask for and they come back either way.
     #[arg(long = "no-availability")]
     pub no_availability: bool,
 }

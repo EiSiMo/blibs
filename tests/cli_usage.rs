@@ -870,3 +870,114 @@ fn a_clap_refusal_still_prints_clap_s_own_text_for_a_human() {
         // print is that it is the only voice on that stream.
         .stderr(contains("run `blibs search --help`").not());
 }
+
+/// §2.11: a help text that states a count states it once, and the count is the one the
+/// compiled list actually has. Two hard-wired numbers had drifted apart from each other
+/// ("211 branches" beside "212 branch names"), which is the failure this pins: the help is
+/// read against `libraries --branches`, which counts the list itself.
+#[test]
+fn the_branch_count_in_the_help_is_the_count_the_list_has() {
+    let listing = blibs()
+        .args(["libraries", "--branches"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let branches = String::from_utf8(listing)
+        .expect("the renderer writes UTF-8")
+        .lines()
+        .count();
+
+    let help = blibs()
+        .args(["libraries", "--help"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let help = String::from_utf8(help).expect("the renderer writes UTF-8");
+    assert!(
+        help.contains(&format!("{branches} branches")),
+        "libraries --help must name {branches} branches:\n{help}"
+    );
+    // Any *other* three-digit number next to the word "branches" is the drift itself.
+    for line in help.lines() {
+        for word in line.split_whitespace().collect::<Vec<_>>().windows(2) {
+            if word[1].starts_with("branch") && word[0].parse::<usize>().is_ok() {
+                assert_eq!(
+                    word[0].parse::<usize>().unwrap_or_default(),
+                    branches,
+                    "a second, different branch count in the help: {line:?}"
+                );
+            }
+        }
+    }
+}
+
+/// §3.7: `blibs search "Der Prozess"` — the phrase the help offered as its own example —
+/// is answered by the free-text index, which covers tables of contents, so it returns
+/// "Hexen" and "Versandhandelsmanagement" above the book. An example that misleads on its
+/// first use is worse than none, and no user-facing text may carry it again.
+#[test]
+fn no_help_text_offers_the_example_that_returns_junk() {
+    for args in [
+        vec!["--help"],
+        vec!["search", "--help"],
+        vec!["show", "--help"],
+        vec!["libraries", "--help"],
+    ] {
+        let output = blibs()
+            .args(&args)
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+        assert!(
+            !text.contains("Der Prozess"),
+            "{args:?} still offers `Der Prozess` as an example"
+        );
+    }
+}
+
+/// §2.2: on `voebb` the record page *is* the holdings, so `--no-availability` removes
+/// them rather than stripping a status from them. The flag's own help used to promise the
+/// opposite, which is the one sentence a user reads before choosing it.
+#[test]
+fn the_no_availability_help_does_not_promise_holdings_it_removes() {
+    let output = blibs()
+        .args(["search", "--help"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("the renderer writes UTF-8");
+    assert!(
+        !text.contains("Holdings are still listed"),
+        "the promise that voebb does not keep is back:\n{text}"
+    );
+    assert!(
+        text.contains("voebb"),
+        "the help names the engine it differs on"
+    );
+}
+
+/// §1.11: both of the "I cannot resolve this library" texts have to point at a listing
+/// that contains branches. `blibs libraries` does not; `--branches` does.
+#[test]
+fn an_unresolved_library_is_pointed_at_the_branch_listing() {
+    blibs()
+        .args(["search", "Kafka", "--at", "Nirgendwo"])
+        .assert()
+        .code(2)
+        .stderr(contains("blibs libraries --branches"));
+
+    blibs()
+        .args(["libraries", "--find", "zzzznothing"])
+        .assert()
+        .code(1)
+        .stderr(contains("blibs libraries --branches"));
+}

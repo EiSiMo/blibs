@@ -311,11 +311,13 @@ impl EmptyReason {
             ),
             // "the full list" was a dead end for the group most likely to read this:
             // `blibs libraries` names houses, and not one of the 211 branches, so the
-            // advice has to name where a branch *is* listed as well.
+            // advice has to name where a branch *is* listed as well — and since
+            // `--branches` lists every branch of every house, it is the shorter answer
+            // than picking the one house whose branches to list.
             EmptyReason::NoLibraryMatched { query } => format!(
                 "no library matched {query:?}\n\
-                 run `blibs libraries` for the houses, or `blibs libraries VOEBB` for the \
-                 branches of one"
+                 run `blibs libraries` for the houses, or `blibs libraries --branches` for \
+                 every branch of every one of them"
             ),
         }
     }
@@ -805,6 +807,8 @@ impl UsageError {
 ///
 /// `blibs libraries` prints the 123 houses and not one of the 211 branches, so an advice
 /// line that calls it "the full list" strands exactly the reader who typed a branch name.
+/// `--branches` is the listing that has them all, which is why it is named here rather
+/// than one house's own branches.
 /// And `--at` splits on commas, so the 63 branch short names that carry one cannot be
 /// written out at all: what arrives here is *half* a name, and accusing that half without
 /// naming the comma sends the user hunting for a typo that is not there. The escape has to
@@ -814,7 +818,7 @@ impl UsageError {
 /// the answer, and a second paragraph would bury it.
 fn unknown_library_hint(suggestions: &[String]) -> String {
     let lookup = "run `blibs libraries --find <name>` to look one up, or \
-                  `blibs libraries VOEBB` to list the branches of a house";
+                  `blibs libraries --branches` to list every branch";
     if suggestions.is_empty() {
         format!(
             "{lookup}\n--at splits on commas, so a branch whose name carries one has to be \
@@ -1587,8 +1591,11 @@ mod tests {
     ///
     /// The `hint` moved with §1.11/§3.7: it used to say "run `blibs libraries --find
     /// <name>` to look up a library", a pointer into a list that contains no branch, and
-    /// it never mentioned that `--at` splits on commas. `plan/cli.md` carries the old
-    /// wording and is corrected in phase 6.
+    /// it never mentioned that `--at` splits on commas. It moved once more in phase 6:
+    /// `blibs libraries VOEBB` listed the branches of *one* house and left the reader to
+    /// guess which, while `--branches` — which did not exist when the first wording was
+    /// written — lists every branch of every house. `plan/cli.md` carries the old wording
+    /// and is corrected in the same phase.
     #[test]
     fn unknown_library_serialises_exactly_as_specified() {
         let error: Error = UsageError::UnknownLibrary {
@@ -1600,7 +1607,7 @@ mod tests {
             .expect("the error envelope contains only strings and a number");
         assert_eq!(
             json,
-            r#"{"error":{"code":2,"kind":"unknown_library","message":"unknown library \"STABI2\"","hint":"run `blibs libraries --find <name>` to look one up, or `blibs libraries VOEBB` to list the branches of a house\n--at splits on commas, so a branch whose name carries one has to be given by its KOBV id instead, e.g. BIB000000240"}}"#
+            r#"{"error":{"code":2,"kind":"unknown_library","message":"unknown library \"STABI2\"","hint":"run `blibs libraries --find <name>` to look one up, or `blibs libraries --branches` to list every branch\n--at splits on commas, so a branch whose name carries one has to be given by its KOBV id instead, e.g. BIB000000240"}}"#
         );
     }
 
@@ -1615,7 +1622,7 @@ mod tests {
             error.hint().as_deref(),
             Some(
                 "did you mean STABI, SBB? run `blibs libraries --find <name>` to look one up, \
-                 or `blibs libraries VOEBB` to list the branches of a house"
+                 or `blibs libraries --branches` to list every branch"
             )
         );
     }
