@@ -99,9 +99,9 @@ const SHOW_AUTHOR_NAME: usize = 32;
 const ROLE_COLUMN: usize = 12;
 /// Label column of every `Label  value` block. Exactly as wide as the longest label.
 const FIELD_LABEL: usize = 11;
-/// Status column — a **floor**, not a width ([`status_width`]): wide enough for the
-/// wordings in [`label`], so that a following `order_option` never collides with it, and
-/// widened for a page whose copies state a return date beside the status.
+/// Status column — a **floor**, not a width ([`item_layout`]): wide enough for the wordings
+/// in [`label`], so that a following `order_option` never collides with it, and widened by
+/// the block for a page whose copies state a return date beside the status.
 const STATUS_COLUMN: usize = 20;
 
 /// What a holding's prose statement is introduced with.
@@ -380,7 +380,7 @@ fn write_grouped_block(
 
     let record_widths = record_layout.widths(&record_rows, available(style, RECORD_INDENT));
     let all_items: Vec<Vec<Cell>> = item_rows.iter().flatten().cloned().collect();
-    let item_layout = search_item_layout(status_width(&all_items));
+    let item_layout = search_item_layout();
     let item_widths = item_layout.widths(&all_items, available(style, ITEM_INDENT));
 
     for ((entry, record_row), items) in block.records.iter().zip(&record_rows).zip(&item_rows) {
@@ -866,7 +866,7 @@ fn digits(number: u64) -> usize {
 /// The columns of a record line under a location heading, as in `plan/cli.md`.
 fn grouped_record_layout() -> Layout {
     Layout::new(vec![
-        Column::Fixed(1),
+        Column::Least(1),
         Column::Flex {
             ideal: GROUPED_TITLE,
             min: 12,
@@ -875,7 +875,9 @@ fn grouped_record_layout() -> Layout {
             ideal: GROUPED_AUTHOR,
             min: AUTHOR_MIN,
         },
-        Column::Fixed(5),
+        // A year is not cut — `199…` is not a year — so the column follows the longest one
+        // instead. Four digits is the normal case and five is not impossible.
+        Column::Least(5),
         Column::Last,
     ])
 }
@@ -906,7 +908,7 @@ impl Numbering {
 /// numbers the marker stands alone, in the one column the grouped list gives it.
 fn flat_record_layout(numbering: Option<Numbering>) -> Layout {
     Layout::new(vec![
-        Column::Fixed(numbering.map_or(1, |numbering| numbering.width + 2)),
+        Column::Least(numbering.map_or(1, |numbering| numbering.width + 2)),
         Column::Flex {
             ideal: FLAT_TITLE,
             min: 12,
@@ -915,7 +917,7 @@ fn flat_record_layout(numbering: Option<Numbering>) -> Layout {
             ideal: FLAT_AUTHOR,
             min: AUTHOR_MIN,
         },
-        Column::Fixed(4),
+        Column::Least(4),
         Column::Last,
     ])
 }
@@ -923,50 +925,33 @@ fn flat_record_layout(numbering: Option<Numbering>) -> Layout {
 /// The columns of a copy line: location, shelfmark, status, and whatever `voebb` says
 /// about ordering it.
 ///
-/// The shelfmark column is [`Column::Fixed`] and its cell is never shortened: half a
-/// shelfmark does not find a book. It overflows into the status column instead, which is
-/// visible and honest.
-fn item_layout(location_width: usize, shelfmark_width: usize, status_width: usize) -> Layout {
+/// **Neither the shelfmark nor the status may be cut** — half a shelfmark does not find a
+/// book, and half a date is a different deadline — so both are [`Column::Least`]: the
+/// stated width is a floor and the block's longest value decides the rest. They used to be
+/// [`Column::Fixed`], which cuts nothing *and* grows for nothing, so a single copy with an
+/// 18-character shelfmark in a 17-column column pushed its own status two columns right of
+/// every other row of the block (measured on `voebb_SAK34906286`, 120 columns, 23 copies).
+/// The location column gives way for them, and says so with an ellipsis.
+fn item_layout(location_width: usize, shelfmark_width: usize) -> Layout {
     Layout::new(vec![
         Column::Flex {
             ideal: location_width,
             min: 12,
         },
-        Column::Fixed(shelfmark_width),
-        Column::Fixed(status_width),
+        Column::Least(shelfmark_width),
+        Column::Least(STATUS_COLUMN),
         Column::Last,
     ])
 }
 
-/// How wide the status column of one block has to be: [`STATUS_COLUMN`], or the widest
-/// status cell where a copy states a return date behind its status.
-///
-/// **Measured over the whole block, and then fixed.** A [`Column::Flex`] would have been
-/// the obvious way to let the column grow, but a flexible column is also the first to give
-/// its width back: at 80 columns the layout took those four columns off the status again
-/// and the one row with a date pushed its neighbour out of line. So the block decides the
-/// width once, from its own rows, and the location column — which may be shortened, and
-/// says so with an ellipsis — is what gives way instead.
-fn status_width(rows: &[Vec<Cell>]) -> usize {
-    rows.iter()
-        .filter_map(|row| row.get(STATUS_CELL))
-        .map(Cell::width)
-        .max()
-        .unwrap_or(0)
-        .max(STATUS_COLUMN)
-}
-
-/// Where the status stands in an item row, for [`status_width`].
-const STATUS_CELL: usize = 2;
-
 /// The copy layout of the grouped list.
-fn search_item_layout(status_width: usize) -> Layout {
-    item_layout(SEARCH_ITEM_LOCATION, 19, status_width)
+fn search_item_layout() -> Layout {
+    item_layout(SEARCH_ITEM_LOCATION, 19)
 }
 
 /// The copy layout of `show`, which indents one column less and has more room.
-fn show_item_layout(status_width: usize) -> Layout {
-    item_layout(SHOW_ITEM_LOCATION, 16, status_width)
+fn show_item_layout() -> Layout {
+    item_layout(SHOW_ITEM_LOCATION, 16)
 }
 
 /// One record under a location heading. The marker is that **location's** traffic light,
@@ -1386,15 +1371,18 @@ fn write_field_block(out: &mut dyn Write, record: &Record, style: Style) -> io::
 /// continuation rows carry an empty label, which is how the second URL of a record is
 /// already written.
 ///
-/// The value column starts at a width the content cannot move — [`FIELD_LABEL`] is
-/// [`Column::Fixed`] — so the wrap width is known before the layout is computed, and the
-/// two cannot disagree.
+/// The value column starts at a width the content cannot move — [`FIELD_LABEL`] is as wide
+/// as the longest label there is — so the wrap width is known before the layout is
+/// computed, and the two cannot disagree. It is a [`Column::Least`] all the same: a label
+/// longer than the constant would otherwise push one row's value out of the column instead
+/// of widening it, and this block is shared with the library views, whose labels this
+/// module does not own.
 pub(crate) fn write_fields(
     out: &mut dyn Write,
     fields: &[(String, String)],
     style: Style,
 ) -> io::Result<()> {
-    let layout = Layout::new(vec![Column::Fixed(FIELD_LABEL), Column::Last]);
+    let layout = Layout::new(vec![Column::Least(FIELD_LABEL), Column::Last]);
     let value_width = available(style, SHOW_INDENT + FIELD_LABEL + DEFAULT_GAP);
     let rows: Vec<Vec<Cell>> = fields
         .iter()
@@ -1598,7 +1586,7 @@ fn write_holdings(
         .map(|entry| item_rows(&entry.items, voice, style))
         .collect();
     let all: Vec<Vec<Cell>> = rows.iter().flatten().cloned().collect();
-    let layout = show_item_layout(status_width(&all));
+    let layout = show_item_layout();
     let widths = layout.widths(&all, available(style, SHOW_ITEM_INDENT));
 
     for (entry, items) in split.mine.iter().zip(&rows) {
@@ -3645,23 +3633,97 @@ almafu_BV008885798
         }
     }
 
+    /// One row of a copy table: where it stands, what it is called there, what it says.
+    fn copy_row(location: &str, call: &str, status: &str) -> Vec<Vec<Cell>> {
+        vec![vec![
+            Cell::new(location),
+            Cell::new(call),
+            Cell::new(status),
+        ]]
+    }
+
     /// A page without a single return date is laid out exactly as it was before dates
     /// existed: the width is a floor, and nothing pays for a column it does not use.
+    ///
+    /// Asked of the layout since the shelfmark bug, where the measuring moved out of a
+    /// helper of this module and into [`Column::Least`]. The question is the same one; the
+    /// two columns that may not cut their cells are now asked together, because they answer
+    /// for one rule.
     #[test]
-    fn a_page_without_a_date_keeps_the_status_column_it_had() {
-        let rows = vec![vec![
-            Cell::new("Erwachsenenbereich"),
-            Cell::new("Schl"),
-            Cell::new("on loan"),
-        ]];
-        assert_eq!(status_width(&rows), STATUS_COLUMN);
-        assert_eq!(status_width(&[]), STATUS_COLUMN);
-        let dated = vec![vec![
-            Cell::new("Erwachsenenbereich"),
-            Cell::new("Schl"),
-            Cell::new("on loan, due 22 Sep 2026"),
-        ]];
-        assert_eq!(status_width(&dated), "on loan, due 22 Sep 2026".len());
+    fn a_column_that_may_not_cut_follows_its_longest_cell() {
+        let layout = show_item_layout();
+        let width_of = |rows: &[Vec<Cell>], column: usize| layout.widths(rows, WIDE)[column];
+
+        let plain = copy_row("Erwachsenenbereich", "Schl", "on loan");
+        assert_eq!(width_of(&plain, 2), STATUS_COLUMN);
+        assert_eq!(width_of(&[], 2), STATUS_COLUMN);
+
+        let dated = copy_row("Erwachsenenbereich", "Schl", "on loan, due 22 Sep 2026");
+        assert_eq!(
+            width_of(&dated, 2),
+            display_width("on loan, due 22 Sep 2026")
+        );
+
+        // The bug: 18 characters in a 16-column column. The column grows; the row does not
+        // move.
+        let long = copy_row(
+            "Mitte: Zentralbibliothek",
+            "Konsolenspiel Fire",
+            "available",
+        );
+        assert_eq!(width_of(&long, 1), display_width("Konsolenspiel Fire"));
+        assert!(width_of(&plain, 1) < width_of(&long, 1));
+    }
+
+    /// A cell wider than its column widens the column and never pushes its own row out of
+    /// line — measured on `voebb_SAK34906286` at 120 columns, where one 18-character
+    /// shelfmark set that copy's status two columns right of the other 22.
+    ///
+    /// The assertion is **derivative**: every copy line of a block puts its status and its
+    /// order option in the same column as every other. A test that wrote the width down as
+    /// a number would be wrong again with the next record that has a longer shelfmark.
+    #[test]
+    fn one_over_long_shelfmark_never_moves_a_row_out_of_line() {
+        let (result, locations, record) = one_holding(hu_holding(
+            None,
+            vec![
+                copy(
+                    "Mitte: Bezirkszentralbibliothek",
+                    "Konsolenspiel Fire",
+                    Status::Available,
+                    None,
+                ),
+                copy(
+                    "Mitte: Schiller-Bibliothek",
+                    "EDV 945,7 Fire",
+                    Status::Unavailable,
+                    Some("2026-10-05"),
+                ),
+            ],
+        ));
+        for width in [MIN_WIDTH, 60, 80, 120] {
+            let mut search_out = Vec::new();
+            search(&result, &locations, &mut search_out, Style::plain(width)).expect("bytes");
+            let mut show_out = Vec::new();
+            show(&record, &locations, &[], &mut show_out, Style::plain(width)).expect("bytes");
+            for bytes in [search_out, show_out] {
+                let output = strip_ansi(&String::from_utf8(bytes).expect("UTF-8"));
+                let lines: Vec<&str> = output
+                    .lines()
+                    .filter(|line| line.contains("Mitte:"))
+                    .collect();
+                assert_eq!(lines.len(), 2, "at {width}: {output}");
+                assert_eq!(
+                    lines[0].find("available"),
+                    lines[1].find("on loan"),
+                    "at {width} the status column moved: {output}"
+                );
+                let orders: Vec<Option<usize>> =
+                    lines.iter().map(|line| line.find("Ausleihbar")).collect();
+                assert_eq!(orders[0], orders[1], "at {width}: {output}");
+                assert!(orders[0].is_some(), "at {width}: {output}");
+            }
+        }
     }
 
     /// A newspaper has no copies and is not "held nowhere": the page states a run, a house

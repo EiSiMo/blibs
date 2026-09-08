@@ -265,6 +265,18 @@ pub enum Column {
         /// The narrowest this column may become when the row does not fit.
         min: usize,
     },
+    /// **At least** this wide, and wider where a cell needs it — never shortened and never
+    /// shrunk. For a value that may not be cut and may not be guessed at: a shelfmark, a
+    /// status, a year.
+    ///
+    /// The variant exists because [`Column::Fixed`] is a promise the content can break. A
+    /// fixed column neither grows nor cuts, so **one** cell wider than the stated width
+    /// pushes the rest of *its* row to the right and leaves every other row of the block
+    /// standing where it was — measured on `voebb_SAK34906286` at 120 columns, where an
+    /// 18-character shelfmark in a 17-column shelfmark column moved that one copy's status
+    /// two columns out of line, over 23 copies. Either a column may cut its cells, and then
+    /// it must, or it may not, and then its width has to follow its longest cell.
+    Least(usize),
     /// Sized to its widest cell, never shortened and never padded. The record id: a
     /// shortened id cannot be typed back into `show`, so this column overflows the
     /// terminal rather than lie.
@@ -277,7 +289,7 @@ impl Column {
         match self {
             Column::Auto => Some(1),
             Column::Flex { min, .. } => Some(min),
-            Column::Fixed(_) | Column::Last => None,
+            Column::Fixed(_) | Column::Least(_) | Column::Last => None,
         }
     }
 }
@@ -336,8 +348,9 @@ impl Layout {
     /// The width of each column, given the rows and the width available.
     ///
     /// Columns start at their natural width — [`Column::Fixed`] at its stated one,
-    /// [`Column::Flex`] at its widest cell but never below its `ideal`, every other at
-    /// its widest cell — and are then shrunk, widest first, until the row fits. Widest
+    /// [`Column::Flex`] and [`Column::Least`] at their widest cell but never below the
+    /// stated one, every other at its widest cell — and are then shrunk, widest first,
+    /// until the row fits. Widest
     /// first so that one long title gives way before four short columns do.
     /// [`Column::Fixed`] and [`Column::Last`] never give way, so a row can still overflow
     /// a very narrow terminal; that is preferable to a cut record id.
@@ -346,6 +359,7 @@ impl Layout {
         let mut widths: Vec<usize> = (0..count)
             .map(|index| match self.column(index) {
                 Column::Fixed(width) => width,
+                Column::Least(least) => natural_width(rows, index).max(least),
                 Column::Flex { ideal, .. } => natural_width(rows, index).max(ideal),
                 _ => natural_width(rows, index),
             })
@@ -473,6 +487,48 @@ mod tests {
             .map(|row| layout.render_row(row, &widths, style))
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    /// The column that may not cut its cells follows its longest one, and gives no width
+    /// back when the row is tight.
+    ///
+    /// [`Column::Fixed`] does neither, which is the whole bug this variant exists for: one
+    /// cell wider than the stated width moved its own row two columns to the right and left
+    /// the rest of the block standing.
+    #[test]
+    fn a_least_column_grows_with_its_content_and_never_shrinks() {
+        let layout = Layout::new(vec![
+            Column::Flex { ideal: 20, min: 8 },
+            Column::Least(16),
+            Column::Last,
+        ]);
+        let short = vec![vec![
+            Cell::new("Mitte"),
+            Cell::new("EDV 945,7"),
+            Cell::new("in"),
+        ]];
+        assert_eq!(
+            layout.widths(&short, 60)[1],
+            16,
+            "the stated width is a floor"
+        );
+
+        let long = vec![vec![
+            Cell::new("Mitte"),
+            Cell::new("Konsolenspiel Fire"),
+            Cell::new("in"),
+        ]];
+        assert_eq!(
+            layout.widths(&long, 60)[1],
+            display_width("Konsolenspiel Fire")
+        );
+        // Not even when there is no room: the shortfall comes out of the flexible column,
+        // and a cell here is written whole whatever the width.
+        assert_eq!(
+            layout.widths(&long, 24)[1],
+            display_width("Konsolenspiel Fire")
+        );
+        assert!(render(&layout, &long, Style::plain(24)).contains("Konsolenspiel Fire"));
     }
 
     /// A terminal is asked first and believed, whatever `COLUMNS` claims.
