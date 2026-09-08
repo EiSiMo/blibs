@@ -376,9 +376,11 @@ fn show_finds_a_record_and_fetches_its_copies() {
     let recorder = fetch.recorder();
     let id = RecordId::parse("almafu_BV008885798").expect("a prefixed id parses");
 
-    let record = Kobv::new(&fetch)
+    let answer = Kobv::new(&fetch)
         .show(&id, AvailabilityMode::Fetched)
-        .expect("the fixture answers")
+        .expect("the fixture answers");
+    let record = answer
+        .record
         .expect("record.xml carries exactly this record");
 
     assert_eq!(record.id.as_str(), "almafu_BV008885798");
@@ -396,11 +398,11 @@ fn show_asks_nothing_when_availability_is_skipped() {
     let recorder = fetch.recorder();
     let id = RecordId::parse("almafu_BV008885798").expect("a prefixed id parses");
 
-    let record = Kobv::new(&fetch)
+    let answer = Kobv::new(&fetch)
         .show(&id, AvailabilityMode::Skipped)
         .expect("the fixture answers");
 
-    assert!(record.is_some());
+    assert!(answer.record.is_some());
     assert_eq!(recorder.total(), 1);
 }
 
@@ -415,7 +417,7 @@ fn show_of_an_unknown_id_is_no_result_not_an_error() {
         .show(&id, AvailabilityMode::Fetched)
         .expect("an empty answer is not a failure");
 
-    assert!(found.is_none());
+    assert!(found.record.is_none());
 }
 
 /// A record announced and delivered as a surrogate diagnostic is counted, explained in a

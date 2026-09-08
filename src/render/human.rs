@@ -41,13 +41,15 @@ use std::io::{self, Write};
 use crate::counts::{records, results};
 use crate::error::{EmptyReason, Error};
 use crate::libraries::{Branch, Library};
+use crate::model::note_kinds;
 use crate::model::{
-    Engine, Format, Holding, Item, Location, Note, Record, SearchResult, SortKey, Status, UrlKind,
+    AvailabilityMode, Engine, Format, Holding, Item, Location, Note, Record, SearchResult, SortKey,
+    Status, UrlKind,
 };
 use crate::render::Style;
-use crate::render::style::label;
+use crate::render::style::{Voice, label};
 use crate::render::table::{Cell, Column, Layout, display_width, truncate};
-use crate::select::{self, Block, BlockRecord, holding_status};
+use crate::select::{self, Block, BlockRecord};
 
 /// Indent of a record line, in both list forms.
 const RECORD_INDENT: usize = 2;
@@ -130,6 +132,10 @@ const UNNAMED_LANGUAGES: [&str; 3] = ["und", "zxx", "mul"];
 const MAX_AUTHORS: usize = 5;
 /// How many subject headings `show` prints before it counts the rest.
 const MAX_SUBJECTS: usize = 6;
+/// How many other branches the line about narrowed-away copies still names. Above it the
+/// line states the count alone: it is a pointer, not a listing — the copies it speaks
+/// about are the ones the user did not ask for.
+const MAX_OTHER_BRANCHES: usize = 3;
 
 /// What `show` says instead of a holdings list for a record without `924` fields.
 ///
@@ -162,16 +168,16 @@ pub fn search(
 ) -> io::Result<()> {
     let blocks = select::blocks(result, locations);
     let scoped = !locations.is_empty();
-    let filtered = availability_filtered(result);
+    let sieve = Sieve::of(result);
     let mut shown = Vec::new();
     for (index, block) in blocks.iter().enumerate() {
         if index > 0 {
             writeln!(out)?;
         }
         if scoped {
-            write_grouped_block(out, block, filtered, style, &mut shown)?;
+            write_grouped_block(out, block, sieve, style, &mut shown)?;
         } else {
-            write_flat_block(out, result, block, filtered, style, &mut shown)?;
+            write_flat_block(out, result, block, sieve, style, &mut shown)?;
         }
     }
     write_footer(out, result, &shown, scoped, style)
@@ -197,22 +203,50 @@ fn availability_filtered(result: &SearchResult) -> bool {
         .is_some_and(|judged| judged > 0)
 }
 
+/// What ran over the answer as a whole, as far as a heading needs to know.
+///
+/// A heading may never say `no results` about a location whose hit count it knows to be
+/// above zero: the hits exist, and a client-side sieve simply left none of them standing.
+/// Which sieve it was decides the wording, both are facts about the run rather than about
+/// one block, and the `--no-availability` one decides whether a branch heading may claim
+/// its branch at all — so they are read off the result once and handed down.
+#[derive(Debug, Clone, Copy)]
+struct Sieve {
+    /// `--available` judged at least one record — see [`availability_filtered`].
+    availability: bool,
+    /// `--format`/`--language` ran and left **nothing** of the fetched window, carrying
+    /// the size of that window. `Some(0)` cannot occur: a window of nothing was never
+    /// filtered.
+    window_emptied: Option<usize>,
+    /// `--no-availability` was given, which is what makes a KOBV branch unanswerable:
+    /// the branch of a copy is named in the availability answer and nowhere else.
+    no_availability: bool,
+}
+
+impl Sieve {
+    /// Read the three facts off the result. Nothing is derived twice: each of them has
+    /// exactly one field behind it.
+    fn of(result: &SearchResult) -> Self {
+        let window = result.window;
+        Self {
+            availability: availability_filtered(result),
+            window_emptied: (window.filtered && window.fetched > 0 && window.after_filter == 0)
+                .then_some(window.fetched),
+            no_availability: result.availability == AvailabilityMode::Skipped,
+        }
+    }
+}
+
 /// One location's block: heading, then a line per record with that location's copies
 /// beneath it.
 fn write_grouped_block(
     out: &mut dyn Write,
     block: &Block<'_>,
-    filtered: bool,
+    sieve: Sieve,
     style: Style,
     shown: &mut Vec<Status>,
 ) -> io::Result<()> {
-    write_line(
-        out,
-        &block_heading(block, filtered),
-        0,
-        style.heading(),
-        style,
-    )?;
+    write_line(out, &block_heading(block, sieve), 0, style.heading(), style)?;
     if block.records.is_empty() {
         return Ok(());
     }
@@ -229,10 +263,11 @@ fn write_grouped_block(
         .records
         .iter()
         .map(|entry| {
+            let voice = item_voice(entry.record);
             entry
                 .items
                 .iter()
-                .map(|item| item_row(item, style))
+                .map(|item| item_row(item, voice, style))
                 .collect()
         })
         .collect();
@@ -263,11 +298,12 @@ fn write_flat_block(
     out: &mut dyn Write,
     result: &SearchResult,
     block: &Block<'_>,
-    filtered: bool,
+    sieve: Sieve,
     style: Style,
     shown: &mut Vec<Status>,
 ) -> io::Result<()> {
     let count = block.records.len();
+    let filtered = sieve.availability;
     write_line(
         out,
         &flat_heading(result, count, filtered),
@@ -323,7 +359,7 @@ fn write_footer(
     scoped: bool,
     style: Style,
 ) -> io::Result<()> {
-    if let Some(legend) = style.legend(shown, scoped) {
+    if let Some(legend) = style.legend(shown, legend_voice(result, scoped)) {
         writeln!(out)?;
         writeln!(out, "{legend}")?;
     }
@@ -335,6 +371,30 @@ fn write_footer(
         }
     }
     Ok(())
+}
+
+/// What the legend's wording may promise about this output.
+///
+/// Without `--at` the answer is about the region ([`Voice::Region`]). With it the symbols
+/// are one library's — and "on loan" only where something can be lent at all: a page of
+/// nothing but online resources would otherwise gloss `○` as "on loan" over lines that
+/// each read "currently unavailable" ([`item_voice`]). A mixed page keeps the lending
+/// voice, because there the legend is a gloss of a symbol that genuinely means both and
+/// the copy lines say which is which.
+fn legend_voice(result: &SearchResult, scoped: bool) -> Voice {
+    if !scoped {
+        return Voice::Region;
+    }
+    let all_online = !result.records.is_empty()
+        && result
+            .records
+            .iter()
+            .all(crate::model::Record::is_online_resource);
+    if all_online {
+        Voice::Access
+    } else {
+        Voice::Copy
+    }
 }
 
 /// The limitations worth a footnote: what the engines reported, plus the two that follow
@@ -350,7 +410,15 @@ fn footer_notes(result: &SearchResult) -> Vec<String> {
         .map(|note| note.message.clone())
         .collect();
     let window = result.window;
-    if window.after_filter < window.fetched {
+    // Not when the filter matched nothing at all: the engine states that case as
+    // `window_filter_empty`, which is already in `notes` above and says the same sentence
+    // with the flag's own name in it. Two spellings of one limitation is what the note
+    // vocabulary exists to prevent (round 2, §1.3).
+    let stated = result
+        .notes
+        .iter()
+        .any(|note| note.kind == note_kinds::WINDOW_FILTER_EMPTY);
+    if window.after_filter < window.fetched && !stated {
         notes.push(match result.total {
             Some(total) => format!(
                 "the filters saw the {} fetched records, not all {total} results",
@@ -362,27 +430,48 @@ fn footer_notes(result: &SearchResult) -> Vec<String> {
             ),
         });
     }
-    // Never conditional on knowing the total: with several locations there is no joint
-    // hit count, and a sort that silently looked complete is exactly what `plan/cli.md`
-    // forbids.
-    if result.sort.by != SortKey::Relevance
-        && result.total.is_none_or(|total| total > result.shown as u64)
-    {
-        notes.push(match result.total {
-            Some(total) => format!(
-                "--sort ordered the {} records shown, not all {total} results",
-                result.shown
-            ),
-            None => format!(
-                "--sort ordered the {} records shown, not the whole result",
-                result.shown
-            ),
-        });
+    if let Some(note) = sort_note(result) {
+        notes.push(note);
     }
     if let Some(note) = availability_filter_note(result) {
         notes.push(note);
     }
     notes
+}
+
+/// What `--sort` actually ordered, when that is less than the whole result.
+///
+/// **The number is the window's, not the page's.** `select::sort` runs over the deduped,
+/// filtered window and `take_page` cuts the page out of the ordered set afterwards, so
+/// `--sort ordered the 5 records shown` understated a sort over 32 and contradicted the
+/// heading of its own output (round 2, §2.9). With `--sort` the window is anchored, which
+/// is what makes that set nameable at all.
+///
+/// `--sort availability` is the one exception and keeps the page: statuses exist only for
+/// the records that were fetched availability for, so the ordering that decides the output
+/// is the second one, over the page (`cli::run`). Without availability there is no second
+/// sort and the window is the honest number again.
+///
+/// Never conditional on knowing the total: with several locations there is no joint hit
+/// count, and a sort that silently looked complete is exactly what `plan/cli.md` forbids.
+fn sort_note(result: &SearchResult) -> Option<String> {
+    if result.sort.by == SortKey::Relevance {
+        return None;
+    }
+    let by_status =
+        result.sort.by == SortKey::Availability && result.availability == AvailabilityMode::Fetched;
+    let (ordered, what) = if by_status {
+        (result.shown, "records shown")
+    } else {
+        (result.window.after_filter, "records in this window")
+    };
+    if result.total.is_some_and(|total| total <= ordered as u64) {
+        return None;
+    }
+    Some(match result.total {
+        Some(total) => format!("--sort ordered the {ordered} {what}, not all {total} results"),
+        None => format!("--sort ordered the {ordered} {what}, not the whole result"),
+    })
 }
 
 /// `--available hid 7 of the 10 records on this page`, and nothing when it hid none.
@@ -409,22 +498,38 @@ fn availability_filter_note(result: &SearchResult) -> Option<String> {
 /// A location whose engine could not state a total says `showing N` alone: printing the
 /// number of records on this page as if it were the total would be a lie.
 ///
-/// After `--available` an empty block is not an empty result: the hits exist, none of
-/// their copies is in. It keeps its true total and says so —
-/// `HU Berlin · 6 results · none available now`. Only with a known total above zero,
-/// because otherwise the heading would name a number nobody reported.
-fn block_heading(block: &Block<'_>, filtered: bool) -> String {
-    let name = block
-        .location
-        .map_or("", |location| location.display.as_str());
+/// **An empty block is not an empty result once a sieve has run.** With a known total
+/// above zero the heading keeps it and names what emptied the block:
+///
+/// - after `--available`, `HU Berlin · 6 results · none available now` — the hits exist,
+///   none of their copies is in;
+/// - after `--format`/`--language`,
+///   `HU Berlin · 2005 results · none of the 50 fetched records matched` — the filter saw
+///   one window of the result and nothing else. `· no results` there denied 2005 hits
+///   that the footer named three lines further down (round 2, §1.3), and it is the one
+///   arm of this function that can be a lie.
+///
+/// Only with a known total above zero, because otherwise the heading would name a number
+/// nobody reported.
+fn block_heading(block: &Block<'_>, sieve: Sieve) -> String {
+    let name = block_name(block, sieve);
     let shown = block.records.len();
     if shown == 0 {
-        return match block.total.filter(|_| filtered) {
-            Some(total) if total > 0 => {
-                format!("{name} · {} · none available now", results(total))
-            }
-            _ => format!("{name} · no results"),
+        let Some(total) = block.total.filter(|total| *total > 0) else {
+            return format!("{name} · no results");
         };
+        // The window filter first: it runs before availability, and when it emptied the
+        // window there was nothing left for `--available` to judge.
+        if let Some(fetched) = sieve.window_emptied {
+            return format!(
+                "{name} · {} · none of the {fetched} fetched records matched",
+                results(total)
+            );
+        }
+        if sieve.availability {
+            return format!("{name} · {} · none available now", results(total));
+        }
+        return format!("{name} · no results");
     }
     match block.total {
         Some(total) if total > shown as u64 => {
@@ -433,6 +538,36 @@ fn block_heading(block: &Block<'_>, filtered: bool) -> String {
         Some(total) => format!("{name} · {}", results(total)),
         None => format!("{name} · showing {shown}"),
     }
+}
+
+/// What a block is about, which is not always what `--at` said.
+///
+/// With `--no-availability` a branch of a KOBV institution cannot be applied at all — the
+/// branch of a copy is named in the availability answer and nowhere else — so the block
+/// underneath is the whole **house's**. The note says so, but in a block format the
+/// heading is what gets read, and it used to claim the branch over five records of the
+/// institution (round 2, §2.1).
+///
+/// The house is named from the records' own holdings rather than from the location, whose
+/// `display` is the branch's. An empty block has no holding to ask, and then the branch
+/// name plus the qualifier is still the honest heading.
+fn block_name(block: &Block<'_>, sieve: Sieve) -> String {
+    let Some(location) = block.location else {
+        return String::new();
+    };
+    let unapplied =
+        sieve.no_availability && location.branch.is_some() && location.engine == Engine::Kobv;
+    if !unapplied {
+        return location.display.clone();
+    }
+    let house = block
+        .records
+        .iter()
+        .flat_map(|entry| &entry.record.holdings)
+        .find(|holding| holding.isil.as_ref() == Some(&location.isil))
+        .and_then(|holding| holding.short_name.clone().or_else(|| holding.alias.clone()))
+        .unwrap_or_else(|| location.display.clone());
+    format!("{house} (branch not applied)")
 }
 
 /// `774 results for Kafka Prozess · showing 1-10`.
@@ -610,18 +745,36 @@ fn flat_record_row(
 ///
 /// The location column's width is the layout's ([`item_layout`]), not the row's: a copy
 /// line does not know how much room the block it lands in has.
-fn item_row(item: &Item, style: Style) -> Vec<Cell> {
+///
+/// `voice` is the record's, not the copy's ([`item_voice`]): whether `unavailable` may be
+/// read as "on loan" is a question about the *thing*, and an [`Item`] alone cannot answer
+/// it — which is why this takes a second argument rather than deciding on its own.
+fn item_row(item: &Item, voice: Voice, style: Style) -> Vec<Cell> {
     let mut cells = vec![
         Cell::new(item_location(item)),
         Cell::new(item.call_number.clone().unwrap_or_default())
             .styled(style.dim())
             .whole(),
-        Cell::new(label(item.status, true).to_owned()).styled(style.status(item.status)),
+        Cell::new(label(item.status, voice).to_owned()).styled(style.status(item.status)),
     ];
     if let Some(order) = &item.order_option {
         cells.push(Cell::new(order.clone()).styled(style.dim()));
     }
     cells
+}
+
+/// Which vocabulary the copy lines of a record may use.
+///
+/// [`Record::is_online_resource`] and nothing spelled out again here: the note about
+/// missing due dates asks the same question in `model`, and two spellings of it would let
+/// a copy line reading "currently unavailable" stand under a sentence about a copy on
+/// loan (round 2, §1.9).
+fn item_voice(record: &Record) -> Voice {
+    if record.is_online_resource() {
+        Voice::Access
+    } else {
+        Voice::Copy
+    }
 }
 
 /// Where a copy stands, with its volume behind it when the record is a serial.
@@ -946,21 +1099,23 @@ fn write_holdings(
         return write_show_notes(out, notes, style);
     }
 
-    let (mine, others) = split_holdings(record, locations);
+    let split = select::show_holdings(record, locations);
     // The record has holdings, just none of the user's: said in words rather than left as
     // a blank between the heading and the `also at:` line.
-    if mine.is_empty() {
+    if split.mine.is_empty() {
         write_line(out, NO_HOLDINGS_HERE, SHOW_INDENT, style.dim(), style)?;
     }
     // The copy columns are aligned across all of the shown holdings, not per house: one
     // ragged block per library would make the shelfmarks harder to compare than they are.
-    let rows: Vec<Vec<Vec<Cell>>> = mine
+    let voice = item_voice(record);
+    let rows: Vec<Vec<Vec<Cell>>> = split
+        .mine
         .iter()
-        .map(|index| {
-            record.holdings[*index]
+        .map(|entry| {
+            entry
                 .items
                 .iter()
-                .map(|item| item_row(item, style))
+                .map(|item| item_row(item, voice, style))
                 .collect()
         })
         .collect();
@@ -968,34 +1123,108 @@ fn write_holdings(
     let all: Vec<Vec<Cell>> = rows.iter().flatten().cloned().collect();
     let widths = layout.widths(&all, available(style, SHOW_ITEM_INDENT));
 
-    for (index, items) in mine.iter().zip(&rows) {
-        write_holding_heading(out, &record.holdings[*index], style)?;
+    for (entry, items) in split.mine.iter().zip(&rows) {
+        write_holding_heading(out, entry, style)?;
         for row in items {
             write_row(out, &layout, row, &widths, SHOW_ITEM_INDENT, style)?;
         }
+        write_narrowed_away(out, entry, style)?;
     }
     write_show_notes(out, notes, style)?;
-    write_also_at(out, record, &others, style)
+    write_also_at(out, record, &split.others, style)
 }
 
 /// `● HU Berlin — Humboldt-Universität …`, with `2 of 3 available` behind the name when
-/// the library holds more than one copy.
+/// the library holds more than one copy that said anything.
 ///
 /// The count is the point: one traffic light per institution summarises several houses
 /// and answers "can I go there" only by accident (`plan/usecases.md` UC-1).
-fn write_holding_heading(out: &mut dyn Write, holding: &Holding, style: Style) -> io::Result<()> {
-    let status = holding_status(holding);
-    let mut line = format!("{} {}", style.symbol(status), library_name(holding));
-    if holding.items.len() > 1 {
-        let available = holding
-            .items
-            .iter()
-            .filter(|item| item.status == Status::Available)
-            .count();
-        let count = format!(" · {available} of {} available", holding.items.len());
-        line.push_str(&style.paint(&count, style.dim()));
+///
+/// Both numbers are the **narrowed** ones. The light is [`select::HoldingAt::status`] and
+/// the count runs over [`select::HoldingAt::items`], so `show <id> --at AGB` says what the
+/// AGB says and not what the network says: it used to paint `● … · 3 of 4 available` over
+/// a book the user's own branch had lent out (round 2, §1.1).
+///
+/// The denominator is [`select::available_count`] — copies that stated a status at all —
+/// and the count is dropped when fewer than two of them did. `0 of 2 available` beside two
+/// lines reading "status not confirmed" was a counting claim next to two admissions that
+/// nothing is known (§1.8), and `1 of 1` beside three copies is the same claim in a
+/// quieter voice.
+fn write_holding_heading(
+    out: &mut dyn Write,
+    entry: &select::HoldingAt<'_>,
+    style: Style,
+) -> io::Result<()> {
+    let mut line = format!(
+        "{} {}",
+        style.symbol(entry.status),
+        library_name(entry.holding)
+    );
+    if let Some(count) = select::available_count(entry.items.iter().copied())
+        && count.known > 1
+    {
+        let text = format!(" · {} of {} available", count.available, count.known);
+        line.push_str(&style.paint(&text, style.dim()));
     }
     writeln!(out, "{}{line}", " ".repeat(SHOW_INDENT))
+}
+
+/// `2 more copies at this library stand elsewhere: …` — what `--at <branch>` narrowed
+/// away, and where it went.
+///
+/// The counterpart of the narrowing itself. A branch answer that simply shows fewer copies
+/// than the house has is indistinguishable from a house that has that few, and CLAUDE.md
+/// forbids reporting a record as having no shelfmarks it does in fact have. So the copies
+/// that were dropped are counted and their houses named — never listed, because they are
+/// not what was asked for.
+///
+/// Nothing at all when nothing was dropped, which is every holding of an institution: for
+/// a location without a branch every copy is that location's.
+fn write_narrowed_away(
+    out: &mut dyn Write,
+    entry: &select::HoldingAt<'_>,
+    style: Style,
+) -> io::Result<()> {
+    let dropped = entry.holding.items.len() - entry.items.len();
+    if dropped == 0 {
+        return Ok(());
+    }
+    let mut elsewhere: Vec<String> = entry
+        .holding
+        .items
+        .iter()
+        // Identity, not equality: two copies of one record can be equal in every field
+        // and still be two shelves. `entry.items` borrows out of this very vector, so a
+        // pointer comparison is exact here and nowhere near as fragile as it would be
+        // across two holdings.
+        .filter(|item| !entry.items.iter().any(|kept| std::ptr::eq(*kept, *item)))
+        .filter_map(|item| non_blank(item.branch_name.as_deref()).map(str::to_owned))
+        .collect();
+    // Not `dedup`: two copies of one branch need not be neighbours in the holding, and a
+    // house named twice reads as two houses.
+    let mut seen: Vec<String> = Vec::new();
+    elsewhere.retain(|name| {
+        let first = !seen.contains(name);
+        if first {
+            seen.push(name.clone());
+        }
+        first
+    });
+    // All of them or none: a partial list under a count of copies invites the reader to
+    // add the two numbers up, and they are counts of different things — 44 copies stood at
+    // 39 named branches and 5 houses the page did not name at all.
+    let where_to = match elsewhere.len() {
+        1..=MAX_OTHER_BRANCHES => format!(": {}", elsewhere.join(" · ")),
+        _ => String::new(),
+    };
+    // Copies, never records: `counts::records` speaks about hits on a page, and these are
+    // other shelves of one and the same record.
+    let line = if dropped == 1 {
+        format!("1 more copy of this library stands at another branch{where_to}")
+    } else {
+        format!("{dropped} more copies of this library stand at other branches{where_to}")
+    };
+    write_line(out, &line, SHOW_ITEM_INDENT, style.dim(), style)
 }
 
 /// `HU Berlin — Humboldt-Universität zu Berlin, Universitätsbibliothek`, or the full name
@@ -1012,33 +1241,6 @@ fn library_name(holding: &Holding) -> String {
     } else {
         format!("{short} — {}", holding.library)
     }
-}
-
-/// Split the holdings into the user's own, in the order of `--at`, and the rest.
-///
-/// Without locations everything is "mine" in record order and nothing is marked — there
-/// is no user preference to sort by.
-///
-/// What counts as the user's is [`select::holding_is_at`] and nothing spelled out again
-/// here: it is the same rule that sets `holdings[].mine` in the JSON, and a second
-/// spelling of it would let the two outputs disagree about the same record — including
-/// over the branch narrowing, which an ISIL comparison cannot see.
-fn split_holdings(record: &Record, locations: &[Location]) -> (Vec<usize>, Vec<usize>) {
-    if locations.is_empty() {
-        return ((0..record.holdings.len()).collect(), Vec::new());
-    }
-    let mut mine: Vec<usize> = Vec::new();
-    for location in locations {
-        for (index, holding) in record.holdings.iter().enumerate() {
-            if select::holding_is_at(holding, location) && !mine.contains(&index) {
-                mine.push(index);
-            }
-        }
-    }
-    let others = (0..record.holdings.len())
-        .filter(|index| !mine.contains(index))
-        .collect();
-    (mine, others)
 }
 
 /// `also at: Stabi Berlin · TU Berlin · …` — the libraries outside `--at`, named but not
@@ -2513,6 +2715,366 @@ almafu_BV008885798
         );
     }
 
+    /// A copy at a named branch, for the `--at <branch>` tests below.
+    fn copy_at(branch: &str, house: &str, call_number: &str, status: Status) -> Item {
+        Item {
+            location: Some("Erwachsenenbereich".to_owned()),
+            branch: Some(branch.to_owned()),
+            branch_name: Some(house.to_owned()),
+            call_number: Some(call_number.to_owned()),
+            volume: None,
+            status,
+            order_option: None,
+        }
+    }
+
+    /// The VÖBB record of round 2, §1.1: one holding for the network, four copies in four
+    /// houses, and the user's own house is the one that lent it out.
+    fn vorleser_voebb() -> Record {
+        let mut record = record(
+            "voebb_SAK13363539",
+            "Der Vorleser : Roman",
+            "Schlink, Bernhard",
+            2002,
+        );
+        record.holdings = vec![holding(
+            "DE-609",
+            "Berlin VÖBB/ZLB",
+            "Verbund der Öffentlichen Bibliotheken Berlins",
+            Status::Available,
+            vec![
+                copy_at(
+                    "BIB000000010",
+                    "Marzahn-Hellersdorf: Bezirkszentralbibliothek",
+                    "Roman Schlin",
+                    Status::Available,
+                ),
+                copy_at(
+                    "BIB000000020",
+                    "Mitte: Hansabibliothek",
+                    "Roman Schlink",
+                    Status::Available,
+                ),
+                copy_at(
+                    "BIB000000030",
+                    "Reinickendorf: Bibliothek Frohnau",
+                    "Roman Schlin",
+                    Status::Available,
+                ),
+                copy_at(
+                    "SIG00036",
+                    "ZLB: Amerika-Gedenkbibliothek",
+                    "L 248 Schlin 50 p",
+                    Status::Unavailable,
+                ),
+            ],
+        )];
+        record
+    }
+
+    /// §1.1, the heaviest finding of round 2: `show <id> --at AGB` used to render every
+    /// copy of the network under the user's own branch, count them all, and paint the
+    /// house's green light over a book the AGB had lent out — the exact opposite of what
+    /// the search path said about the same id and the same `--at`.
+    #[test]
+    fn show_at_a_branch_answers_for_that_branch_and_not_for_its_house() {
+        let agb = branch("AGB", "DE-609", "SIG00036", "Amerika-Gedenkbibliothek");
+        let output = rendered_show(&vorleser_voebb(), std::slice::from_ref(&agb));
+
+        assert!(
+            output.contains("○ Berlin VÖBB/ZLB"),
+            "the traffic light is the branch's: {output}"
+        );
+        assert!(
+            !output.contains("available"),
+            "no copy of the AGB is in, so nothing may say it is: {output}"
+        );
+        assert!(
+            output.contains("L 248 Schlin 50 p"),
+            "the AGB's own copy is missing: {output}"
+        );
+        for elsewhere in ["Hansabibliothek · Erwachsenenbereich", "Roman Schlink"] {
+            assert!(
+                !output.contains(elsewhere),
+                "a copy of another branch is listed: {output}"
+            );
+        }
+    }
+
+    /// The copies the branch narrowing dropped are counted and their houses named. A
+    /// shorter list is otherwise indistinguishable from a library that holds that much,
+    /// and CLAUDE.md forbids reporting a record as having shelfmarks it does not have in
+    /// either direction.
+    #[test]
+    fn the_copies_a_branch_narrowed_away_are_stated() {
+        let agb = branch("AGB", "DE-609", "SIG00036", "Amerika-Gedenkbibliothek");
+        let output = rendered_show(&vorleser_voebb(), std::slice::from_ref(&agb));
+        assert!(
+            output.contains(
+                "3 more copies of this library stand at other branches: \
+                 Marzahn-Hellersdorf: Bezirkszentralbibliothek · Mitte: Hansabibliothek · \
+                 Reinickendorf: Bibliothek Frohnau"
+            ),
+            "{output}"
+        );
+
+        // An institution drops nothing, so it says nothing.
+        let whole = rendered_show(
+            &vorleser_voebb(),
+            &[institution("VOEBB", "DE-609", "Berlin VÖBB/ZLB")],
+        );
+        assert!(!whole.contains("more copies of this library"), "{whole}");
+    }
+
+    /// A terminal too narrow for anything must still not panic — the copy lines lay out
+    /// through the same table as before, and the two new lines of this package (the
+    /// narrowed-away copies and the branch that could not be applied) are plain lines that
+    /// overflow rather than index into their own text.
+    #[test]
+    fn a_branch_answer_survives_a_twenty_column_terminal() {
+        let agb = branch("AGB", "DE-609", "SIG00036", "Amerika-Gedenkbibliothek");
+        let narrow = rendered_show_at(&vorleser_voebb(), std::slice::from_ref(&agb), 20);
+        assert!(narrow.contains("L 248 Schlin 50 p"), "{narrow}");
+        assert!(narrow.contains("more copies of this library"), "{narrow}");
+    }
+
+    /// §1.8: `0 of 2 available` next to two lines reading "status not confirmed" is a
+    /// counting claim about copies nobody counted. The denominator is the copies that
+    /// stated a status, and with fewer than two of those there is no fraction to print.
+    #[test]
+    fn a_count_is_only_printed_over_copies_that_stated_a_status() {
+        let mut record = prozess();
+        record.holdings = vec![holding(
+            "DE-30",
+            "BBAW Berlin",
+            "Berlin-Brandenburgische Akademie der Wissenschaften",
+            Status::Unknown,
+            vec![
+                item("Akademiebibliothek", "Zo 1000 - 12,5,1", Status::Unknown),
+                item("Akademiebibliothek", "Zo 1000 - 12,5,1=a", Status::Unknown),
+            ],
+        )];
+        let unstated = rendered_show(&record, &[]);
+        assert!(
+            !unstated.contains("available"),
+            "nothing was said about either copy: {unstated}"
+        );
+        assert_eq!(unstated.matches("status not confirmed").count(), 2);
+
+        // Two copies that did state something are counted, and the third that did not is
+        // in neither number.
+        record.holdings[0].items[0].status = Status::Available;
+        record.holdings[0].items[1].status = Status::Unavailable;
+        record.holdings[0]
+            .items
+            .push(item("Magazin", "Zo 1000 - 12,5,2", Status::Unknown));
+        let stated = rendered_show(&record, &[]);
+        assert!(stated.contains("· 1 of 2 available"), "{stated}");
+    }
+
+    /// §1.9: the availability service answered `red` / `not available` and said nothing
+    /// about a loan. For an online resource with a full-text link, "on loan" is a fact
+    /// this tool would have invented.
+    #[test]
+    fn an_online_resource_is_never_reported_as_on_loan() {
+        let mut record = prozess();
+        record.holdings = vec![holding(
+            "DE-517",
+            "UP Potsdam",
+            "Universität Potsdam",
+            Status::Unavailable,
+            vec![item("", "", Status::Unavailable)],
+        )];
+        assert!(
+            rendered_show(&record, &[]).contains("on loan"),
+            "a printed book that is not in is out"
+        );
+
+        record.format = Format::Ebook;
+        record.online = true;
+        let electronic = rendered_show(&record, &[]);
+        assert!(electronic.contains("currently unavailable"), "{electronic}");
+        assert!(
+            !electronic.contains("on loan"),
+            "nobody borrowed the DOI: {electronic}"
+        );
+    }
+
+    /// The same rule on the search path, where the copy lines are the block's.
+    #[test]
+    fn a_copy_line_of_an_online_record_uses_the_neutral_wording() {
+        let (mut result, locations) = vorleser();
+        for record in &mut result.records {
+            record.format = Format::Ebook;
+            record.online = true;
+            for holding in &mut record.holdings {
+                for item in &mut holding.items {
+                    item.status = Status::Unavailable;
+                }
+            }
+        }
+        let output = rendered(&result, &locations);
+        assert!(output.contains("currently unavailable"), "{output}");
+        // And the legend follows: nothing in this output can be lent, so glossing `○` as
+        // "on loan" would contradict every line under it.
+        assert!(!output.contains("on loan"), "{output}");
+        assert!(output.contains("○  currently unavailable"), "{output}");
+    }
+
+    /// §1.3: a block a window filter emptied keeps its total. `no results` denied 2005
+    /// hits that the footer named three lines further down — the one arm of the heading
+    /// that could be a lie.
+    #[test]
+    fn a_block_emptied_by_the_window_filter_keeps_its_total() {
+        let (mut result, mut locations) = vorleser();
+        locations.push(institution("TU", "DE-83", "TU Berlin"));
+        result.at.push(at("TU", "DE-83", 2005, Engine::Kobv, &[]));
+        result.window = WindowInfo {
+            fetched: 50,
+            after_filter: 0,
+            filtered: true,
+            undelivered: 0,
+            before_available: Some(0),
+        };
+
+        let output = rendered(&result, &locations);
+        assert!(
+            output.contains("TU Berlin · 2005 results · none of the 50 fetched records matched\n"),
+            "{output}"
+        );
+        assert!(!output.contains("TU Berlin · no results"), "{output}");
+        assert!(
+            !output.contains("none available now"),
+            "the filter emptied the page before a status was asked for: {output}"
+        );
+    }
+
+    /// The prose footnote about the window is dropped where the engine already stated the
+    /// same limitation as a tagged note: one limitation, one sentence.
+    #[test]
+    fn the_empty_window_filter_is_not_said_twice() {
+        let (mut result, locations) = vorleser();
+        result.window = WindowInfo {
+            fetched: 50,
+            after_filter: 0,
+            filtered: true,
+            undelivered: 0,
+            before_available: None,
+        };
+        let bare = rendered(&result, &locations);
+        assert!(
+            bare.contains("note: the filters saw the 50 fetched records"),
+            "without the note the prose still has to say it: {bare}"
+        );
+
+        result.notes = vec![Note::new(
+            note_kinds::WINDOW_FILTER_EMPTY,
+            "none of the 50 fetched records matched --format map — the filter runs over the \
+             fetched window, so this is not a statement about the whole result",
+        )];
+        let tagged = rendered(&result, &locations);
+        assert!(tagged.contains("--format map"), "{tagged}");
+        assert!(
+            !tagged.contains("the filters saw the 50 fetched records"),
+            "the note says it; the prose said it again: {tagged}"
+        );
+    }
+
+    /// §2.1: with `--no-availability` a KOBV branch cannot be applied at all — the branch
+    /// of a copy is named in the availability answer and nowhere else — so the block is
+    /// the house's, and the heading has to say the house rather than claim the branch.
+    #[test]
+    fn a_branch_that_could_not_be_applied_names_the_house() {
+        let (mut result, _) = vorleser();
+        let mut germanistik = branch(
+            "DE-11-105",
+            "DE-11",
+            "HUB00028",
+            "Zweigbibliothek Germanistik/Skandinavistik",
+        );
+        germanistik.engine = Engine::Kobv;
+        germanistik.display = "Zweigbibliothek Germanistik/Skandinavistik (HU Berlin)".to_owned();
+        let locations = vec![germanistik];
+        result.at = vec![{
+            let mut block = at(
+                "DE-11-105",
+                "DE-11",
+                0,
+                Engine::Kobv,
+                &["almahu_BV011234567", "almahu_BV019876543"],
+            );
+            block.total = None;
+            block
+        }];
+
+        let applied = rendered(&result, &locations);
+        assert!(
+            applied.starts_with("Zweigbibliothek Germanistik/Skandinavistik (HU Berlin) · showing"),
+            "with copies the branch is answered for: {applied}"
+        );
+
+        result.availability = AvailabilityMode::Skipped;
+        let unapplied = rendered(&result, &locations);
+        assert!(
+            unapplied.starts_with("HU Berlin (branch not applied) · showing 2"),
+            "{unapplied}"
+        );
+    }
+
+    /// §2.9: `select::sort` runs over the whole anchored window and `take_page` cuts the
+    /// page out of the ordered set afterwards, so the note used to understate its own
+    /// work — and to contradict the heading above it, which counted the same window.
+    #[test]
+    fn the_sort_note_names_the_window_it_ordered() {
+        let (mut result, locations) = vorleser();
+        result.sort = SortSpec {
+            by: SortKey::Year,
+            scope: SortScope::Fetched,
+        };
+        result.total = Some(258);
+        result.window = WindowInfo {
+            fetched: 50,
+            after_filter: 32,
+            filtered: true,
+            undelivered: 0,
+            before_available: None,
+        };
+        let output = rendered(&result, &locations);
+        assert!(
+            output.contains(
+                "note: --sort ordered the 32 records in this window, not all 258 \
+                             results"
+            ),
+            "{output}"
+        );
+
+        // A window the sort saw whole is no limitation, so there is nothing to say.
+        result.total = Some(32);
+        assert!(
+            !rendered(&result, &locations).contains("--sort ordered"),
+            "the sort was complete"
+        );
+    }
+
+    /// `--sort availability` is the exception: statuses exist only for the records
+    /// availability was fetched for, so the ordering that decides the output is the second
+    /// one, over the page.
+    #[test]
+    fn a_sort_by_availability_names_the_page_it_ordered() {
+        let (mut result, locations) = vorleser();
+        result.sort = SortSpec {
+            by: SortKey::Availability,
+            scope: SortScope::Fetched,
+        };
+        result.total = Some(258);
+        result.window.after_filter = 32;
+        let output = rendered(&result, &locations);
+        assert!(
+            output.contains("note: --sort ordered the 5 records shown, not all 258 results"),
+            "{output}"
+        );
+    }
+
     /// A copy line names the house it stands in. Several copies of one VÖBB record all
     /// call their shelf `Erwachsenenbereich`, and without the house they are one line
     /// printed three times.
@@ -2561,7 +3123,7 @@ almafu_BV008885798
         let output = rendered_show(&record, &[]);
         let expected = format!(
             "{}  Außenmagazin, bestellbar",
-            pad_right(label(Status::Available, true), STATUS_COLUMN)
+            pad_right(label(Status::Available, Voice::Copy), STATUS_COLUMN)
         );
         assert!(output.contains(&expected), "{output:?}");
     }

@@ -714,8 +714,19 @@ fn run_show(
 ) -> Result<Outcome, Error> {
     let catalog = catalog_for(plan.engine(), fetch);
     let found = catalog.show(&plan.id, plan.availability)?;
-    let empty = found.is_none();
-    let mut result = ShowResult::new(found, plan.engine(), &plan.locations, plan.availability);
+    let empty = found.record.is_none();
+    let mut result = ShowResult::new(
+        found.record,
+        plan.engine(),
+        &plan.locations,
+        plan.availability,
+    );
+    // In front of the derived ones: the engine's notes say what the *page* could not
+    // state — an e-lending title has no item table at all — and that has to be read
+    // before the sentences about a serial's volumes or a copy's due date, which assume a
+    // list of copies exists. Dropping them left `show` with a silently empty copy list
+    // and no reason for it.
+    result.notes.splice(0..0, found.notes);
     if let Some(record) = &mut result.record {
         select::mark_mine(std::slice::from_mut(record), &plan.locations);
     }

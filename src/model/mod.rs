@@ -15,7 +15,7 @@ pub mod page;
 pub mod record;
 pub mod search;
 
-pub use catalog::Catalog;
+pub use catalog::{Catalog, EngineShow};
 pub use id::{AvailabilityId, Engine, RecordId};
 pub use isil::Isil;
 pub use page::{FetchWindow, Limit, Page, SruPageSize};

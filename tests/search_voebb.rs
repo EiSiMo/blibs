@@ -988,8 +988,12 @@ fn a_book_nobody_has_does_not_blame_the_branch() {
     );
 
     assert_eq!(ran.exit(), ExitCode::NoResults);
+    // Reworded in round 2 (4a): the message used to say "not anywhere in the region",
+    // which claimed more than voebb.de proved — its zero is the public library network's,
+    // and the university libraries of the other engine were never asked.
     assert!(
-        ran.err.contains("not anywhere in the region"),
+        ran.err
+            .contains("nowhere else in the catalogue that answers for it"),
         "the words are what came back empty: {}",
         ran.err
     );
@@ -1378,5 +1382,89 @@ fn a_result_page_that_states_neither_hits_nor_emptiness_still_fails() {
     assert!(
         error.to_string().contains("div#R06 p.info"),
         "the message names what was missing: {error}"
+    );
+}
+
+/// `show` of an e-lending title says why its copy list is empty.
+///
+/// `detail_online.html` has no item table at all — voebb.de states the loan state of an
+/// Onleihe or Overdrive title only in the text of its access link — so the record arrives
+/// with a holding and no copies. The engine has always said so in a note; `Voebb::show`
+/// dropped every note it was given (round 2, package 4a), and `blibs show` then printed a
+/// silently empty copy list, which CLAUDE.md forbids above all other failure modes. The
+/// search path over the same record page printed the note all along.
+#[test]
+fn show_of_an_online_title_states_why_it_lists_no_copies() {
+    let fetch = voebb_fetch();
+    let ran = invoke(&["show", "voebb_SAK16112988"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    assert!(
+        ran.out.contains("it has no copies on a shelf"),
+        "the missing copy list needs its reason: {}",
+        ran.out
+    );
+
+    let json = invoke(&["show", "voebb_SAK16112988", "--json"], &fetch).json();
+    let kinds: Vec<&str> = json["notes"]
+        .as_array()
+        .map(|notes| {
+            notes
+                .iter()
+                .filter_map(|note| note["kind"].as_str())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(
+        kinds.contains(&"voebb_online_only"),
+        "an agent branches on the kind, not on the wording: {json}"
+    );
+}
+
+/// `show <id> --at <branch>` answers for the branch, exactly as the search does.
+///
+/// The heaviest finding of round 2 (§1.1): the same id and the same `--at` gave two
+/// different answers, because `show` picked the whole holding and rendered every copy of
+/// the network under it — a green light and `3 of 4 available` over a book the user's own
+/// branch had lent out. `detail_on_loan.html` is that page: the AGB's copy is
+/// `Ausgeliehen` while most of the network's are in.
+#[test]
+fn show_at_a_branch_reports_that_branchs_copy() {
+    let fetch = voebb_fetch();
+    let ran = invoke(&["show", "voebb_SAK13363539", "--at", "AGB"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    assert!(
+        ran.out.contains("○ Berlin VÖBB/ZLB"),
+        "the AGB has it out, so the light is red: {}",
+        ran.out
+    );
+    assert!(
+        ran.out.contains("L 248 Schlin 50 e"),
+        "the AGB's own copy is what the block is about: {}",
+        ran.out
+    );
+    assert_eq!(
+        ran.out.matches("Erwachsenenbereich").count(),
+        0,
+        "no copy of another branch may be listed: {}",
+        ran.out
+    );
+    assert!(
+        ran.out
+            .contains("more copies of this library stand at other branches"),
+        "what the narrowing dropped is stated, never silently gone: {}",
+        ran.out
+    );
+
+    let json = invoke(
+        &["show", "voebb_SAK13363539", "--at", "AGB", "--json"],
+        &fetch,
+    )
+    .json();
+    assert_eq!(json["at"][0]["given"], "AGB");
+    assert_eq!(
+        json["at"][0]["status"], "unavailable",
+        "the pipeline an agent writes must not read the house's light: {json}"
     );
 }

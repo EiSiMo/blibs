@@ -18,8 +18,9 @@ use crate::error::{Error, UnexpectedError};
 use crate::http::{Fetch, scope_map};
 use crate::libraries;
 use crate::model::{
-    AtBlock, AvailabilityId, AvailabilityMode, Catalog, Engine, EngineSearch, FetchWindow, Holding,
-    Isil, Location, Note, QuerySpec, Record, RecordId, SearchRequest, SruPageSize,
+    AtBlock, AvailabilityId, AvailabilityMode, Catalog, Engine, EngineSearch, EngineShow,
+    FetchWindow, Holding, Isil, Location, Note, QuerySpec, Record, RecordId, SearchRequest,
+    SruPageSize,
 };
 
 use client::KobvClient;
@@ -272,12 +273,16 @@ impl Catalog for Kobv<'_> {
     /// Look one record up by its id, and — unless availability was waived — ask for its
     /// copies.
     ///
-    /// `Ok(None)` means the catalogue has no such record, which is exit 1 and not an
-    /// error. It is returned only when the service delivered nothing *and* announced
-    /// nothing: an announced record that arrives as a surrogate diagnostic is a failure
-    /// of the response, not an absent record, and saying "no such record" for it would be
-    /// a wrong answer rather than a missing one.
-    fn show(&self, id: &RecordId, mode: AvailabilityMode) -> Result<Option<Record>, Error> {
+    /// A `record` of `None` means the catalogue has no such record, which is exit 1 and
+    /// not an error. It is returned only when the service delivered nothing *and*
+    /// announced nothing: an announced record that arrives as a surrogate diagnostic is a
+    /// failure of the response, not an absent record, and saying "no such record" for it
+    /// would be a wrong answer rather than a missing one.
+    ///
+    /// The notes of the availability call travel with the record. They used to be
+    /// dropped, so a `show` whose copies the service had nothing to say about printed an
+    /// unexplained empty list — the one thing this tool must never do.
+    fn show(&self, id: &RecordId, mode: AvailabilityMode) -> Result<EngineShow, Error> {
         let query = pqf::record_lookup(id);
         let window = FetchWindow {
             start: 1,
@@ -286,7 +291,7 @@ impl Catalog for Kobv<'_> {
         let response = self.client.search(&query, window)?;
         if response.records.is_empty() {
             return if response.number_of_records == 0 {
-                Ok(None)
+                Ok(EngineShow::default())
             } else {
                 Err(missing(&format!(
                     "the record {id}, which the response counted but did not deliver"
@@ -296,10 +301,14 @@ impl Catalog for Kobv<'_> {
         let Some(mut record) = records(&response)?.into_iter().next() else {
             return Err(missing(&format!("a readable MARC record for {id}")));
         };
+        let mut notes = Vec::new();
         if mode == AvailabilityMode::Fetched {
-            self.fill_availability(std::slice::from_mut(&mut record))?;
+            notes = self.fill_availability(std::slice::from_mut(&mut record))?;
         }
-        Ok(Some(record))
+        Ok(EngineShow {
+            record: Some(record),
+            notes,
+        })
     }
 }
 

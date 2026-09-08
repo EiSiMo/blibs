@@ -47,6 +47,29 @@ pub struct Record {
     pub holdings: Vec<Holding>,
 }
 
+impl Record {
+    /// Whether this is a resource nobody carries off a shelf.
+    ///
+    /// The question every sentence about a *loan* has to ask first. The availability
+    /// service answers `{"color":"red","text":"not available"}` and says nothing about
+    /// borrowing; for a printed book "on loan" is a fair reading of that, and for an
+    /// online resource with a full-text link it is an invented fact — `blibs show
+    /// gbv_1832903613` printed `on loan` under an `E-book` with a working DOI, and the
+    /// note about missing due dates underneath it (round 2, §1.9).
+    ///
+    /// One predicate, because the copy line and that note must not disagree about the same
+    /// record. Both halves are asked: [`Self::online`] comes from `007`/`338$b` and says
+    /// the carrier is a network resource, while the `e`-formats say what the thing is.
+    /// Either one is enough to rule out a shelf.
+    pub fn is_online_resource(&self) -> bool {
+        self.online
+            || matches!(
+                self.format,
+                Format::Ebook | Format::Ejournal | Format::Electronic | Format::Database
+            )
+    }
+}
+
 /// A person, body or meeting responsible for the work.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Author {

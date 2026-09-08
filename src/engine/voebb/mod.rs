@@ -37,8 +37,8 @@ use crate::error::{Error, UnexpectedError};
 use crate::http::{Fetch, scope_map};
 use crate::libraries::{self, Branch, VOEBB_NETWORK};
 use crate::model::{
-    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, FetchWindow, Format, Holding, Isil,
-    Location, Note, QuerySpec, Record, RecordId, SearchRequest, Status, note_kinds,
+    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, EngineShow, FetchWindow, Format,
+    Holding, Isil, Location, Note, QuerySpec, Record, RecordId, SearchRequest, Status, note_kinds,
 };
 
 use client::{ResultView, VoebbClient};
@@ -317,8 +317,22 @@ impl Catalog for Voebb<'_> {
     /// `--no-availability` saves nothing here and is not honoured: voebb.de states the
     /// copies **on the record page itself**, so there is no cheaper page to ask for and
     /// throwing the copies away afterwards would cost the same and answer less.
-    fn show(&self, id: &RecordId, _mode: AvailabilityMode) -> Result<Option<Record>, Error> {
-        Ok(self.client.detail(id)?.map(|page| page.record))
+    ///
+    /// The page's notes come with it. They used to be dropped here, and an e-lending
+    /// title has no item table at all — its state lives in the text of the access link —
+    /// so `blibs show` of an Overdrive record printed an empty copy list and never said
+    /// why. The search path carried the same notes through all along
+    /// ([`Self::fill_availability`]), which is what made the two forms answer differently
+    /// about one record.
+    fn show(&self, id: &RecordId, _mode: AvailabilityMode) -> Result<EngineShow, Error> {
+        Ok(self
+            .client
+            .detail(id)?
+            .map(|page| EngineShow {
+                record: Some(page.record),
+                notes: page.notes,
+            })
+            .unwrap_or_default())
     }
 }
 

@@ -811,12 +811,15 @@ fn record_notes(record: &Record) -> Vec<Note> {
     if matches!(record.format, Format::Journal | Format::Ejournal) {
         notes.push(Note::new(note_kinds::SERIAL_VOLUMES_UNKNOWN, SERIAL_NOTE));
     }
-    if record
+    // Never for an online resource: nothing about it is on loan, its copy lines say
+    // "currently unavailable" rather than "on loan", and this sentence beside them was the
+    // second half of the invented loan (round 2, §1.9).
+    let out = record
         .holdings
         .iter()
         .flat_map(|holding| &holding.items)
-        .any(|item| item.status == Status::Unavailable)
-    {
+        .any(|item| item.status == Status::Unavailable);
+    if out && !record.is_online_resource() {
         notes.push(Note::new(note_kinds::LOAN_WITHOUT_DUE_DATE, LOAN_NOTE));
     }
     notes

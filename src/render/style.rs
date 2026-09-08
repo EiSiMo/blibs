@@ -130,12 +130,15 @@ impl Style {
 
     /// The legend under a result: only the symbols that actually occur.
     ///
-    /// `scoped` is whether `--at` was given, and it changes what the symbols *mean*:
-    /// under a location heading `●` is "you can borrow it there", in the flat list it is
-    /// "someone in the region lends it". Saying the wrong one would be a false promise.
+    /// `voice` is what the symbols *mean* here, and saying the wrong one would be a false
+    /// promise: under a location heading `●` is "you can borrow it there", in the flat
+    /// list only "someone in the region lends it", and over an output of nothing but
+    /// online resources `○` is "currently unavailable" rather than "on loan". The caller
+    /// decides it, because only it knows what is in the list — see
+    /// [`crate::render::human`].
     ///
     /// `None` when nothing occurred — an empty legend line is noise.
-    pub fn legend(self, present: &[Status], scoped: bool) -> Option<String> {
+    pub fn legend(self, present: &[Status], voice: Voice) -> Option<String> {
         let entries: Vec<String> = LEGEND_ORDER
             .iter()
             .filter(|status| {
@@ -147,7 +150,7 @@ impl Style {
                 format!(
                     "{}  {}",
                     self.symbol(*status),
-                    self.paint(label(*status, scoped), self.dim())
+                    self.paint(label(*status, voice), self.dim())
                 )
             })
             .collect();
@@ -168,22 +171,35 @@ const LEGEND_ORDER: [Status; 4] = [
     Status::PossiblyAvailable,
 ];
 
-/// The wording for a status, in the legend and on a copy line.
+/// Who a status wording speaks for, and about what kind of thing.
 ///
-/// Two vocabularies, and which one applies is not cosmetic. With `--at` the answer is
-/// about one library, so `○` is "on loan"; without it the answer is about the whole
-/// region, so the same symbol has to say "currently unavailable" — nobody has it, not
-/// "this one library has lent it out".
+/// Not cosmetic in any of the three cases: the service says `red` / `not available` and
+/// nothing else, and every word beyond that is this tool's reading of it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Voice {
+    /// One library's **copy** of something it lends out. `○` is then "on loan": a
+    /// physical copy that is not in is out, and that is what the reader wants to know.
+    Copy,
+    /// One library's **access** to an online resource. There is no copy on a shelf and
+    /// nothing was said about a loan, so `○` may only say "currently unavailable" —
+    /// "on loan" would be a fact this tool invented (round 2, §1.9).
+    Access,
+    /// The whole region, which is what the flat list without `--at` answers about. `●`
+    /// is then "somebody lends it", never "you can borrow it there".
+    Region,
+}
+
+/// The wording for a status, in the legend and on a copy line.
 ///
 /// `on loan` never carries a date: due dates live behind a patron login and this tool
 /// never signs in.
-pub fn label(status: Status, scoped: bool) -> &'static str {
-    match (status, scoped) {
-        (Status::Available, true) => "available",
-        (Status::Available, false) => "available somewhere",
+pub fn label(status: Status, voice: Voice) -> &'static str {
+    match (status, voice) {
+        (Status::Available, Voice::Copy | Voice::Access) => "available",
+        (Status::Available, Voice::Region) => "available somewhere",
         (Status::Reference, _) => "reference only",
-        (Status::Unavailable, true) => "on loan",
-        (Status::Unavailable, false) => "currently unavailable",
+        (Status::Unavailable, Voice::Copy) => "on loan",
+        (Status::Unavailable, Voice::Access | Voice::Region) => "currently unavailable",
         (Status::PossiblyAvailable | Status::Unknown, _) => "status not confirmed",
     }
 }
@@ -306,7 +322,7 @@ mod tests {
     fn the_legend_lists_only_the_symbols_that_occur() {
         let style = Style::plain(80);
         let legend = style
-            .legend(&[Status::Available, Status::Reference], true)
+            .legend(&[Status::Available, Status::Reference], Voice::Copy)
             .expect("two statuses occur");
         assert_eq!(legend, "●  available      ◐  reference only");
         assert!(!legend.contains('○'));
@@ -318,11 +334,15 @@ mod tests {
         let style = Style::plain(80);
         let shown = [Status::Available, Status::Reference, Status::Unavailable];
         assert_eq!(
-            style.legend(&shown, true).expect("three statuses occur"),
+            style
+                .legend(&shown, Voice::Copy)
+                .expect("three statuses occur"),
             "●  available      ◐  reference only      ○  on loan"
         );
         assert_eq!(
-            style.legend(&shown, false).expect("three statuses occur"),
+            style
+                .legend(&shown, Voice::Region)
+                .expect("three statuses occur"),
             "●  available somewhere      ◐  reference only      ○  currently unavailable"
         );
     }
@@ -333,7 +353,7 @@ mod tests {
     fn the_two_question_mark_statuses_share_one_entry() {
         let style = Style::plain(80);
         let legend = style
-            .legend(&[Status::Unknown, Status::PossiblyAvailable], true)
+            .legend(&[Status::Unknown, Status::PossiblyAvailable], Voice::Copy)
             .expect("the question mark occurs");
         assert_eq!(legend, "?  status not confirmed");
     }
@@ -342,14 +362,14 @@ mod tests {
     fn the_legend_keeps_its_order_whatever_order_the_statuses_arrive_in() {
         let style = Style::plain(80);
         let legend = style
-            .legend(&[Status::Unavailable, Status::Available], true)
+            .legend(&[Status::Unavailable, Status::Available], Voice::Copy)
             .expect("two statuses occur");
         assert_eq!(legend, "●  available      ○  on loan");
     }
 
     #[test]
     fn an_empty_legend_is_none_not_a_blank_line() {
-        assert_eq!(Style::plain(80).legend(&[], true), None);
+        assert_eq!(Style::plain(80).legend(&[], Voice::Copy), None);
     }
 
     /// Colour changes what is written, never what is said: strip the escapes and the two
@@ -358,10 +378,10 @@ mod tests {
     fn colour_does_not_change_the_legend_text() {
         let shown = [Status::Available, Status::Reference, Status::Unknown];
         let plain = Style::plain(80)
-            .legend(&shown, false)
+            .legend(&shown, Voice::Region)
             .expect("statuses occur");
         let coloured = Style::new(true, 80)
-            .legend(&shown, false)
+            .legend(&shown, Voice::Region)
             .expect("statuses occur");
         assert_ne!(plain, coloured);
         assert_eq!(plain, strip_ansi(&coloured));

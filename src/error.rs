@@ -108,9 +108,15 @@ pub enum EmptyReason {
     },
     /// `--at` was in play, the restricted search came back empty — and so did the
     /// unrestricted one. The sibling of [`EmptyReason::NoHitsAtLocations`], and the
-    /// distinction is not cosmetic: there, `--at` *is* the cause and naming more
-    /// libraries is the way out; here it is not, and that advice is guaranteed to fail
-    /// again because the words find nothing anywhere in the region.
+    /// distinction is not cosmetic: there, `--at` *is* the cause and naming a sibling
+    /// branch is the way out; here it is not, and that advice is guaranteed to fail
+    /// again.
+    ///
+    /// **What was proven is the catalogue that answered, not the region.** The
+    /// unrestricted count comes from one engine — voebb.de's, over the public library
+    /// network — and it says nothing about the university and research libraries the
+    /// other engine answers for, so the message may not claim the region and may not tell
+    /// the user that `--at` cannot help: `--at HU` still can (round 2).
     ///
     /// Only ever built where an **unfiltered** total is actually known. The `kobv` engine
     /// filters upstream and has no such total, so it must keep saying
@@ -229,9 +235,11 @@ impl EmptyReason {
             EmptyReason::NoHitsAnywhere { terms, locations } => {
                 let locations = locations.join(", ");
                 format!(
-                    "no results for {terms} — not at {locations}, and not anywhere in the region\n\
-                     the words are what came back empty, not the restriction: try fewer or more \
-                     general words, since naming more libraries in --at cannot help here"
+                    "no results for {terms} — not at {locations}, and nowhere else in the \
+                     catalogue that answers for it\n\
+                     the words are what came back empty there, not the restriction: try fewer or \
+                     more general words, or ask the libraries the other catalogue answers for \
+                     (--at HU, or no --at at all) — naming a sibling branch cannot help"
                 )
             }
             EmptyReason::FilteredOut {
@@ -2012,6 +2020,12 @@ mod tests {
     /// and "name more libraries in --at" is advice that is guaranteed to fail again. The
     /// two reasons must therefore read differently, and only the one that knows a
     /// network-wide zero may say so.
+    ///
+    /// Changed in round 2 (4a): the message used to claim "not anywhere in the region" and
+    /// that naming more libraries could not help. What the engine proved is one
+    /// catalogue's zero — the VÖBB network's — and the region also holds the university
+    /// and research libraries the other engine answers for, where `--at HU` can still
+    /// find the book. The variant says less now, and the test pins that it says less.
     #[test]
     fn a_network_wide_zero_does_not_blame_the_location() {
         let anywhere = EmptyReason::NoHitsAnywhere {
@@ -2021,13 +2035,21 @@ mod tests {
         .message();
         assert!(
             anywhere.starts_with(
-                "no results for Xylophonquark Zwitscherbold — not at AGB, and not anywhere in \
-                 the region"
+                "no results for Xylophonquark Zwitscherbold — not at AGB, and nowhere else in \
+                 the catalogue that answers for it"
             ),
             "{anywhere}"
         );
         assert!(anywhere.contains("more general words"), "{anywhere}");
         assert!(!anywhere.contains("name more libraries"), "{anywhere}");
+        assert!(
+            !anywhere.contains("anywhere in the region"),
+            "one catalogue answered, not the region: {anywhere}"
+        );
+        assert!(
+            anywhere.contains("--at HU"),
+            "the other catalogue is still worth asking: {anywhere}"
+        );
 
         // The restricted sibling keeps saying the opposite, because there it is true.
         let at = EmptyReason::NoHitsAtLocations {
