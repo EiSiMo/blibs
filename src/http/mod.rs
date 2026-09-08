@@ -812,15 +812,13 @@ mod tests {
         fn fetch(&self, request: &Request) -> Result<Response, Error> {
             let cacheable = cache::is_cacheable(request);
             let key = cache::cache_key(request);
-            if cacheable {
-                if let Some(body) = self.cache.get(&key, cache::ENTRY_TTL) {
-                    return Ok(Response {
-                        status: 200,
-                        body,
-                        content_type: None,
-                        from_cache: true,
-                    });
-                }
+            if cacheable && let Some(body) = self.cache.get(&key, cache::ENTRY_TTL) {
+                return Ok(Response {
+                    status: 200,
+                    body,
+                    content_type: None,
+                    from_cache: true,
+                });
             }
             *lock(&self.network_calls) += 1;
             if cacheable {

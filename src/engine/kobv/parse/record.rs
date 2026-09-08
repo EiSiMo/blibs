@@ -509,10 +509,10 @@ fn extent(marc: &MarcRecord) -> Option<String> {
 fn languages(marc: &MarcRecord) -> Vec<String> {
     let mut languages: Vec<String> = Vec::new();
     let coded = marc.control("008").and_then(Coded008::new);
-    if let Some(code) = coded.as_ref().and_then(Coded008::language) {
-        if !UNSPECIFIC_LANGUAGES.contains(&code) {
-            languages.push(code.to_owned());
-        }
+    if let Some(code) = coded.as_ref().and_then(Coded008::language)
+        && !UNSPECIFIC_LANGUAGES.contains(&code)
+    {
+        languages.push(code.to_owned());
     }
     for field in marc.fields("041") {
         for code in field.subs('a') {

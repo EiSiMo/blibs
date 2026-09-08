@@ -37,7 +37,7 @@ cargo install --path .
 cargo build --release
 ```
 
-Requires Rust 1.85 or later (edition 2024).
+Requires Rust 1.88 or later (edition 2024) — let-chains, which both blibs and `scraper` use.
 
 ## Quickstart
 
