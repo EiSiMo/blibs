@@ -177,6 +177,21 @@ Ein Rückgabedatum trägt auch `SAK34954522` (ein gewöhnlicher Roman, `Fällig 
 Rückgabedatum" (§ `detail_on_loan.html` oben) bleibt für *jene* Seite richtig: sie trägt
 tatsächlich keines.
 
+### Nachtrag 2026-09-08 (Runde 3, zweiter Fund) — die Verfügbarkeitszelle ist mehr als ihr `<span>`
+
+Ein einzelner `curl` am **2026-09-08**, dasselbe Rezept wie oben
+(`GET …/prod00?sp=SPROD00&sp=SAK13363539`, `-L`, eigener Cookie-Jar, UA
+`blibs/0.1 (+https://github.com/EiSiMo/blibs)`), danach `slim.py`.
+
+| Datei | Satz | Was sie belegt |
+| --- | --- | --- |
+| `detail_annotated.html` | `SAK13363539` (*Der Vorleser*, 4 Exemplare) | **Hinter dem Status-`<span>` kann in derselben Zelle noch eine Exemplarbemerkung stehen**, als reiner Text: `<span class="notavailable">Ausgeliehen -  Fällig am: 14.9.2026</span> - Unterstreichungen / Bemerkungen`. Wer den Zelltext nimmt statt den des `<span>`, liest als Datum `14.9.2026 - Unterstreichungen / Bemerkungen` — und verliert damit eine einwandfrei lesbare Frist. Die drei anderen Exemplare der Seite sind die gewöhnliche Form (`<span class="available">Verfügbar</span>`, sonst nichts), also steht der Unterschied in *einer* Datei nebeneinander |
+
+Die Form kommt in den 23 Stichprobenseiten **nicht** vor (42 Verfügbarkeitszellen, keine
+einzige mit Text hinter dem `<span>`) und in den älteren Fixtures ebenso wenig (71 Zellen,
+keine). Sie ist deshalb hier eigens belegt: ohne diese Datei gibt es im Repo kein Beispiel
+dafür.
+
 ## Was gekürzt wurde
 
 Zusammen waren es 1,1 MB, davon der Löwenanteil Rahmenwerk. `slim.py` entfernt daraus
@@ -217,7 +232,8 @@ Nicht angefasst: `noaccess.html` (die Datei ist der Beweis, dass dort weder `<ti
 | `detail_newspaper.html` | 60 KiB | 17 KiB |
 | `detail_series.html` | 60 KiB | 18 KiB |
 | `detail_due_dates.html` | 70 KiB | 29 KiB |
-| **alle `*.html` zusammen** | — | **707 KiB** (gemessen 2026-09-08) |
+| `detail_annotated.html` | 60 KiB | 19 KiB |
+| **alle `*.html` zusammen** | — | **726 KiB** (gemessen 2026-09-08) |
 
 Die Zeile *alle zusammen* ist die nachgemessene Größe des Verzeichnisses; die Einzelzeilen
 darüber sind die Messungen ihres jeweiligen Zugtages und summieren sich nicht darauf, weil

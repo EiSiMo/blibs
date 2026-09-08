@@ -881,6 +881,38 @@ fn item(row: ElementRef<'_>, columns: &Columns, notes: &mut Vec<Note>) -> Item {
 /// What voebb.de writes in front of a return date in the availability cell.
 const DUE_MARKER: &str = "Fällig am:";
 
+/// The status marker of an availability cell — the `<span>`, and nothing behind it.
+///
+/// **The cell is not the marker.** voebb.de can write a copy annotation *after* the span,
+/// as plain text in the same cell (measured 2026-09-08 on `voebb_SAK13363539`):
+///
+/// ```html
+/// <span class="notavailable">Ausgeliehen -  Fällig am: 14.9.2026</span> - Unterstreichungen / Bemerkungen
+/// ```
+///
+/// Taking the cell's text cost that copy its return date — `14.9.2026 - Unterstreichungen
+/// / Bemerkungen` is not a date — and then two notes said something false about it: one
+/// that voebb.de had stated a date this tool cannot read, and, because the date was gone,
+/// one that a copy on loan carries no due date here. Both are read from this marker now,
+/// and so is the status word, whose `"Verfügbar"` fallback the annotation would otherwise
+/// silently disable and whose text goes into two note messages, where a per-copy value
+/// stops notes folding.
+///
+/// A cell with **no** span at all is all marker: that is the shape [`status_of`]'s word
+/// fallback exists for, and reading the whole cell there loses nothing.
+///
+/// The annotation itself is dropped rather than carried. It is free text about the
+/// physical copy (`Unterstreichungen / Bemerkungen`) and no field holds it; that is a
+/// decision and not an oversight, and adding one is a change to the JSON contract.
+fn status_marker(cell: ElementRef<'_>) -> Option<ElementRef<'_>> {
+    cell.select(&selectors().status_span).next()
+}
+
+/// The text of that marker, or the whole cell where there is no marker.
+fn marker_text(cell: ElementRef<'_>) -> String {
+    status_marker(cell).map_or_else(|| text_of(cell), text_of)
+}
+
 /// The return date of a copy that is out, as ISO-8601, or `None`.
 ///
 /// `plan/voebb.md` §9 says a return date "steht nirgends in der Tabelle", checked against
@@ -890,9 +922,11 @@ const DUE_MARKER: &str = "Fällig am:";
 /// to "when is it back", which is a question `plan/usecases.md` asks and this parser was
 /// throwing away.
 ///
-/// It is read from the same cell as the status and decides nothing about it: the traffic
-/// light comes from the marker class ([`status_of`]), so a date this function cannot read
-/// costs a date and never a light.
+/// It is read from the same **marker** as the status ([`status_marker`]) and decides
+/// nothing about it: the traffic light comes from the marker's class ([`status_of`]), so a
+/// date this function cannot read costs a date and never a light. Reading the whole cell
+/// instead is what this got wrong once — a copy annotation behind the span turned a
+/// perfectly legible `14.9.2026` into an unreadable one.
 ///
 /// A cell with no `Fällig am:` has no date and says nothing — the common case, and no
 /// note. A cell that *has* the marker and a value that is not a date means the site
@@ -902,7 +936,7 @@ const DUE_MARKER: &str = "Fällig am:";
 /// quoting it would turn one changed format into one paragraph per borrowed copy.
 /// `records[]` names where the new form can be read.
 fn due_date_of(cell: Option<ElementRef<'_>>, notes: &mut Vec<Note>) -> Option<String> {
-    let text = text_of(cell?);
+    let text = marker_text(cell?);
     let (_, stated) = text.split_once(DUE_MARKER)?;
     let stated = stated.trim();
     if let Some(date) = parse_due_date(stated) {
@@ -972,6 +1006,10 @@ fn split_location(stated: &str) -> (Option<String>, Option<String>) {
 /// — never a guess, and never quietly [`Status::Available`]. A cell whose class and word
 /// *contradict* each other resolves to the pessimistic one, also with a note: an
 /// unexplained conflict must not end as a promise that the copy is on the shelf.
+///
+/// Both are read from the `<span>` and not from the cell ([`status_marker`]): a copy
+/// annotation behind the span would otherwise disable the word fallback silently and put a
+/// per-copy value into those two note messages.
 fn status_of(
     cell: Option<ElementRef<'_>>,
     order_option: Option<&str>,
@@ -980,10 +1018,13 @@ fn status_of(
     let Some(cell) = cell else {
         return Status::Unknown;
     };
-    let text = text_of(cell);
-    let class = cell
-        .select(&selectors().status_span)
-        .next()
+    // Both halves come from the same element, and that element is the marker rather than
+    // the cell: a copy annotation behind the span is not part of the status word, and
+    // `text` travels into the two note messages below, where a per-copy value would stop
+    // them folding ([`status_marker`]).
+    let marker = status_marker(cell);
+    let text = marker.map_or_else(|| text_of(cell), text_of);
+    let class = marker
         .and_then(|span| span.attr("class"))
         .map(str::trim)
         .unwrap_or_default()
@@ -1357,10 +1398,11 @@ mod tests {
     const NEWSPAPER: &str = include_str!("../../../../tests/fixtures/voebb/detail_newspaper.html");
     const SERIES: &str = include_str!("../../../../tests/fixtures/voebb/detail_series.html");
     const DUE_DATES: &str = include_str!("../../../../tests/fixtures/voebb/detail_due_dates.html");
+    const ANNOTATED: &str = include_str!("../../../../tests/fixtures/voebb/detail_annotated.html");
 
     /// Every record page fixture, with the number it was fetched under. The rules that
     /// have to hold for *all* of them — no record links to itself — are checked over this.
-    const RECORD_PAGES: [(&str, &str); 11] = [
+    const RECORD_PAGES: [(&str, &str); 12] = [
         (AVAILABLE, "SAK13776205"),
         (ON_LOAN, "SAK00177143"),
         (REFERENCE, "SAK15912360"),
@@ -1372,6 +1414,7 @@ mod tests {
         (NEWSPAPER, "SAK13708822"),
         (SERIES, "SAK34799780"),
         (DUE_DATES, "SAK34906286"),
+        (ANNOTATED, "SAK13363539"),
     ];
 
     /// The one holding every voebb.de record has.
@@ -1987,6 +2030,78 @@ mod tests {
                 .count(),
             10
         );
+    }
+
+    /// A copy annotation stands **behind** the status span, in the same cell, and must
+    /// cost neither the return date nor the status word.
+    ///
+    /// Measured 2026-09-08 on `voebb_SAK13363539`:
+    ///
+    /// ```html
+    /// <span class="notavailable">Ausgeliehen -  Fällig am: 14.9.2026</span> - Unterstreichungen / Bemerkungen
+    /// ```
+    ///
+    /// Reading the cell instead of the span made `14.9.2026 - Unterstreichungen /
+    /// Bemerkungen` the date, which is not one — so a legible date was thrown away, a note
+    /// claimed voebb.de had written an unreadable one, and the missing date then let the
+    /// note about copies with no due date fire as well. Two false statements from one cut
+    /// in the wrong place.
+    #[test]
+    fn an_annotation_behind_the_status_costs_neither_the_date_nor_the_light() {
+        let page = parsed(ANNOTATED, "SAK13363539");
+        let out: Vec<&Item> = items(&page)
+            .iter()
+            .filter(|item| item.status == Status::Unavailable)
+            .collect();
+        assert_eq!(out.len(), 1, "{:?}", items(&page));
+        assert_eq!(out[0].due_date.as_deref(), Some("2026-09-14"));
+        assert!(
+            page.notes.is_empty(),
+            "a readable date is not a limitation: {:?}",
+            page.notes
+        );
+        // The other three copies are in, and the annotation is the only difference.
+        assert_eq!(statuses(&page).len(), 4);
+    }
+
+    /// The word fallback of [`status_of`] survives the same annotation. It is the half
+    /// that a changed CSS class would have to fall back on, and reading the cell made it
+    /// dead text: `"Verfügbar - irgendeine Bemerkung"` is not `"Verfügbar"`.
+    #[test]
+    fn the_status_word_is_read_from_the_marker_and_not_from_the_whole_cell() {
+        let classless = ANNOTATED
+            .replace(
+                "<span class=\"available\">",
+                "<span class=\"was-available\">",
+            )
+            .replace(
+                "<span class=\"was-available\">Verfügbar</span>",
+                "<span class=\"was-available\">Verfügbar</span> - Rückseite beschädigt",
+            );
+        let page = parsed(&classless, "SAK13363539");
+        assert_eq!(
+            statuses(&page)
+                .iter()
+                .filter(|status| **status == Status::Available)
+                .count(),
+            3,
+            "the word still names the status when the class stops doing it: {:?}",
+            page.notes
+        );
+    }
+
+    /// And a date that really is unreadable still says so — the fix narrows where the
+    /// parser looks, it does not stop it noticing.
+    #[test]
+    fn an_annotated_cell_with_a_broken_date_is_still_a_note() {
+        let broken = ANNOTATED.replace("Fällig am: 14.9.2026", "Fällig am: demnächst");
+        let page = parsed(&broken, "SAK13363539");
+        assert!(
+            items(&page).iter().all(|item| item.due_date.is_none()),
+            "{:?}",
+            items(&page)
+        );
+        assert_eq!(kinds(&page), [note_kinds::VOEBB_DUE_DATE_UNREADABLE]);
     }
 
     /// The forms the site writes, and the ones it does not. Day and month are unpadded,

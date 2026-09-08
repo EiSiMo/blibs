@@ -112,6 +112,10 @@ fn voebb_fetch() -> FixtureFetch {
             |request| record_of(request) == "SAK13708822",
             read_fixture("voebb/detail_newspaper.html"),
         )
+        .route(
+            |request| record_of(request) == "SAK13363539",
+            read_fixture("voebb/detail_annotated.html"),
+        )
         .route(is_record_page, read_fixture("voebb/detail_on_loan.html"))
         .route(
             |request| has_field(request, "$Autosuggest"),
@@ -1506,10 +1510,16 @@ fn show_of_a_serial_states_the_holdings_it_has_in_prose() {
 /// the network under it — a green light and `3 of 4 available` over a book the user's own
 /// branch had lent out. `detail_on_loan.html` is that page: the AGB's copy is
 /// `Ausgeliehen` while most of the network's are in.
+///
+/// The id is the fixture's **own** number, `SAK00177143`. It used to ask under
+/// `SAK13363539` and get this page from the fallback route, which was harmless until
+/// `SAK13363539` turned out to be a real record with a page of its own
+/// (`detail_annotated.html`, round 3) — two tests would then have disagreed about which
+/// page that number is. Nothing else about this test changed.
 #[test]
 fn show_at_a_branch_reports_that_branchs_copy() {
     let fetch = voebb_fetch();
-    let ran = invoke(&["show", "voebb_SAK13363539", "--at", "AGB"], &fetch);
+    let ran = invoke(&["show", "voebb_SAK00177143", "--at", "AGB"], &fetch);
 
     assert_eq!(ran.exit(), ExitCode::Success);
     assert!(
@@ -1536,7 +1546,7 @@ fn show_at_a_branch_reports_that_branchs_copy() {
     );
 
     let json = invoke(
-        &["show", "voebb_SAK13363539", "--at", "AGB", "--json"],
+        &["show", "voebb_SAK00177143", "--at", "AGB", "--json"],
         &fetch,
     )
     .json();
@@ -1544,6 +1554,58 @@ fn show_at_a_branch_reports_that_branchs_copy() {
     assert_eq!(
         json["at"][0]["status"], "unavailable",
         "the pipeline an agent writes must not read the house's light: {json}"
+    );
+}
+
+/// The symptom that was measured live: `blibs show voebb_SAK13363539 --at AGB` printed a
+/// copy `on loan` with **two** false notes under it.
+///
+/// The AGB's copy states `Ausgeliehen -  Fällig am: 14.9.2026` inside its status span and
+/// ` - Unterstreichungen / Bemerkungen` behind it, in the same cell. Reading the cell made
+/// the date `14.9.2026 - Unterstreichungen / Bemerkungen`, which is not one — so the date
+/// was thrown away, `voebb_due_date_unreadable` claimed voebb.de had written an unreadable
+/// one, and the resulting gap let `loan_without_due_date` fire as well. One cut in the
+/// wrong place, two false statements.
+#[test]
+fn a_copy_annotation_costs_neither_the_return_date_nor_the_truth_of_the_notes() {
+    let fetch = voebb_fetch();
+    let json = invoke(
+        &["show", "voebb_SAK13363539", "--at", "AGB", "--json"],
+        &fetch,
+    )
+    .json();
+
+    // The JSON document stays record-centric — the narrowing is in `at[]` and in the
+    // human block, not in `items[]` — so the AGB's copy is picked out by its branch.
+    let items = json["record"]["holdings"][0]["items"]
+        .as_array()
+        .unwrap_or_else(|| panic!("the record has copies: {json}"));
+    let agb = items
+        .iter()
+        .find(|item| item["branch"] == "SIG00036")
+        .unwrap_or_else(|| panic!("the AGB holds one: {json}"));
+    assert_eq!(agb["status"], "unavailable");
+    assert_eq!(agb["due_date"], "2026-09-14", "{json}");
+    assert_eq!(json["at"][0]["status"], "unavailable", "{json}");
+    // And the annotation never leaked into a field of its own.
+    assert_eq!(agb["order_option"], "Standardausleihe - Vormerkung möglich");
+
+    let kinds: Vec<&str> = json["notes"]
+        .as_array()
+        .map(|notes| {
+            notes
+                .iter()
+                .filter_map(|note| note["kind"].as_str())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(
+        !kinds.contains(&"voebb_due_date_unreadable"),
+        "the date is perfectly legible: {json}"
+    );
+    assert!(
+        !kinds.contains(&"loan_without_due_date"),
+        "the copy on loan states its due date: {json}"
     );
 }
 

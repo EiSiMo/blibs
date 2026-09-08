@@ -1086,51 +1086,94 @@ mod tests {
         AuthorKind, Format, Holding, Item, Limit, RecordId, SortKey, SortScope, Status, UrlKind,
     };
 
+    /// Every tag [`note_kinds`] declares, read out of this file's own source.
+    ///
+    /// **Not a hand-kept list, because the hand-kept one had already gone stale.** It
+    /// named 27 of the 29 constants: `branch_from_copies` and `branch_needs_copies` were
+    /// never added to it, so the two tags were exempt from the only test that guards the
+    /// vocabulary — which is precisely the failure the vocabulary exists to prevent, one
+    /// level up. A list that has to be edited whenever a constant is added will be
+    /// forgotten again; the source cannot be.
+    ///
+    /// Returns `(constant name, tag)` pairs, so the test can also hold the two to each
+    /// other.
+    fn declared_note_kinds() -> Vec<(&'static str, &'static str)> {
+        const SOURCE: &str =
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/model/search.rs"));
+        let module = SOURCE
+            .split_once("pub mod note_kinds {")
+            .expect("this file declares `pub mod note_kinds`")
+            .1;
+        // The constants are indented, so the module's own closing brace is the first one
+        // in column zero.
+        let module = module.split_once("\n}\n").map_or(module, |(body, _)| body);
+        let declared = module.matches("pub const ").count();
+
+        let kinds: Vec<(&str, &str)> = module
+            .lines()
+            .filter_map(|line| {
+                let rest = line.trim().strip_prefix("pub const ")?;
+                let (name, rest) = rest.split_once(": &str = ")?;
+                let tag = rest.trim().strip_prefix('"')?.strip_suffix("\";")?;
+                Some((name, tag))
+            })
+            .collect();
+
+        // A declaration this scan cannot read must fail the test rather than slip past it
+        // — that is the whole point of not keeping the list by hand.
+        assert_eq!(
+            kinds.len(),
+            declared,
+            "note_kinds declares {declared} constants and this scan read {}; a declaration \
+             it cannot parse is one it would silently exempt",
+            kinds.len()
+        );
+        // And a scan that suddenly finds nothing (a renamed module, a reformatted file)
+        // has to fail too, instead of passing over an empty list.
+        assert!(kinds.len() >= 29, "only {} tags found", kinds.len());
+        kinds
+    }
+
     /// The note vocabulary is the agent-facing half of `notes[]`. Two modules spelling
-    /// the same limitation two ways is exactly what the constants prevent, so the list is
-    /// checked for duplicates and for the one shape agents can rely on.
+    /// the same limitation two ways is exactly what the constants prevent, so every tag
+    /// is checked for duplicates, for the one shape agents can rely on, and against the
+    /// name of its own constant — a tag that no longer matches its name is how a second
+    /// spelling gets in without anyone reading both lines at once.
     #[test]
     fn note_kinds_are_unique_lowercase_tags() {
-        let all = [
-            note_kinds::RECORD_UNDELIVERED,
-            note_kinds::RECORD_SCHEMA_UNKNOWN,
-            note_kinds::WINDOW_FILTER_EMPTY,
-            note_kinds::DUPLICATE_RECORDS_DROPPED,
-            note_kinds::RESULT_ORDER_UNSTABLE,
-            note_kinds::AVAILABILITY_NOT_STATED,
-            note_kinds::AVAILABILITY_UNKNOWN_STATUS,
-            note_kinds::AVAILABILITY_MATCHED_BY_NAME,
-            note_kinds::AVAILABILITY_MATCH_CONFLICT,
-            note_kinds::AVAILABILITY_STATUS_CONFLICT,
-            note_kinds::AVAILABILITY_FILTER_UNSTATED,
-            note_kinds::HOLDING_WITHOUT_ISIL,
-            note_kinds::VOEBB_MULTIVOLUME,
-            note_kinds::VOEBB_NO_COPIES_LISTED,
-            note_kinds::VOEBB_DUE_DATE_UNREADABLE,
-            note_kinds::VOEBB_ONLINE_ONLY,
-            note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
-            note_kinds::VOEBB_ONLINE_URL_ONLY,
-            note_kinds::VOEBB_PAGE_UNREADABLE,
-            note_kinds::VOEBB_FREE_TERMS_AS_TITLE,
-            note_kinds::VOEBB_QUERY_TRUNCATED,
-            note_kinds::VOEBB_BRANCH_NOT_LISTED,
-            note_kinds::VOEBB_NO_HITS_IN_NETWORK,
-            note_kinds::LOCATION_OTHER_CATALOGUE,
-            note_kinds::SERIAL_VOLUMES_UNKNOWN,
-            note_kinds::LOAN_WITHOUT_DUE_DATE,
-            note_kinds::LOCATION_KEY_AMBIGUOUS,
-        ];
-        for (index, kind) in all.iter().enumerate() {
+        let all = declared_note_kinds();
+        for (index, (name, tag)) in all.iter().enumerate() {
             assert!(
-                !kind.is_empty()
-                    && kind
+                !tag.is_empty()
+                    && tag
                         .bytes()
                         .all(|byte| byte.is_ascii_lowercase() || byte == b'_'),
-                "{kind:?} is not a snake_case tag"
+                "{tag:?} is not a snake_case tag"
+            );
+            assert_eq!(
+                *tag,
+                name.to_ascii_lowercase(),
+                "the constant {name} and its tag have to say the same thing"
             );
             assert!(
-                !all[index + 1..].contains(kind),
-                "{kind:?} is used for two different notes"
+                all[index + 1..].iter().all(|(_, other)| other != tag),
+                "{tag:?} is used for two different notes"
+            );
+        }
+    }
+
+    /// The two tags the hand-kept list had lost, named here so the regression has a name
+    /// and not only a mechanism.
+    #[test]
+    fn the_branch_tags_are_part_of_the_checked_vocabulary() {
+        let all = declared_note_kinds();
+        for tag in [
+            note_kinds::BRANCH_FROM_COPIES,
+            note_kinds::BRANCH_NEEDS_COPIES,
+        ] {
+            assert!(
+                all.iter().any(|(_, declared)| *declared == tag),
+                "{tag:?} escaped the vocabulary check"
             );
         }
     }
