@@ -550,7 +550,13 @@ pub mod note_kinds {
     pub const VOEBB_NO_COPIES_LISTED: &str = "voebb_no_copies_listed";
 
     /// voebb.de stated a return date for a copy in a form this tool cannot read, so the
-    /// copy carries none rather than a guessed one. The note keeps the raw text.
+    /// copy carries none rather than a guessed one.
+    ///
+    /// The message names the form that was **expected** and never the text that was not
+    /// it. A date differs per copy, not even per record, so quoting one would turn a
+    /// single changed format into one paragraph per borrowed copy —
+    /// [`crate::model::Note::merged`] folds on `kind` *and* `message`, and `records[]` is what says
+    /// where the new form can be read.
     ///
     /// Never set for a copy that simply has no date — that is the normal case and says
     /// nothing. Only a `Fällig am:` whose value is not a date reaches here, which means
@@ -590,6 +596,12 @@ pub mod note_kinds {
     /// holding is [`Status::Unknown`] — whether the resolver's target is free to read is
     /// something voebb.de does not say, and a guess here would be a promise the tool
     /// cannot keep.
+    ///
+    /// The message names **no** URL. It used to, and that made it unique per record, so
+    /// [`crate::model::Note::merged`] never folded two of them: three such records in one window printed
+    /// three near-identical paragraphs differing only in a link (measured on
+    /// `--author "von Schirach" --at AGB`). The link belongs to
+    /// [`crate::model::Record::urls`], which `show` prints and `--json` carries.
     pub const VOEBB_ONLINE_URL_ONLY: &str = "voebb_online_url_only";
 
     /// A voebb.de record page arrived and is not a page this parser recognises, so that

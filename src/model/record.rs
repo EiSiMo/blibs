@@ -312,7 +312,9 @@ pub struct Item {
     /// `None` says the catalogue stated none, which is the normal case for a copy that is
     /// in, and the only case for KOBV — its availability service reports no return dates
     /// at all. A stated date this tool cannot read is never bent into shape: it stays
-    /// `None` and the result carries `voebb_due_date_unreadable` with the raw text.
+    /// `None` and the result carries `voebb_due_date_unreadable`, which names the form
+    /// that was expected rather than the text that was not it — a date differs per copy,
+    /// and a message that differs never folds into one note.
     ///
     /// It never decides [`Self::status`]. That comes from the marker class alone, so a
     /// changed date format costs a date and never a traffic light.

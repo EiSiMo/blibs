@@ -725,16 +725,20 @@ fn items_of(
     let selectors = selectors();
     let Some(table) = document.select(&selectors.item_table).next() else {
         let Some(row) = lending_link(bibliographic) else {
-            let Some(url) = online_access_url(bibliographic) else {
+            if online_access_url(bibliographic).is_none() {
                 return Err(missing_selector("table#resptable-1"));
-            };
+            }
+            // The URL proves the state and stays **out** of the sentence: it is different
+            // for every record, and a message that differs never folds. Three such
+            // records in one window produced three near-identical paragraphs that
+            // differed only in a link (measured on `--author "von Schirach" --at AGB`).
+            // The link itself is in `record.urls[]`, which `show` prints and `--json`
+            // carries, and `records[]` says which records this note is about.
             notes.push(Note::new(
                 note_kinds::VOEBB_ONLINE_URL_ONLY,
-                format!(
-                    "an electronic title has no copies on a shelf, and this one states no \
-                     lending link either — the access voebb.de names is the URL {url}, \
-                     and it says nothing about whether that access is free"
-                ),
+                "an electronic title has no copies on a shelf, and states no lending link \
+                 either — the access voebb.de names is a plain URL on the record, and it \
+                 says nothing about whether that access is free",
             ));
             return Ok(Vec::new());
         };
@@ -821,7 +825,8 @@ fn no_copies_note(medienart: &str, statement: Option<&str>) -> Note {
     };
     let stated = match statement {
         Some(_) => {
-            ". What this record states about its holdings it states in prose, above —              whole, because that form cannot be taken apart without guessing"
+            ". What this record states about its holdings it states in prose, above — \
+             whole, because that form cannot be taken apart without guessing"
         }
         None => "",
     };
@@ -892,7 +897,10 @@ const DUE_MARKER: &str = "Fällig am:";
 /// A cell with no `Fällig am:` has no date and says nothing — the common case, and no
 /// note. A cell that *has* the marker and a value that is not a date means the site
 /// changed how it writes them, and that is
-/// [`note_kinds::VOEBB_DUE_DATE_UNREADABLE`] with the raw text rather than a guess.
+/// [`note_kinds::VOEBB_DUE_DATE_UNREADABLE`] rather than a guess — naming the form that
+/// was expected, and not the text that was not it: a date differs per **copy**, so
+/// quoting it would turn one changed format into one paragraph per borrowed copy.
+/// `records[]` names where the new form can be read.
 fn due_date_of(cell: Option<ElementRef<'_>>, notes: &mut Vec<Note>) -> Option<String> {
     let text = text_of(cell?);
     let (_, stated) = text.split_once(DUE_MARKER)?;
@@ -902,11 +910,9 @@ fn due_date_of(cell: Option<ElementRef<'_>>, notes: &mut Vec<Note>) -> Option<St
     }
     notes.push(Note::new(
         note_kinds::VOEBB_DUE_DATE_UNREADABLE,
-        format!(
-            "voebb.de stated a return date for a copy that blibs cannot read — {stated:?} \
-             is not a date in the `d.m.yyyy` form the site writes them in, so the copy is \
-             reported without one rather than with a guess"
-        ),
+        "voebb.de stated a return date blibs cannot read — it is not a date in the \
+         `d.m.yyyy` form the site has written them in so far, so the copy is reported \
+         without one rather than with a guess",
     ));
     None
 }
@@ -1933,24 +1939,46 @@ mod tests {
     }
 
     /// A stated date this parser cannot read is neither guessed nor swallowed: the copy
-    /// keeps its light, loses the date, and the raw text travels in a note.
+    /// keeps its light, loses the date, and a note says the form stopped being readable.
+    ///
+    /// The **text** stays out of that note. A date differs per copy, and a message that
+    /// differs never folds: two copies with two unreadable dates would otherwise be two
+    /// paragraphs about one changed format.
     #[test]
     fn an_unreadable_return_date_is_a_note_and_never_a_guess() {
-        let changed = DUE_DATES.replace("Fällig am: 22.9.2026", "Fällig am: nächste Woche");
+        let changed = DUE_DATES
+            .replace("Fällig am: 22.9.2026", "Fällig am: nächste Woche")
+            .replace("Fällig am: 12.9.2026", "Fällig am: bald");
         let page = parsed(&changed, "SAK34906286");
         assert_eq!(
             items(&page)
                 .iter()
                 .filter(|item| item.due_date.is_some())
                 .count(),
-            7
+            6
         );
-        assert_eq!(kinds(&page), [note_kinds::VOEBB_DUE_DATE_UNREADABLE]);
-        assert!(
-            page.notes[0].message.contains("nächste Woche"),
+        // Two unreadable copies, and the note has to be **one** sentence about both.
+        assert_eq!(
+            kinds(&page),
+            [
+                note_kinds::VOEBB_DUE_DATE_UNREADABLE,
+                note_kinds::VOEBB_DUE_DATE_UNREADABLE
+            ]
+        );
+        assert_eq!(page.notes[0].message, page.notes[1].message);
+        assert_eq!(
+            Note::merged(page.notes.clone()).len(),
+            1,
             "{:?}",
-            page.notes[0].message
+            page.notes
         );
+        for note in &page.notes {
+            assert!(
+                !note.message.contains("nächste Woche") && !note.message.contains("bald"),
+                "the unreadable text belongs in records[], not in the message: {}",
+                note.message
+            );
+        }
         // The light is untouched.
         assert_eq!(
             statuses(&page)
@@ -1997,6 +2025,85 @@ mod tests {
                     "{local} links to itself: {:?}",
                     url.url
                 );
+            }
+        }
+    }
+
+    /// Two electronic titles whose access URLs differ are **one** note about two records.
+    ///
+    /// The note used to name the URL, which made its message unique per record, and
+    /// [`Note::merged`] folds on `kind` *and* `message`: three such records in one window
+    /// printed three near-identical paragraphs differing only in a link (measured on
+    /// `--author "von Schirach" --at AGB`, round 3). The sample holds three of them, so
+    /// they do meet in one window.
+    #[test]
+    fn two_access_urls_are_one_note_about_two_records() {
+        let other = ONLINE_URL.replace(
+            "nbn-resolving.de/urn:nbn:de:kobv:109-1-15402775",
+            "digital.zlb.de/viewer/metadata/1398120723/",
+        );
+        assert_ne!(other, ONLINE_URL, "the replacement has to bite");
+
+        let first = parsed(ONLINE_URL, "SAK34364366");
+        let second = parsed(&other, "SAK35521371");
+        assert_eq!(kinds(&first), [note_kinds::VOEBB_ONLINE_URL_ONLY]);
+        assert_eq!(kinds(&second), [note_kinds::VOEBB_ONLINE_URL_ONLY]);
+
+        let mut notes = first.notes.clone();
+        notes.extend(second.notes.clone());
+        let merged = Note::merged(notes);
+        assert_eq!(merged.len(), 1, "{merged:?}");
+        assert_eq!(
+            merged[0].records,
+            vec![
+                RecordId::voebb("SAK34364366"),
+                RecordId::voebb("SAK35521371")
+            ]
+        );
+        // And the URLs are still there — on the records, where `show` prints them.
+        assert!(
+            first.record.urls.iter().any(|url| url.url.contains("nbn-"))
+                && second
+                    .record
+                    .urls
+                    .iter()
+                    .any(|url| url.url.contains("digital.zlb.de")),
+            "the link belongs in urls[], not in the note"
+        );
+    }
+
+    /// The rule behind that, over every fixture: a note's **message** never carries a
+    /// value that is different for every record, because such a message cannot fold and
+    /// `records[]` already answers "which record".
+    ///
+    /// The two values that are always record-specific are checked: the record's own
+    /// number and any of its links. A quoted status word or platform wording is not one
+    /// of them — those are vocabulary, they are the statement itself, and identical
+    /// wordings fold correctly.
+    #[test]
+    fn no_note_message_carries_a_value_that_is_unique_to_its_record() {
+        for (html, local) in RECORD_PAGES {
+            let page = parsed(html, local);
+            for note in &page.notes {
+                assert!(
+                    !note.message.contains(local),
+                    "{local}: a record number in a message is what records[] is for: {}",
+                    note.message
+                );
+                for url in &page.record.urls {
+                    assert!(
+                        !note.message.contains(&url.url),
+                        "{local}: a link in a message never folds: {}",
+                        note.message
+                    );
+                }
+                if let Some(statement) = &holding(&page).holdings_statement {
+                    assert!(
+                        !note.message.contains(statement.as_str()),
+                        "{local}: a quoted shelfmark never folds: {}",
+                        note.message
+                    );
+                }
             }
         }
     }
@@ -2252,10 +2359,24 @@ mod tests {
         let kinds: Vec<&str> = page.notes.iter().map(|note| note.kind).collect();
         assert_eq!(kinds, vec![note_kinds::VOEBB_ONLINE_URL_ONLY], "{kinds:?}");
         let note = &page.notes[0];
+        // This assertion used to require the URL **in the message** ("the note says where
+        // the access points"). It is inverted rather than deleted, because the behaviour
+        // it pinned was the bug: a message carrying the record's own link is unique per
+        // record, so `Note::merged` never folded two of them and three such records in one
+        // window printed three near-identical paragraphs. The link is on the record.
         assert!(
-            note.message
+            !note
+                .message
                 .contains("http://nbn-resolving.de/urn:nbn:de:kobv:109-1-15402775"),
-            "the note says where the access points: {note:?}"
+            "the link belongs in urls[], not in the message: {note:?}"
+        );
+        assert!(
+            page.record
+                .urls
+                .iter()
+                .any(|url| url.url == "http://nbn-resolving.de/urn:nbn:de:kobv:109-1-15402775"),
+            "{:?}",
+            page.record.urls
         );
         assert_eq!(note.records, vec![RecordId::voebb("SAK34364366")]);
     }
