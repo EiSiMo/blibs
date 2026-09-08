@@ -162,7 +162,10 @@ fn text_argument(value: Option<&str>, named: &str) -> Result<Option<String>, Usa
 ///
 /// Duplicates are dropped rather than refused: `--at hu,STABI,HU` is a shell alias plus a
 /// habit, not a mistake, and rendering the HU block twice would be worse than quietly
-/// showing it once.
+/// showing it once. Two entries are the same location when they resolve to the same
+/// canonical key and ISIL — **not** when they were spelled the same way, or `--at DE-11,HU`
+/// would render the Humboldt block twice. The first spelling is the one that survives in
+/// [`Location::given`]: it is the word that reached the tool first.
 ///
 /// An **empty** entry is not the same kind of harmless: `--at "$LIBS"` with `LIBS` unset
 /// searched the whole region, and `--at "HU,,FU"` quietly searched two libraries where
@@ -181,7 +184,10 @@ pub fn locations(entries: &[String]) -> Result<Vec<Location>, UsageError> {
             return Err(empty_value("--at"));
         }
         let location = libraries::resolve(typed)?;
-        if !resolved.contains(&location) {
+        let known = resolved
+            .iter()
+            .any(|seen| seen.key == location.key && seen.isil == location.isil);
+        if !known {
             resolved.push(location);
         }
     }
@@ -423,8 +429,14 @@ fn language(value: &str) -> Result<String, UsageError> {
 /// capped at [`voebb::MAX_POSITION`] and a deeper window is a usage error **before** the
 /// session is opened, rather than a minute of requests ending in a short answer.
 ///
-/// The window that is measured is the one that would actually be fetched: `--format` and
-/// `--language` widen it to 50 records a page, which moves its end.
+/// The window that is measured is the one the user is asking the service for, which is
+/// why this passes [`Filters::is_active`] and **not** `Plan::anchored`: `--format` and
+/// `--language` widen the window to 50 records anchored at record 1, which moves its end
+/// and has to be measured, while `--sort` anchors that same block without asking for a
+/// deeper one. Measuring the anchored window for `--sort` too would turn
+/// `--at AGB --sort year --limit 50 --page 2` into a usage error although it reaches no
+/// further into the result than page 1 does — an anchored window is one block of 50 by
+/// construction and can never be too deep.
 ///
 /// The KOBV side is not checked here — SRU takes `startRecord` directly, and a window
 /// past the last hit comes back as an honest empty page.
@@ -1053,6 +1065,80 @@ mod tests {
             search(&[deep.as_slice(), &["--format", "book"]].concat()).is_ok(),
             "the filtered window is one anchored block and stays inside the depth"
         );
+    }
+
+    /// `--sort` anchors the window too, but it must **not** move the depth boundary.
+    ///
+    /// The check measures what the user is asking voebb.de for, which is why it reads
+    /// `Filters::is_active()` and not `Plan::anchored()`. `--at AGB --limit 50 --page 6`
+    /// is too deep with and without `--sort`; a `--sort` that made it legal would be a
+    /// usage error appearing and disappearing for a reason no finding ever asked for, and
+    /// one that made an otherwise legal invocation illegal would be worse.
+    #[test]
+    fn sorting_does_not_move_the_voebb_depth_boundary() {
+        let inside = &[
+            "search", "Vorleser", "--at", "AGB", "--limit", "50", "--page", "2",
+        ];
+        assert!(search(inside).is_ok(), "page 2 of 50 ends at 100");
+        assert!(
+            search(&[inside.as_slice(), &["--sort", "year"]].concat()).is_ok(),
+            "--sort anchors the window, it does not deepen it"
+        );
+
+        let outside = &[
+            "search", "Vorleser", "--at", "AGB", "--limit", "50", "--page", "6",
+        ];
+        assert_eq!(usage_kind(outside), "window_too_deep");
+        assert_eq!(
+            usage_kind(&[outside.as_slice(), &["--sort", "year"]].concat()),
+            "window_too_deep"
+        );
+    }
+
+    /// §2.9: a client-side sort sees only the fetched records, so its pages have to
+    /// partition **one** ordered block — page 2 of a stepped window can be newer than
+    /// page 1, which is not a sort. The window and the cut have to agree on that, or the
+    /// page claims a position that was never fetched.
+    #[test]
+    fn a_sort_anchors_the_window_and_the_cut_together() {
+        let plan = search(&["search", "Kafka", "--sort", "title", "--page", "2"])
+            .expect("a plain sorted search");
+        assert!(plan.anchored());
+        assert_eq!(plan.window().start, 1, "the block stays at record 1");
+        assert_eq!(
+            plan.window().size.get(),
+            crate::model::page::MAX_SRU_PAGE_SIZE,
+            "the block is the widest the service serves"
+        );
+        assert_eq!(
+            plan.cut().offset,
+            usize::from(plan.limit.get()),
+            "page 2 walks the matches inside the block"
+        );
+
+        // `--sort relevance` is the upstream order and touches nothing, so it anchors
+        // nothing either: the window steps as it always did.
+        let stepped = search(&["search", "Kafka", "--sort", "relevance", "--page", "2"])
+            .expect("a relevance search");
+        assert!(!stepped.anchored());
+        assert_eq!(stepped.window().start, 11);
+        assert_eq!(stepped.cut().offset, 0);
+    }
+
+    /// §2.3: `key` is canonical and `given` is what stood in `--at`, so a block can be
+    /// found again under the name it was asked for. `--at ZLB` is the case that made an
+    /// agent conclude "ZLB has no hits".
+    #[test]
+    fn a_location_remembers_the_word_the_user_typed() {
+        let plan = search(&["search", "Kafka", "--at", "ZLB"]).expect("ZLB is a known library");
+        assert_eq!(plan.locations[0].key, "VOEBB");
+        assert_eq!(plan.locations[0].given, "ZLB");
+
+        // Deduplication is by identity, not by spelling: `--at DE-11,HU` is one library
+        // and keeps the first word the user wrote for it.
+        let plan = search(&["search", "Kafka", "--at", "DE-11,HU"]).expect("known libraries");
+        assert_eq!(plan.locations.len(), 1);
+        assert_eq!(plan.locations[0].given, "DE-11");
     }
 
     /// The depth is voebb.de's, not the tool's: SRU takes `startRecord` directly and

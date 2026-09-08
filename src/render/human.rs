@@ -1470,6 +1470,7 @@ mod tests {
     fn institution(key: &str, isil: &str, display: &str) -> Location {
         Location {
             key: key.to_owned(),
+            given: key.to_owned(),
             isil: Isil::new(isil),
             branch: None,
             engine: Engine::Kobv,
@@ -1480,6 +1481,7 @@ mod tests {
     fn branch(key: &str, isil: &str, kobvid: &str, display: &str) -> Location {
         Location {
             key: key.to_owned(),
+            given: key.to_owned(),
             isil: Isil::new(isil),
             branch: Some(BranchRef {
                 kobvid: kobvid.to_owned(),
@@ -1495,6 +1497,7 @@ mod tests {
     fn at(key: &str, isil: &str, total: u64, engine: Engine, records: &[&str]) -> AtBlock {
         AtBlock {
             key: key.to_owned(),
+            given: key.to_owned(),
             isil: Isil::new(isil),
             branch: None,
             engine,

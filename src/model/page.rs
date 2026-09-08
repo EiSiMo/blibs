@@ -115,23 +115,28 @@ pub struct FetchWindow {
 impl FetchWindow {
     /// Work out the window for a given limit and page.
     ///
-    /// **Without a client-side filter** the window is exactly the limit and `--page`
-    /// steps it: the user sees what was fetched, and the tool does not pay for records it
-    /// will throw away.
+    /// **Un-anchored** the window is exactly the limit and `--page` steps it: the user
+    /// sees what was fetched, and the tool does not pay for records it will throw away.
+    /// This is what the user literally asked the service for, and it stays that way —
+    /// an engine that needs a few records in hand beyond the page (KOBV does, to replace
+    /// a duplicate the dedup drops) widens it for itself, so that the engine which must
+    /// not widen it (voebb.de, one request in flight, 22 rows a page) never does.
     ///
-    /// **With `--format` or `--language`** the window is widened to [`MAX_SRU_PAGE_SIZE`]
-    /// — those filters see only the fetched records, and a window of 10 would report "no
-    /// hits" for a book that is on record 11 — and it stays anchored at record 1 whatever
-    /// `--page` says. The widened window *is* the addressable set, and `--page` walks the
-    /// matches inside it ([`crate::select::PageCut`]) rather than the raw records.
+    /// **Anchored** the window is widened to [`MAX_SRU_PAGE_SIZE`] and pinned at record 1
+    /// whatever `--page` says; `--page` then walks the matches inside it
+    /// ([`crate::select::PageCut`]) rather than the raw records. What anchors it is
+    /// [`crate::cli::Plan::anchored`]: `--format`/`--language`, which see only the fetched
+    /// records so a window of 10 would report "no hits" for a book on record 11, and any
+    /// `--sort` but relevance, which reorders only the fetched records so stepped pages
+    /// would not partition one ordered set.
     ///
     /// Stepping the raw records instead is what this used to do, and it lost matches: a
     /// page-1 window of 50 raw records could hold 16 matches of which 5 were shown, and
     /// page 2 jumped to raw record 51 — the other 11 were reachable from no page at all,
     /// under a heading that claimed to continue the count. Filters are window-bound
     /// (`plan/cli.md` § *Das Fensterproblem*); paging them has to be window-bound too.
-    pub fn plan(limit: Limit, page: Page, filtered: bool) -> Self {
-        if filtered {
+    pub fn plan(limit: Limit, page: Page, anchored: bool) -> Self {
+        if anchored {
             return Self {
                 start: 1,
                 size: SruPageSize::new(u32::from(MAX_SRU_PAGE_SIZE)),
@@ -198,8 +203,11 @@ mod tests {
         assert_eq!(SruPageSize::new(u32::MAX).get(), MAX_SRU_PAGE_SIZE);
     }
 
+    /// Exactly the limit — no buffer for a duplicate. The overdraw that compensates for
+    /// the KOBV catalogue's repeats belongs to `engine::kobv`, so that voebb.de, which
+    /// walks its window over sequential requests, never asks for rows it will not show.
     #[test]
-    fn an_unfiltered_window_is_exactly_the_limit() {
+    fn an_unanchored_window_is_exactly_the_limit() {
         let limit = Limit::new(20).expect("20 is in range");
         let window = FetchWindow::plan(limit, Page::FIRST, false);
         assert_eq!(window.start, 1);
@@ -207,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn an_unfiltered_window_steps_by_the_limit() {
+    fn an_unanchored_window_steps_by_the_limit() {
         let limit = Limit::new(20).expect("20 is in range");
         let page = Page::new(3).expect("3 is a page");
         let window = FetchWindow::plan(limit, page, false);
@@ -215,13 +223,13 @@ mod tests {
         assert_eq!(window.size.get(), 20);
     }
 
-    /// With `--format`/`--language` the filter only ever sees the fetched records, so the
-    /// window is widened to the largest one SRU serves — and **anchored**: every page is
-    /// the same block of raw records, because `--page` walks the matches inside it rather
-    /// than the raw records. Stepping the raw records is what used to lose matches that no
-    /// page could reach.
+    /// An anchored window — `--format`/`--language`, or any `--sort` but relevance — is
+    /// widened to the largest block SRU serves and pinned at record 1: every page is the
+    /// same block of raw records, because `--page` walks the matches inside it rather than
+    /// the raw records. Stepping the raw records is what used to lose matches that no page
+    /// could reach, and for `--sort` it made page 2 newer than page 1.
     #[test]
-    fn a_filtered_window_is_widened_and_stays_anchored() {
+    fn an_anchored_window_is_widened_and_stays_put() {
         let limit = Limit::new(10).expect("10 is in range");
         let first = FetchWindow::plan(limit, Page::FIRST, true);
         assert_eq!(first.start, 1);

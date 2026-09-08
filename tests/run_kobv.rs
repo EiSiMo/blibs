@@ -13,6 +13,7 @@ use blibs::error::{Error, ExitCode, NetworkError, Outcome};
 use blibs::http::{Fetch, Request, Response};
 use blibs::render::Style;
 use clap::Parser;
+use std::fmt::Write as _;
 
 use common::{FixtureFetch, Recorder, read_fixture};
 
@@ -1133,5 +1134,92 @@ fn a_filtered_heading_counts_the_window_instead_of_ranging_over_the_total() {
     assert!(
         !heading.contains("showing"),
         "a range implies a completeness the filter cannot have: {heading}"
+    );
+}
+
+/// An SRU envelope of `count` records, in which the record at 0-based position `repeat`
+/// is a second copy of the first one — exactly the shape the union catalogue delivers.
+///
+/// Hand-built rather than a fixture file, because the point of the test is the *number*
+/// of records in the window, and a fixture would fix that number in a file whose name
+/// says nothing about it.
+fn window_with_a_duplicate(count: usize, repeat: usize) -> String {
+    let mut body = String::from(
+        r#"<?xml version="1.0"?><zs:searchRetrieveResponse xmlns:zs="http://docs.oasis-open.org/ns/search-ws/sruResponse"><zs:numberOfRecords>13410</zs:numberOfRecords><zs:records>"#,
+    );
+    for position in 0..count {
+        let number = if position == repeat { 0 } else { position };
+        let _ = write!(
+            body,
+            r#"<zs:record><zs:recordSchema>marcxml</zs:recordSchema><zs:recordXMLEscaping>xml</zs:recordXMLEscaping><zs:recordData><record xmlns="http://www.loc.gov/MARC21/slim">
+<leader>00000nam a2200000 c 4500</leader>
+<controlfield tag="001">almahu_{number:04}</controlfield>
+<controlfield tag="008">180205t20172017gw            000 0 ger d</controlfield>
+<datafield tag="245" ind1="1" ind2="0"><subfield code="a">Titel {number}</subfield></datafield>
+</record></zs:recordData><zs:recordPosition>{}</zs:recordPosition></zs:record>"#,
+            position + 1
+        );
+    }
+    body.push_str("</zs:records></zs:searchRetrieveResponse>");
+    body
+}
+
+/// §1.6: `--limit 10` returns ten records even when the catalogue puts the same record
+/// in the window twice.
+///
+/// Two things have to hold together for that, and this test fails if either is dropped:
+/// the SRU request asks for `--limit` **plus the overdraw**, and the page is cut to
+/// `--limit` only after the duplicate has been removed. With a window of exactly ten
+/// there is nothing to move up and the answer is nine — measured against the live
+/// service in 4 of 13 windows.
+#[test]
+fn a_duplicate_in_the_window_does_not_shorten_the_page() {
+    let fetch = FixtureFetch::new().route(|_| true, window_with_a_duplicate(15, 1));
+    let recorder = fetch.recorder();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Kafka",
+            "--limit",
+            "10",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let json = ran.json();
+    assert_eq!(json["shown"], 10, "{}", ran.out);
+    assert_eq!(
+        json["records"].as_array().map(Vec::len),
+        Some(10),
+        "{}",
+        ran.out
+    );
+    // The repeat is gone rather than renamed: ten records, ten distinct ids.
+    let mut ids: Vec<&str> = json["records"]
+        .as_array()
+        .expect("records is a list")
+        .iter()
+        .map(|record| record["id"].as_str().expect("an id is a string"))
+        .collect();
+    ids.sort_unstable();
+    ids.dedup();
+    assert_eq!(ids.len(), 10, "{}", ran.out);
+    // And it is stated, because the window did hold a duplicate.
+    let kinds: Vec<&str> = json["notes"]
+        .as_array()
+        .expect("notes is a list")
+        .iter()
+        .map(|note| note["kind"].as_str().expect("a kind is a string"))
+        .collect();
+    assert!(kinds.contains(&"duplicate_records_dropped"), "{kinds:?}");
+    // The buffer is the reason it worked: the window that went out was 15 wide.
+    assert_eq!(
+        recorder.count_matching("maximumRecords=15"),
+        1,
+        "{:?}",
+        recorder.log()
     );
 }

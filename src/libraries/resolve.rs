@@ -116,12 +116,19 @@ fn unknown(typed: &str) -> UsageError {
 /// nothing else — **which engine answers for it**, and the refusal for the branches no
 /// engine can answer for on its own. The result always carries the **canonical** ISIL
 /// from the list, never the user's spelling.
+///
+/// Carried alongside the canonical key: [`Location::given`] is set to what was typed,
+/// verbatim apart from the surrounding whitespace the shell may have left. Nothing
+/// matches on it — it exists so the answer can be found again under the name it was asked
+/// for, `--at ZLB` having resolved to the key `VOEBB`.
 pub fn resolve(input: &str) -> Result<Location, UsageError> {
     let typed = input.trim();
-    match look_up(typed)? {
-        Entry::Institution(library) => Ok(institution_location(library)),
-        Entry::Branch { parent, branch } => Ok(branch_location(parent, branch)),
-    }
+    let mut location = match look_up(typed)? {
+        Entry::Institution(library) => institution_location(library),
+        Entry::Branch { parent, branch } => branch_location(parent, branch),
+    };
+    location.given = typed.to_string();
+    Ok(location)
 }
 
 /// Alias, then house ISIL, then branch key — the order of `plan/libraries.md` §6.
@@ -327,8 +334,13 @@ fn by_isil_ignoring_case(typed: &str) -> Option<&'static Library> {
 /// bare ISIL for a house that has none. It is public because it is also the answer to
 /// "what do I put in `--at`", which the detail view of a house prints.
 pub fn institution_location(library: &Library) -> Location {
+    let key = library.alias().unwrap_or(library.isil.as_str()).to_string();
     Location {
-        key: library.alias().unwrap_or(library.isil.as_str()).to_string(),
+        // The canonical name, until [`resolve`] replaces it with the user's own word.
+        // Callers that build a location from the list rather than from `--at` — the
+        // detail view of a branch, say — never had a user word to carry.
+        given: key.clone(),
+        key,
         isil: Isil::new(&library.isil),
         branch: None,
         engine: Engine::Kobv,
@@ -370,6 +382,9 @@ pub fn branch_location(library: &Library, branch: &Branch) -> Location {
         .to_string();
     let voebb = library.isil == VOEBB_NETWORK;
     Location {
+        // As in `institution_location`: the canonical name, which [`resolve`] overwrites
+        // with what stood in `--at`.
+        given: key.clone(),
         display: format!(
             "{} ({})",
             branch.alias().unwrap_or(&branch.short_name),

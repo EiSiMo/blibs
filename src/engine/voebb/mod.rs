@@ -240,6 +240,7 @@ impl Catalog for Voebb<'_> {
             extend_records(&mut records, &found.hits);
             at.push(AtBlock {
                 key: location.key.clone(),
+                given: location.given.clone(),
                 isil: location.isil.clone(),
                 branch: Some(branch.kobvid.clone()),
                 engine: Engine::Voebb,

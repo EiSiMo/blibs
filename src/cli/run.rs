@@ -482,6 +482,7 @@ fn at_blocks(plan: &Plan, outcomes: &[EngineOutcome]) -> Vec<AtBlock> {
                 .cloned()
                 .unwrap_or_else(|| AtBlock {
                     key: location.key.clone(),
+                    given: location.given.clone(),
                     isil: location.isil.clone(),
                     branch: location.branch.as_ref().map(|branch| branch.kobvid.clone()),
                     engine: location.engine,
@@ -623,6 +624,11 @@ fn run_show(
     if let Some(record) = &mut result.record {
         select::mark_mine(std::slice::from_mut(record), &plan.locations);
     }
+    // After `mark_mine`, and from `select` exactly as the search document's `at[]` is:
+    // `holdings[].summary` is what the catalogue said about the whole house, so a record
+    // on loan at one branch and in at three others needs a per-location answer of its own
+    // for `--at` to have meant anything.
+    result.at = select::show_at(result.record.as_ref(), &plan.locations);
 
     if empty {
         let reason = EmptyReason::NoSuchRecord {

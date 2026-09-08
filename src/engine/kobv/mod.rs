@@ -30,6 +30,45 @@ use pqf::Pqf;
 /// What names the document an error message is about.
 const CONTEXT: &str = "the SRU response";
 
+/// How many records beyond the page one SRU search asks for.
+///
+/// The catalogue delivers the same record twice inside one window — measured against
+/// `sru.kobv.de/k2` directly on 2026-09-07, so it is the union catalogue's doing and not
+/// this tool's. [`crate::select::dedup`] drops the repeat, and a window of exactly
+/// `--limit` records then has nothing left to put in its place: `--limit 10` returned 9
+/// records in 4 of 13 measured windows.
+///
+/// Five is chosen against that measurement rather than as a round number: every window
+/// that lost records lost exactly one, and five covers a window in which a fifth of the
+/// records are repeats. It costs **no extra request** — SRU serves the whole window in
+/// one response — only a handful of MARC records more to parse.
+///
+/// **KOBV only.** This is compensation for a KOBV defect and it is applied where the SRU
+/// request is built, not in [`FetchWindow::plan`]: a voebb.de window is walked 22 rows at
+/// a time over sequential requests on a session that must be replayed in order, so five
+/// records more there would be a further request against a host that allows one in
+/// flight. That would be an etiquette regression traded for a bug that host does not have.
+///
+/// The one window it cannot help is `--limit 50`: [`SruPageSize`] clamps at the service's
+/// own ceiling, so an anchored window (already 50) and a full-size page get no buffer at
+/// all. There a dropped duplicate still shortens the page, and the
+/// `duplicate_records_dropped` note is what says so.
+const OVERDRAW: u32 = 5;
+
+/// The window to send, given the window the user asked for.
+///
+/// [`OVERDRAW`] records wider, clamped by [`SruPageSize`] at the largest window the
+/// service serves — which is also why this never stacks on top of an anchored window:
+/// that one is already at the ceiling and comes back unchanged. `start` is untouched, so
+/// consecutive pages overlap by [`OVERDRAW`] records; that is harmless, because the page
+/// is cut to `--limit` after the duplicates are dropped.
+fn overdrawn(window: FetchWindow) -> FetchWindow {
+    FetchWindow {
+        start: window.start,
+        size: SruPageSize::new(u32::from(window.size.get()).saturating_add(OVERDRAW)),
+    }
+}
+
 /// The KOBV engine.
 pub struct Kobv<'f> {
     client: KobvClient<'f>,
@@ -81,7 +120,9 @@ impl<'f> Kobv<'f> {
         window: FetchWindow,
     ) -> Result<Found, Error> {
         let query = pqf::search(spec, isils)?;
-        let response = self.client.search(&query, window)?;
+        // Widened here and nowhere else: `show` looks one record up by id and must keep
+        // asking for exactly one.
+        let response = self.client.search(&query, overdrawn(window))?;
         let records = records(&response)?;
         Ok(Found {
             query,
@@ -288,6 +329,7 @@ fn at_blocks(
                 .and_then(|index| per_isil.get(index));
             AtBlock {
                 key: location.key.clone(),
+                given: location.given.clone(),
                 isil: location.isil.clone(),
                 branch: location.branch.as_ref().map(|branch| branch.kobvid.clone()),
                 engine: Engine::Kobv,
@@ -383,4 +425,39 @@ fn missing(what: &str) -> Error {
         context: CONTEXT.to_owned(),
     }
     .into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{Limit, Page};
+
+    /// §1.6: without a buffer, a window of exactly `--limit` records has nothing to put in
+    /// the place of a duplicate the dedup drops, and `--limit 10` came back with 9 records
+    /// in 4 of 13 measured windows.
+    #[test]
+    fn an_sru_window_is_overdrawn_so_a_dropped_duplicate_can_be_replaced() {
+        let window = FetchWindow::plan(Limit::new(10).expect("10 is in range"), Page::FIRST, false);
+        let sent = overdrawn(window);
+        assert_eq!(sent.size.get(), 15);
+        // The page's position is untouched: consecutive windows overlap by OVERDRAW, which
+        // is harmless because the page is cut to `--limit` after the dedup.
+        assert_eq!(sent.start, window.start);
+    }
+
+    /// The buffer never asks for more than the service serves — and therefore never
+    /// stacks on top of an anchored window, which is already at that ceiling.
+    #[test]
+    fn the_overdraw_is_clamped_at_what_sru_serves() {
+        let limit = Limit::new(50).expect("50 is in range");
+        let full = FetchWindow::plan(limit, Page::FIRST, false);
+        assert_eq!(
+            overdrawn(full).size.get(),
+            crate::model::page::MAX_SRU_PAGE_SIZE
+        );
+
+        let anchored =
+            FetchWindow::plan(Limit::new(10).expect("10 is in range"), Page::FIRST, true);
+        assert_eq!(overdrawn(anchored), anchored);
+    }
 }

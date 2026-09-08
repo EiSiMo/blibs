@@ -128,8 +128,23 @@ impl QuerySpec {
 /// One resolved entry of `--at`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Location {
-    /// What the user typed, normalised to the canonical alias.
+    /// The **canonical** key: the library's own alias, or the bare ISIL or KOBV id where
+    /// it has none. This is what everything downstream matches on — `at[]` blocks against
+    /// locations, a block heading against its total — so it has to be one spelling per
+    /// library rather than whichever of its names was typed.
+    ///
+    /// It is therefore *not* what the user wrote: `--at ZLB` resolves to `VOEBB` and
+    /// `--at HU/Germanistik` to `DE-11-105`. The typed word is [`Self::given`].
     pub key: String,
+    /// The word the user actually put in `--at`, verbatim apart from surrounding
+    /// whitespace.
+    ///
+    /// Carried purely so that the answer can be found again by what was asked: an agent
+    /// that sends `--at ZLB` and then looks for `at[] | select(.key == "ZLB")` finds
+    /// nothing, because `key` is canonical. It is never matched on and never sent
+    /// upstream — the ISIL attribute is case-sensitive, so the user's spelling must not
+    /// reach the catalogue.
+    pub given: String,
     /// The canonical ISIL. Never the user's spelling — the upstream filter is
     /// case-sensitive.
     pub isil: Isil,
@@ -192,8 +207,15 @@ pub struct EngineSearch {
 /// displayed records belong under it.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct AtBlock {
-    /// The alias as it appears in `--at`.
+    /// The library's **canonical** key — its alias, or its bare ISIL or KOBV id where it
+    /// has none. Not necessarily the word that stood in `--at`: that one is
+    /// [`Self::given`], and looking a block up by it is what an agent will try first.
     pub key: String,
+    /// The word the user put in `--at` for this block, verbatim.
+    ///
+    /// [`Location::given`] carried through, so that a block can be found again by the
+    /// name it was asked for. Equal to `key` whenever the user typed the canonical name.
+    pub given: String,
     /// The canonical ISIL.
     pub isil: Isil,
     /// The branch id, when the location is a branch.
@@ -325,15 +347,44 @@ pub struct Note {
     pub kind: &'static str,
     /// Human-readable explanation.
     pub message: String,
+    /// The records this note is about, when it is about particular ones.
+    ///
+    /// Empty — and then absent from the JSON — for a note about the whole answer: a
+    /// window that was truncated, a query that could not be sent in full, a location the
+    /// other catalogue answers for. A note that *is* about records must name them:
+    /// three `voebb_online_only` notes over two blocks are unreadable otherwise, and
+    /// `message` is prose an agent is forbidden to parse.
+    #[serde(skip_serializing_if = "Vec::is_empty", serialize_with = "record_ids")]
+    pub records: Vec<RecordId>,
 }
 
 impl Note {
-    /// Build a note. `kind` is meant to be one of the constants in [`note_kinds`] — an
-    /// agent switches on it, so a tag invented at a call site is a silent break.
+    /// Build a note about the answer as a whole. `kind` is meant to be one of the
+    /// constants in [`note_kinds`] — an agent switches on it, so a tag invented at a call
+    /// site is a silent break.
     pub fn new(kind: &'static str, message: impl Into<String>) -> Self {
         Self {
             kind,
             message: message.into(),
+            records: Vec::new(),
+        }
+    }
+
+    /// Build a note about particular records.
+    ///
+    /// The same note as [`Note::new`] plus the ids it applies to, so that a reader does
+    /// not have to guess which of the displayed records a limitation belongs to. Passing
+    /// an empty `records` is allowed and produces exactly [`Note::new`] — a caller that
+    /// found nothing to name says so by naming nothing, rather than by inventing an id.
+    pub fn about(
+        kind: &'static str,
+        message: impl Into<String>,
+        records: impl IntoIterator<Item = RecordId>,
+    ) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+            records: records.into_iter().collect(),
         }
     }
 }
@@ -351,6 +402,16 @@ pub mod note_kinds {
 
     /// A record arrived under a `recordSchema` this tool cannot read.
     pub const RECORD_SCHEMA_UNKNOWN: &str = "record_schema_unknown";
+
+    /// A client-side window filter ran and matched **none** of the fetched records.
+    ///
+    /// The distinction it keeps alive is the one this tool exists to keep: "the
+    /// catalogue holds nothing" versus "nothing in the 50 records that were fetched
+    /// matched `--format map`". `window.after_filter == 0` next to a non-zero
+    /// `window.fetched` says the same thing, but only to a reader who already knows to
+    /// look — and the human output has been saying it in prose since before there was a
+    /// tag to switch on.
+    pub const WINDOW_FILTER_EMPTY: &str = "window_filter_empty";
 
     /// The catalogue delivered the same record more than once inside one window, and the
     /// repeats were dropped. Measured against `sru.kobv.de/k2` directly, so it is the
@@ -496,6 +557,34 @@ pub struct SearchResult {
     pub records: Vec<Record>,
 }
 
+/// One entry of `show`'s `at[]`: a location of `--at` and this record's status **there**.
+///
+/// The same five identifying members [`AtBlock`] carries, so a reader who can read one
+/// document can read the other; what replaces the hit count is the traffic light, because
+/// `show` already knows which record is meant and the only open question is where it
+/// stands.
+///
+/// Assembled by [`crate::select::show_at`] rather than here: which copies belong to a
+/// branch is a selection question, and a second answer to it in `model` is exactly how
+/// the human output and the JSON came to disagree in the first place.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct ShowAt {
+    /// The library's canonical key — [`Location::key`].
+    pub key: String,
+    /// The word the user put in `--at` — [`Location::given`].
+    pub given: String,
+    /// The canonical ISIL.
+    pub isil: Isil,
+    /// The branch id, when the location is a branch.
+    pub branch: Option<String>,
+    /// The engine that answers for this location.
+    pub engine: Engine,
+    /// The record's traffic light **at this location**: summarised over the copies that
+    /// stand there, and [`Status::Unknown`] — never [`Status::Unavailable`] — when the
+    /// location holds none, because nothing was said about it.
+    pub status: Status,
+}
+
 /// The complete result of one `show` — and the JSON document.
 ///
 /// A hull around the record rather than the bare record, because `show` has the same two
@@ -510,6 +599,19 @@ pub struct ShowResult {
     /// document is complete: `availability` still says whether copies were asked for, and
     /// a note may still say why `--at` did not apply.
     pub record: Option<Record>,
+    /// One entry per `--at` location, with **that location's** traffic light.
+    ///
+    /// The counterpart of [`SearchResult::at`], and the field the obvious pipeline should
+    /// read: `at[] | select(.given == "AGB") | .status` answers "is it in at the AGB",
+    /// which is the question `--at` asked. `holdings[].summary` cannot answer it — it is
+    /// what the catalogue said about the whole *house*, and a VÖBB holding is the whole
+    /// network — so reading the answer off a holding got it exactly backwards for a copy
+    /// on loan at one branch and in at three others.
+    ///
+    /// Absent when `--at` was not given, like every other optional member: no location
+    /// was named, so there is no per-location answer to state.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub at: Vec<ShowAt>,
     /// Whether availability was **asked for**.
     ///
     /// What it rules out is an empty `items[]` reading as "we did not ask". It is not a
@@ -535,6 +637,11 @@ impl ShowResult {
     /// `engine` is the record id's engine — the catalogue that answered — and `locations`
     /// is `--at` as the user wrote it, which may name a location the *other* catalogue
     /// answers for.
+    ///
+    /// [`Self::at`] is **not** derived here. It needs the branch narrowing, which lives
+    /// in `select`, and `cli` fills it with [`crate::select::show_at`] exactly as it
+    /// fills [`SearchResult::at`] on the search path — one place per document, and no
+    /// second copy of the narrowing rule inside `model`.
     pub fn new(
         record: Option<Record>,
         engine: Engine,
@@ -549,6 +656,7 @@ impl ShowResult {
         }
         Self {
             record,
+            at: Vec::new(),
             availability,
             notes,
         }
@@ -662,6 +770,7 @@ mod tests {
         let all = [
             note_kinds::RECORD_UNDELIVERED,
             note_kinds::RECORD_SCHEMA_UNKNOWN,
+            note_kinds::WINDOW_FILTER_EMPTY,
             note_kinds::DUPLICATE_RECORDS_DROPPED,
             note_kinds::RESULT_ORDER_UNSTABLE,
             note_kinds::AVAILABILITY_NOT_STATED,
@@ -819,6 +928,7 @@ mod tests {
             at: vec![
                 AtBlock {
                     key: "HU".to_owned(),
+                    given: "HU".to_owned(),
                     isil: Isil::new("DE-11"),
                     branch: None,
                     engine: Engine::Kobv,
@@ -829,6 +939,7 @@ mod tests {
                 },
                 AtBlock {
                     key: "AGB".to_owned(),
+                    given: "AGB".to_owned(),
                     isil: Isil::new("DE-609"),
                     branch: Some("SIG00036".to_owned()),
                     engine: Engine::Voebb,
@@ -837,10 +948,21 @@ mod tests {
                 },
             ],
             availability: AvailabilityMode::Fetched,
-            notes: vec![Note::new(
-                note_kinds::RECORD_UNDELIVERED,
-                "record 49 of the SRU response was a diagnostic and was skipped",
-            )],
+            notes: vec![
+                // A note about the answer as a whole: the record it would name is the one
+                // that never arrived, so there is no id to give and `records` is absent.
+                Note::new(
+                    note_kinds::RECORD_UNDELIVERED,
+                    "record 49 of the SRU response was a diagnostic and was skipped",
+                ),
+                // And one about a particular record, so the snapshot pins both shapes.
+                Note::about(
+                    note_kinds::VOEBB_ONLINE_ONLY,
+                    "an Onleihe title has no copies on a shelf; its loan state is stated \
+                     only in the link to the lending platform",
+                    [RecordId::voebb("SAK13776205")],
+                ),
+            ],
             records: vec![kobv_record(), voebb_record()],
         }
     }
@@ -1099,6 +1221,39 @@ mod tests {
         );
     }
 
+    /// §3.5: three `voebb_online_only` notes over two blocks name no record, so a reader
+    /// has to guess which of the displayed records each is about — and `message` is prose
+    /// an agent is forbidden to parse. `records[]` is that answer, and it is additive: a
+    /// note about the whole answer carries none and the member stays out of the document.
+    #[test]
+    fn a_note_names_the_records_it_is_about_and_only_then() {
+        let ids = [RecordId::voebb("SAK1"), RecordId::voebb("SAK2")];
+        let note = Note::about(
+            note_kinds::VOEBB_ONLINE_ONLY,
+            "an Onleihe title",
+            ids.clone(),
+        );
+        let json = serde_json::to_value(&note).expect("a Note always serialises");
+        assert_eq!(json["kind"], note_kinds::VOEBB_ONLINE_ONLY);
+        // Plain id strings, as a user types them back in — not four members each.
+        assert_eq!(
+            json["records"],
+            serde_json::json!(["voebb_SAK1", "voebb_SAK2"])
+        );
+
+        let whole = Note::new(note_kinds::RESULT_ORDER_UNSTABLE, "pages may overlap");
+        assert!(whole.records.is_empty());
+        let json = serde_json::to_value(&whole).expect("a Note always serialises");
+        assert!(json.get("records").is_none(), "{json}");
+
+        // Naming nothing is naming nothing, not an empty list in the document.
+        let unnamed = Note::about(note_kinds::VOEBB_ONLINE_ONLY, "an Onleihe title", []);
+        assert_eq!(
+            unnamed,
+            Note::new(note_kinds::VOEBB_ONLINE_ONLY, "an Onleihe title")
+        );
+    }
+
     /// Empty notes vanish from the document; a non-empty one must never be swallowed.
     #[test]
     fn notes_are_omitted_when_there_are_none() {
@@ -1117,18 +1272,35 @@ mod tests {
     /// a fetched availability and both shapes of note — one the request implies (a VÖBB
     /// branch on a KOBV record) and one the record implies (a copy on loan).
     fn full_show() -> ShowResult {
-        ShowResult::new(
+        let mut result = ShowResult::new(
             Some(kobv_record()),
             Engine::Kobv,
             &[agb()],
             AvailabilityMode::Fetched,
-        )
+        );
+        // Written out rather than taken from `select::show_at`, so that the snapshot pins
+        // the *shape* of the member and stays a test of this module. That the status is
+        // the right one is `select`'s own test.
+        //
+        // `--at AGB` is a VÖBB branch and this is a KOBV record, so the location cannot
+        // narrow anything and its status is `unknown` — the `location_other_catalogue`
+        // note above says so in words.
+        result.at = vec![ShowAt {
+            key: "AGB".to_owned(),
+            given: "AGB".to_owned(),
+            isil: Isil::new("DE-609"),
+            branch: Some("SIG00036".to_owned()),
+            engine: Engine::Voebb,
+            status: Status::Unknown,
+        }];
+        result
     }
 
     /// `--at AGB`: a VÖBB branch, which only the voebb engine answers for.
     fn agb() -> Location {
         Location {
             key: "AGB".to_owned(),
+            given: "AGB".to_owned(),
             isil: Isil::new("DE-609"),
             branch: Some(BranchRef {
                 kobvid: "SIG00036".to_owned(),
@@ -1197,6 +1369,7 @@ mod tests {
             Engine::Kobv,
             &[Location {
                 key: "HU".to_owned(),
+                given: "HU".to_owned(),
                 isil: Isil::new("DE-11"),
                 branch: None,
                 engine: Engine::Kobv,
@@ -1272,6 +1445,7 @@ mod tests {
             },
             locations: vec![Location {
                 key: "HU".to_owned(),
+                given: "HU".to_owned(),
                 isil: Isil::new("DE-11"),
                 branch: None,
                 engine: Engine::Kobv,

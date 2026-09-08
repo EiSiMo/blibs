@@ -499,13 +499,33 @@ impl Plan {
             .collect()
     }
 
+    /// Whether this invocation's window is **anchored**: one block of 50 raw records
+    /// starting at record 1, whatever `--page` says, with `--page` walking the matches
+    /// inside it.
+    ///
+    /// Two things anchor it, and both for the same reason — they see only the fetched
+    /// records:
+    ///
+    /// - `--format`/`--language`, which throw records away, so a window of ten would
+    ///   report "no hits" for a book sitting on record eleven;
+    /// - any `--sort` but relevance, which **reorders** them, so a window of ten sorted
+    ///   by year is the ten most relevant records put in date order, and page two of a
+    ///   stepped window can legitimately be newer than page one (measured: 2020 above
+    ///   2018). A sort whose pages do not partition one ordered set is not a sort.
+    ///
+    /// Kept apart from [`crate::select::Filters::is_active`] on purpose: that one answers
+    /// "did a filter run", which the JSON's `window.filtered` and every message about
+    /// `--format` still need to ask.
+    pub fn anchored(&self) -> bool {
+        self.filters.is_active() || self.sort != SortKey::Relevance
+    }
+
     /// The record window each engine fetches.
     ///
-    /// Exactly the limit unless a client-side filter is active, in which case it is
-    /// widened — a filter that only ever sees ten records would report "no hits" for a
-    /// book sitting on record eleven.
+    /// Exactly the limit unless the window is [`anchored`](Self::anchored), in which case
+    /// it is the largest block the service serves and starts at record 1.
     pub fn window(&self) -> FetchWindow {
-        FetchWindow::plan(self.limit, self.page, self.filters.is_active())
+        FetchWindow::plan(self.limit, self.page, self.anchored())
     }
 
     /// Which slice of the surviving records this page prints.
@@ -514,7 +534,7 @@ impl Plan {
     /// way: the window says what was asked for, the cut says what is shown, and a page
     /// that cuts by a rule the window did not follow claims a position it never fetched.
     pub fn cut(&self) -> PageCut {
-        PageCut::plan(self.limit, self.page, self.filters.is_active())
+        PageCut::plan(self.limit, self.page, self.anchored())
     }
 }
 

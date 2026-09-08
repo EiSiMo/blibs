@@ -23,6 +23,7 @@
   "at": [
     {
       "key": "HU",
+      "given": "HU",
       "isil": "DE-11",
       "branch": null,
       "engine": "kobv",
@@ -33,6 +34,7 @@
     },
     {
       "key": "AGB",
+      "given": "AGB",
       "isil": "DE-609",
       "branch": "SIG00036",
       "engine": "voebb",
@@ -47,6 +49,13 @@
     {
       "kind": "record_undelivered",
       "message": "record 49 of the SRU response was a diagnostic and was skipped"
+    },
+    {
+      "kind": "voebb_online_only",
+      "message": "an Onleihe title has no copies on a shelf; its loan state is stated only in the link to the lending platform",
+      "records": [
+        "voebb_SAK13776205"
+      ]
     }
   ],
   "records": [

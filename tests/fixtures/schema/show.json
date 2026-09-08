@@ -100,6 +100,16 @@
       }
     ]
   },
+  "at": [
+    {
+      "key": "AGB",
+      "given": "AGB",
+      "isil": "DE-609",
+      "branch": "SIG00036",
+      "engine": "voebb",
+      "status": "unknown"
+    }
+  ],
   "availability": "fetched",
   "notes": [
     {

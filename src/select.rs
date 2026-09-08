@@ -38,8 +38,14 @@ pub struct Filters {
 }
 
 impl Filters {
-    /// Whether any filter is set. Decides whether [`crate::model::FetchWindow::plan`]
-    /// widens the window.
+    /// Whether any filter is set — and nothing more.
+    ///
+    /// Deliberately **not** the answer to "is the window anchored": `--sort` anchors it
+    /// too without being a filter, and widening this method to cover that would leave a
+    /// name meaning something other than what it says. That question is
+    /// [`crate::cli::Plan::anchored`], and the places that reason about *filters* —
+    /// `window.filtered` in the JSON, the "none matched --format map" heading, the
+    /// depth check for a VÖBB window — keep asking this one.
     pub fn is_active(&self) -> bool {
         self.format.is_some() || self.language.is_some()
     }
@@ -51,10 +57,12 @@ impl Filters {
 /// this one says which of the survivors to print. The two have to be planned from the
 /// same three values or a page will claim a position it never fetched.
 ///
-/// Without a filter the window already *is* the page — `--page` moved `startRecord` — so
-/// the offset is zero and this only truncates. With `--format` or `--language` the window
-/// is one anchored block of 50 raw records and `--page` walks the matches inside it, so
-/// the offset is `(page - 1) * limit`.
+/// Without an anchored window the fetched records already *are* the page — `--page` moved
+/// `startRecord` — so the offset is zero and this only truncates. When the window is
+/// anchored it is one block of 50 raw records and `--page` walks the matches inside it,
+/// so the offset is `(page - 1) * limit`. What anchors it is
+/// [`crate::cli::Plan::anchored`]: `--format`, `--language`, or any `--sort` but
+/// relevance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PageCut {
     /// How many of the filtered records to skip.
@@ -65,9 +73,13 @@ pub struct PageCut {
 
 impl PageCut {
     /// Plan the cut from the same values [`crate::model::FetchWindow::plan`] uses.
-    pub fn plan(limit: Limit, page: crate::model::Page, filtered: bool) -> Self {
+    ///
+    /// `anchored` has to be the **same** value the window was planned with, or the page
+    /// claims a position that was never fetched: an anchored window that is cut without
+    /// an offset shows page one under every page number.
+    pub fn plan(limit: Limit, page: crate::model::Page, anchored: bool) -> Self {
         let limit = usize::from(limit.get());
-        let offset = if filtered {
+        let offset = if anchored {
             (page.get() as usize)
                 .saturating_sub(1)
                 .saturating_mul(limit)
@@ -161,7 +173,7 @@ pub fn sort(records: &mut [Record], by: SortKey, at: Option<&Location>) {
         }
         // By the *displayed* title, article included (`plan/marc-mapping.md`, decision 9):
         // in a terminal it must be visible what the list was sorted by.
-        SortKey::Title => records.sort_by_cached_key(|record| record.title.trim().to_lowercase()),
+        SortKey::Title => records.sort_by_cached_key(|record| collation_key(&record.title)),
         SortKey::Author => records.sort_by_cached_key(author_key),
         SortKey::Availability => {
             // `Status::rank` rather than a table of its own: the sort and
@@ -179,9 +191,42 @@ fn author_key(record: &Record) -> (bool, String) {
     let name = record
         .authors
         .first()
-        .map(|author| author.name.trim().to_lowercase())
+        .map(|author| collation_key(&author.name))
         .filter(|name| !name.is_empty());
     (name.is_none(), name.unwrap_or_default())
+}
+
+/// The string a `--sort title`/`--sort author` comparison actually runs on.
+///
+/// Casefolded, and with the four German special letters written out — `ä`/`ö`/`ü` as
+/// `ae`/`oe`/`ue`, `ß` as `ss`, in both cases. Without that the comparison is by Unicode
+/// codepoint, where `ö` (U+00F6) sorts *after* `z` (U+007A), and in a tool for German
+/// libraries every umlaut title lands behind Z — which reads as a broken sort rather than
+/// as a collation decision.
+///
+/// **Only the key.** The displayed title and the displayed author name are never touched:
+/// what is printed is what the catalogue holds.
+///
+/// This is deliberately not DIN 5007 and does not pretend to be. It ignores everything
+/// that standard says about other diacritics (`é`, `å`, `č` still sort by codepoint,
+/// after `z`), about DIN 5007-2's name variant (where `ä` sorts *as* `a`), and about
+/// punctuation and articles. It fixes the German 99 % without a collation crate; anything
+/// beyond that needs one.
+fn collation_key(text: &str) -> String {
+    let lowered = text.trim().to_lowercase();
+    let mut key = String::with_capacity(lowered.len());
+    for character in lowered.chars() {
+        match character {
+            'ä' => key.push_str("ae"),
+            'ö' => key.push_str("oe"),
+            'ü' => key.push_str("ue"),
+            // `to_lowercase` has already turned `ẞ` into `ß`; `ß` itself is unchanged by
+            // it, so this arm sees both spellings.
+            'ß' => key.push_str("ss"),
+            _ => key.push(character),
+        }
+    }
+    key
 }
 
 /// The status a sort or a block heading should show for a record: the location's traffic
@@ -529,16 +574,31 @@ pub fn holding_is_at(holding: &Holding, location: &Location) -> bool {
 /// missing would be the worst possible answer. When nothing carries the id every copy is
 /// shown, which is exactly the case [`holding_is_at`] lets through for the same reason.
 fn items_at<'a>(holding: &'a Holding, location: &Location) -> Vec<&'a Item> {
+    item_indices_at(holding, location)
+        .into_iter()
+        .filter_map(|index| holding.items.get(index))
+        .collect()
+}
+
+/// [`items_at`] by position, for callers that have to merge two locations' answers.
+///
+/// Positions rather than references because a union of two `Vec<&Item>` can only be
+/// deduplicated by pointer identity, which is a fragile thing to compare; an index into
+/// `holding.items` is the copy's own name inside its holding.
+fn item_indices_at(holding: &Holding, location: &Location) -> Vec<usize> {
+    let all = || (0..holding.items.len()).collect::<Vec<usize>>();
     let Some(branch) = location.branch.as_ref() else {
-        return holding.items.iter().collect();
+        return all();
     };
-    let of_branch: Vec<&Item> = holding
+    let of_branch: Vec<usize> = holding
         .items
         .iter()
-        .filter(|item| item.branch.as_deref() == Some(branch.kobvid.as_str()))
+        .enumerate()
+        .filter(|(_, item)| item.branch.as_deref() == Some(branch.kobvid.as_str()))
+        .map(|(index, _)| index)
         .collect();
     if of_branch.is_empty() {
-        holding.items.iter().collect()
+        all()
     } else {
         of_branch
     }
@@ -588,6 +648,182 @@ pub fn location_status(record: &Record, location: &Location) -> Status {
 /// of records have none, and that is "not stated", not "held nowhere".
 pub fn record_status(record: &Record) -> Status {
     Status::summarize(record.holdings.iter().map(holding_status))
+}
+
+/// How many of a set of copies are in, out of how many said anything at all.
+///
+/// The denominator is the point. `0 of 2 available` next to two lines reading "status not
+/// confirmed" is a counting statement about copies nobody counted: a human reads "both
+/// gone" where the truth is "nothing was said". So a copy whose status is a
+/// non-statement — [`Status::Unknown`] or the black light [`Status::PossiblyAvailable`],
+/// the same two `is_unstated` recognises everywhere else — is in neither number.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AvailableCount {
+    /// Copies that are in and borrowable.
+    pub available: usize,
+    /// Copies whose status is a statement at all. Never zero — see [`available_count`].
+    pub known: usize,
+}
+
+/// Count the copies that are in, or `None` when there is nothing to count.
+///
+/// `None` means **no copy stated a status**, and it is the whole reason this returns an
+/// option: there is no honest fraction to print, and printing `0 of 2` instead is the bug
+/// this replaces. A renderer that gets `None` prints the traffic light and no count.
+pub fn available_count<'a>(items: impl IntoIterator<Item = &'a Item>) -> Option<AvailableCount> {
+    let mut count = AvailableCount {
+        available: 0,
+        known: 0,
+    };
+    for item in items {
+        if is_unstated(item.status) {
+            continue;
+        }
+        count.known += 1;
+        count.available += usize::from(item.status == Status::Available);
+    }
+    (count.known > 0).then_some(count)
+}
+
+/// One holding of a `show`, narrowed to the locations the user named.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HoldingAt<'a> {
+    /// Where the holding sits in `record.holdings`, so a renderer can name it back.
+    pub index: usize,
+    /// The holding itself, unnarrowed — `library`, `summary` and the rest are the house's.
+    pub holding: &'a Holding,
+    /// The `--at` locations this holding belongs to, in the order the user gave them.
+    ///
+    /// Usually one. Two when `--at` names two branches of the same house, which the
+    /// holding then belongs to twice — and dropping the second would hide its copies
+    /// without a word.
+    pub locations: Vec<&'a Location>,
+    /// The copies of this holding that stand at one of [`Self::locations`], in the
+    /// holding's own order. For an institution that is every copy; for a branch the ones
+    /// whose `branch` id matches — unless *no* copy names a branch at all, in which case
+    /// they are all kept, because a missing link is "not stated" and never "not there".
+    pub items: Vec<&'a Item>,
+    /// The traffic light over [`Self::items`], falling back to the holding's
+    /// library-level light when there are no copies to summarise.
+    pub status: Status,
+}
+
+/// The holdings of a `show`, split into the user's own and the rest.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShowHoldings<'a> {
+    /// The holdings at some `--at` location, in the order of `--at` and then of the
+    /// record. Without `--at`, every holding in record order, each with no location and
+    /// all of its copies.
+    pub mine: Vec<HoldingAt<'a>>,
+    /// The indices of the holdings no location claimed — the `also at:` line. Empty
+    /// without `--at`.
+    pub others: Vec<usize>,
+}
+
+/// Narrow a record's holdings to `--at`, copies included.
+///
+/// **The one place that decides what `show --at …` is about**, so that the terminal and
+/// the JSON cannot answer differently. The search path has always narrowed both levels —
+/// [`holding_is_at`] for which holding, `items_at` for which of its copies — and `show`
+/// narrowed only the first, so `show <id> --at AGB` printed all four copies of a VÖBB
+/// record and a green light for a book that is on loan at the AGB. Membership and copies
+/// are one question and are answered here once.
+///
+/// Without locations there is nothing to narrow: every holding is "mine", with every copy
+/// and no location, and [`Self::others`] is empty. That is what `show` without `--at`
+/// shows, and it is not a claim that the user owns the whole catalogue.
+///
+/// [`Self::others`]: ShowHoldings::others
+pub fn show_holdings<'a>(record: &'a Record, locations: &'a [Location]) -> ShowHoldings<'a> {
+    if locations.is_empty() {
+        let mine = record
+            .holdings
+            .iter()
+            .enumerate()
+            .map(|(index, holding)| HoldingAt {
+                index,
+                holding,
+                locations: Vec::new(),
+                items: holding.items.iter().collect(),
+                status: holding_status(holding),
+            })
+            .collect();
+        return ShowHoldings {
+            mine,
+            others: Vec::new(),
+        };
+    }
+
+    let mut mine: Vec<HoldingAt<'a>> = Vec::new();
+    // Outer loop over the locations, so the block is ordered the way the user asked
+    // rather than the way the catalogue listed the libraries.
+    for location in locations {
+        for (index, holding) in record.holdings.iter().enumerate() {
+            if !holding_is_at(holding, location) {
+                continue;
+            }
+            match mine.iter_mut().find(|entry| entry.index == index) {
+                // Seen under an earlier location: this one only widens the set of copies.
+                Some(entry) => entry.locations.push(location),
+                None => mine.push(HoldingAt {
+                    index,
+                    holding,
+                    locations: vec![location],
+                    items: Vec::new(),
+                    status: Status::Unknown,
+                }),
+            }
+        }
+    }
+    for entry in &mut mine {
+        let mut indices: Vec<usize> = entry
+            .locations
+            .iter()
+            .flat_map(|location| item_indices_at(entry.holding, location))
+            .collect();
+        indices.sort_unstable();
+        indices.dedup();
+        entry.items = indices
+            .into_iter()
+            .filter_map(|index| entry.holding.items.get(index))
+            .collect();
+        entry.status = if entry.items.is_empty() {
+            entry.holding.summary
+        } else {
+            Status::summarize(entry.items.iter().map(|item| item.status))
+        };
+    }
+
+    let claimed: Vec<usize> = mine.iter().map(|entry| entry.index).collect();
+    let others = (0..record.holdings.len())
+        .filter(|index| !claimed.contains(index))
+        .collect();
+    ShowHoldings { mine, others }
+}
+
+/// The `at[]` of a `show` document: one entry per `--at` location, with the record's
+/// status there.
+///
+/// Built here rather than in [`crate::model::ShowResult::new`] for the same reason
+/// `cli::run` builds the search document's `at[]`: the status is
+/// [`location_status`], which knows the branch narrowing, and a second copy of that
+/// knowledge inside `model` is what let the two outputs disagree.
+///
+/// Without a record — the catalogue has no such id — every location still gets its entry,
+/// with [`Status::Unknown`]: the question was asked and the answer is that nothing is
+/// known, which is not the same as the location having been dropped from the document.
+pub fn show_at(record: Option<&Record>, locations: &[Location]) -> Vec<crate::model::ShowAt> {
+    locations
+        .iter()
+        .map(|location| crate::model::ShowAt {
+            key: location.key.clone(),
+            given: location.given.clone(),
+            isil: location.isil.clone(),
+            branch: location.branch.as_ref().map(|branch| branch.kobvid.clone()),
+            engine: location.engine,
+            status: record.map_or(Status::Unknown, |record| location_status(record, location)),
+        })
+        .collect()
 }
 
 /// One location's block of the human output.
@@ -794,6 +1030,7 @@ mod tests {
     fn institution(key: &str, isil: &str) -> Location {
         Location {
             key: key.to_owned(),
+            given: key.to_owned(),
             isil: Isil::new(isil),
             branch: None,
             engine: Engine::Kobv,
@@ -804,6 +1041,7 @@ mod tests {
     fn branch(key: &str, kobvid: &str) -> Location {
         Location {
             key: key.to_owned(),
+            given: key.to_owned(),
             isil: Isil::new("DE-609"),
             branch: Some(BranchRef {
                 kobvid: kobvid.to_owned(),
@@ -818,6 +1056,7 @@ mod tests {
     fn kobv_branch(key: &str, isil: &str, kobvid: &str) -> Location {
         Location {
             key: key.to_owned(),
+            given: key.to_owned(),
             isil: Isil::new(isil),
             branch: Some(BranchRef {
                 kobvid: kobvid.to_owned(),
@@ -887,6 +1126,7 @@ mod tests {
             at: vec![
                 AtBlock {
                     key: "HU".to_owned(),
+                    given: "HU".to_owned(),
                     isil: Isil::new("DE-11"),
                     branch: None,
                     engine: Engine::Kobv,
@@ -895,6 +1135,7 @@ mod tests {
                 },
                 AtBlock {
                     key: "STABI".to_owned(),
+                    given: "STABI".to_owned(),
                     isil: Isil::new("DE-1"),
                     branch: None,
                     engine: Engine::Kobv,
@@ -1111,6 +1352,10 @@ mod tests {
         assert_eq!(years, [Some(2004), Some(1997), None]);
     }
 
+    /// Updated: this used to assert `["Alpha", "zeta", "Ähre"]`, which is what sorting by
+    /// codepoint produces and what a user of a German library tool reads as a broken
+    /// sort. `Ähre` now folds to `aehre` and lands where a German list expects it — the
+    /// displayed title is untouched, only the key changed.
     #[test]
     fn title_sorts_by_the_displayed_title_casefolded() {
         let mut records = vec![
@@ -1120,7 +1365,7 @@ mod tests {
         ];
         sort(&mut records, SortKey::Title, None);
         let titles: Vec<&str> = records.iter().map(|r| r.title.as_str()).collect();
-        assert_eq!(titles, ["Alpha", "zeta", "Ähre"]);
+        assert_eq!(titles, ["Ähre", "Alpha", "zeta"]);
     }
 
     /// Decision 9 in `plan/marc-mapping.md`: the *displayed* title, article included —
@@ -1474,6 +1719,7 @@ mod tests {
             .zip([&["voebb_SAK1"][..], &["voebb_SAK2"][..]])
             .map(|(location, members)| AtBlock {
                 key: location.key.clone(),
+                given: location.key.clone(),
                 isil: location.isil.clone(),
                 branch: location.branch.as_ref().map(|b| b.kobvid.clone()),
                 engine: Engine::Voebb,
@@ -1799,6 +2045,7 @@ mod tests {
         let locations = vec![kobv_branch("HUB00043", "DE-11", "HUB00043")];
         let mut at = vec![AtBlock {
             key: "HUB00043".to_owned(),
+            given: "HUB00043".to_owned(),
             isil: Isil::new("DE-11"),
             branch: Some("HUB00043".to_owned()),
             engine: Engine::Kobv,
@@ -1837,6 +2084,7 @@ mod tests {
         let mut at = vec![
             AtBlock {
                 key: "HUB00043".to_owned(),
+                given: "HUB00043".to_owned(),
                 isil: Isil::new("DE-11"),
                 branch: Some("HUB00043".to_owned()),
                 engine: Engine::Kobv,
@@ -1845,6 +2093,7 @@ mod tests {
             },
             AtBlock {
                 key: "HU".to_owned(),
+                given: "HU".to_owned(),
                 isil: Isil::new("DE-11"),
                 branch: None,
                 engine: Engine::Kobv,
@@ -1873,6 +2122,7 @@ mod tests {
         let locations = vec![branch("AGB", "SIG00036")];
         let mut at = vec![AtBlock {
             key: "AGB".to_owned(),
+            given: "AGB".to_owned(),
             isil: Isil::new("DE-609"),
             branch: Some("SIG00036".to_owned()),
             engine: Engine::Voebb,
@@ -1885,5 +2135,288 @@ mod tests {
         assert_eq!(dropped, 0);
         assert_eq!(kept.len(), 1);
         assert_eq!(at[0].records, ids(&["voebb_1"]));
+    }
+
+    /// §1.10: `Ö` is U+00F6 and `z` is U+007A, so a codepoint comparison puts every
+    /// German name behind Z — in a tool for German libraries that reads as a broken sort.
+    #[test]
+    fn umlauts_sort_where_a_german_reader_looks_for_them() {
+        let mut records = vec![
+            with_author(record("almahu_1", "Eins", None), "Zander, Anna"),
+            with_author(record("almahu_2", "Zwei", None), "Öhler, Bert"),
+            with_author(record("almahu_3", "Drei", None), "Adler, Cara"),
+        ];
+        sort(&mut records, SortKey::Author, None);
+        let authors: Vec<&str> = records
+            .iter()
+            .map(|record| record.authors[0].name.as_str())
+            .collect();
+        assert_eq!(authors, ["Adler, Cara", "Öhler, Bert", "Zander, Anna"]);
+    }
+
+    /// The folding is in the key alone: `ß` sorts as `ss` and `Über` as `ueber`, and both
+    /// are still printed the way the catalogue holds them.
+    #[test]
+    fn the_folding_never_reaches_the_displayed_text() {
+        let mut records = vec![
+            record("almahu_1", "Suzuki", None),
+            record("almahu_2", "Süß", None),
+            record("almahu_3", "Ueberall", None),
+            record("almahu_4", "Über allem", None),
+        ];
+        sort(&mut records, SortKey::Title, None);
+        let titles: Vec<&str> = records.iter().map(|r| r.title.as_str()).collect();
+        // suess < suzuki, and "ueber allem" < "ueberall" because the space sorts first.
+        assert_eq!(titles, ["Süß", "Suzuki", "Über allem", "Ueberall"]);
+    }
+
+    /// An anchored window holds several pages' worth of matches, and the cut is the only
+    /// thing that reaches past the first `limit` of them. The two pages have to partition
+    /// the block — no record twice, none unreachable.
+    #[test]
+    fn an_anchored_cut_partitions_the_window() {
+        let block: Vec<Record> = (0..12)
+            .map(|number| {
+                record(
+                    &format!("almahu_{number:02}"),
+                    &format!("Titel {number}"),
+                    None,
+                )
+            })
+            .collect();
+        let limit = Limit::new(5).expect("5 is in range");
+        let page = |number: u32| {
+            take_page(
+                block.clone(),
+                PageCut::plan(
+                    limit,
+                    crate::model::Page::new(number).expect("a page"),
+                    true,
+                ),
+            )
+        };
+        let ids = |records: Vec<Record>| -> Vec<String> {
+            records
+                .into_iter()
+                .map(|r| r.id.as_str().to_owned())
+                .collect()
+        };
+        assert_eq!(
+            ids(page(1)),
+            [
+                "almahu_00",
+                "almahu_01",
+                "almahu_02",
+                "almahu_03",
+                "almahu_04"
+            ]
+        );
+        assert_eq!(
+            ids(page(2)),
+            [
+                "almahu_05",
+                "almahu_06",
+                "almahu_07",
+                "almahu_08",
+                "almahu_09"
+            ]
+        );
+        assert_eq!(ids(page(3)), ["almahu_10", "almahu_11"]);
+    }
+
+    /// §1.8: a count is a statement, and it must not be made about copies nobody made a
+    /// statement about. Two copies of unknown status are not "0 of 2 available".
+    #[test]
+    fn copies_nobody_judged_are_in_neither_number() {
+        let unknown = [
+            item("Akademiebibliothek", None, Status::Unknown),
+            item("Akademiebibliothek", None, Status::Unknown),
+        ];
+        assert_eq!(available_count(unknown.iter()), None);
+
+        let black = [item("Freihand", None, Status::PossiblyAvailable)];
+        assert_eq!(available_count(black.iter()), None);
+
+        let mixed = [
+            item("Freihand", None, Status::Available),
+            item("Magazin", None, Status::Unavailable),
+            item("Lesesaal", None, Status::Reference),
+            item("Nirgends", None, Status::Unknown),
+        ];
+        assert_eq!(
+            available_count(mixed.iter()),
+            Some(AvailableCount {
+                available: 1,
+                known: 3
+            })
+        );
+    }
+
+    /// §1.1, the heaviest finding of the round: `show <id> --at <branch>` used to pick
+    /// whole holdings and then print every copy of the house, so the AGB's copy being out
+    /// disappeared behind three copies that are in. Membership and copies are one
+    /// question.
+    #[test]
+    fn show_narrows_a_holding_to_the_branch_the_user_named() {
+        let mut record = record("voebb_SAK1", "Der Vorleser", Some(2002));
+        record.holdings = vec![holding(
+            "DE-609",
+            Status::Available,
+            vec![
+                item("Marzahn-Hellersdorf", Some("SIG00120"), Status::Available),
+                item(
+                    "Mitte: Hansabibliothek",
+                    Some("SIG00044"),
+                    Status::Available,
+                ),
+                item(
+                    "ZLB: Amerika-Gedenkbibliothek",
+                    Some("SIG00036"),
+                    Status::Unavailable,
+                ),
+            ],
+        )];
+        let locations = vec![branch("AGB", "SIG00036")];
+
+        let split = show_holdings(&record, &locations);
+        assert_eq!(split.mine.len(), 1);
+        assert!(split.others.is_empty());
+        let mine = &split.mine[0];
+        assert_eq!(mine.index, 0);
+        assert_eq!(mine.locations, vec![&locations[0]]);
+        assert_eq!(mine.items.len(), 1, "only the AGB copy");
+        assert_eq!(mine.items[0].branch.as_deref(), Some("SIG00036"));
+        // The light follows the narrowed copies, not the network's summary.
+        assert_eq!(mine.status, Status::Unavailable);
+        assert_eq!(
+            available_count(mine.items.iter().copied()),
+            Some(AvailableCount {
+                available: 0,
+                known: 1
+            })
+        );
+        // And the same narrowing as the search path: one answer, one rule.
+        assert_eq!(location_status(&record, &locations[0]), Status::Unavailable);
+    }
+
+    /// Two branches of one house claim the same holding, and both of their copies have to
+    /// show: dropping the second location would hide copies without a word.
+    #[test]
+    fn two_branches_of_one_house_share_a_holding_and_both_sets_of_copies() {
+        let mut record = record("almahu_1", "Eschweiler", Some(1990));
+        record.holdings = vec![holding(
+            "DE-11",
+            Status::Available,
+            vec![
+                item("Grimm-Zentrum", Some("HUB00028"), Status::Available),
+                item("Germanistik", Some("HUB00043"), Status::Available),
+                item("Theologie", Some("HUB00099"), Status::Unavailable),
+            ],
+        )];
+        let locations = vec![
+            kobv_branch("DE-11-105", "DE-11", "HUB00043"),
+            kobv_branch("DE-11-035", "DE-11", "HUB00028"),
+        ];
+        let split = show_holdings(&record, &locations);
+        assert_eq!(split.mine.len(), 1, "one holding, claimed twice");
+        let mine = &split.mine[0];
+        assert_eq!(mine.locations.len(), 2);
+        // Both branches' copies, in the holding's own order, and not the third one.
+        let branches: Vec<&str> = mine
+            .items
+            .iter()
+            .filter_map(|item| item.branch.as_deref())
+            .collect();
+        assert_eq!(branches, ["HUB00028", "HUB00043"]);
+    }
+
+    /// A holding no location claims is not narrowed away — it is the `also at:` line.
+    #[test]
+    fn holdings_outside_at_are_kept_apart_rather_than_dropped() {
+        let mut record = record("almahu_1", "Der Prozess", Some(1953));
+        record.holdings = vec![
+            holding(
+                "DE-11",
+                Status::Available,
+                vec![item("Grimm", None, Status::Available)],
+            ),
+            holding(
+                "DE-1",
+                Status::Reference,
+                vec![item("Magazin", None, Status::Reference)],
+            ),
+        ];
+        let locations = vec![institution("HU", "DE-11")];
+        let split = show_holdings(&record, &locations);
+        assert_eq!(split.mine.len(), 1);
+        assert_eq!(split.mine[0].index, 0);
+        assert_eq!(split.others, vec![1]);
+    }
+
+    /// Without `--at` nothing is narrowed and nothing is set aside: every holding is
+    /// shown with every copy, which is what `show` alone has always printed.
+    #[test]
+    fn without_at_every_holding_is_shown_whole() {
+        let mut record = record("almahu_1", "Der Prozess", Some(1953));
+        record.holdings = vec![
+            holding(
+                "DE-11",
+                Status::Available,
+                vec![item("Grimm", None, Status::Available)],
+            ),
+            holding(
+                "DE-1",
+                Status::Reference,
+                vec![item("Magazin", None, Status::Reference)],
+            ),
+        ];
+        let split = show_holdings(&record, &[]);
+        assert_eq!(split.mine.len(), 2);
+        assert!(split.others.is_empty());
+        assert!(split.mine.iter().all(|entry| entry.locations.is_empty()));
+        assert_eq!(split.mine[0].items.len(), 1);
+    }
+
+    /// §1.1 (JSON): the `at[]` of a `show` answers per location, so the obvious pipeline
+    /// reads the branch's own light instead of the whole network's summary.
+    #[test]
+    fn show_at_states_the_status_of_each_location() {
+        let mut record = record("voebb_SAK1", "Der Vorleser", Some(2002));
+        record.holdings = vec![holding(
+            "DE-609",
+            Status::Available,
+            vec![
+                item(
+                    "ZLB: Amerika-Gedenkbibliothek",
+                    Some("SIG00036"),
+                    Status::Unavailable,
+                ),
+                item(
+                    "Mitte: Hansabibliothek",
+                    Some("SIG00044"),
+                    Status::Available,
+                ),
+            ],
+        )];
+        let locations = vec![branch("AGB", "SIG00036"), branch("BSTB", "SIG00021")];
+        let at = show_at(Some(&record), &locations);
+
+        assert_eq!(at.len(), 2);
+        assert_eq!(at[0].key, "AGB");
+        assert_eq!(at[0].given, "AGB");
+        assert_eq!(at[0].branch.as_deref(), Some("SIG00036"));
+        assert_eq!(at[0].status, Status::Unavailable);
+        // A branch that holds no copy says "nothing known", never "not available".
+        assert_eq!(at[1].status, Status::Unknown);
+    }
+
+    /// No record at all is still an answer per location, and it is `unknown`: the
+    /// question was asked and nothing is known, which is not the same as the location
+    /// having been dropped from the document.
+    #[test]
+    fn show_at_answers_unknown_when_there_is_no_record() {
+        let at = show_at(None, &[institution("HU", "DE-11")]);
+        assert_eq!(at.len(), 1);
+        assert_eq!(at[0].status, Status::Unknown);
     }
 }
