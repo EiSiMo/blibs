@@ -10,7 +10,7 @@
 //! accepted at all — the index does not hold them, so it would fall through as a length
 //! error, which is exactly what it is.
 
-use crate::error::IsbnProblem;
+use crate::error::{IsbnProblem, IsbnScheme};
 use crate::model::Identifier;
 
 /// Separators that are stripped before anything is checked.
@@ -36,19 +36,28 @@ pub fn parse(input: &str) -> Result<Identifier, IsbnProblem> {
         return Err(IsbnProblem::Length { digits: 0 });
     };
     if let Some(found) = first_bad_character(&compact) {
-        return Err(IsbnProblem::Characters { found });
+        return Err(IsbnProblem::Characters {
+            found,
+            scheme: IsbnScheme::from_len(compact.len()),
+        });
     }
     let normalized: String = compact.iter().copied().map(fold_x).collect();
     match compact.len() {
-        8 => verify(mod11_check(body), given).map(|()| Identifier::Issn(normalized)),
-        10 => verify(mod11_check(body), given).map(|()| Identifier::Isbn(normalized)),
+        8 => verify(mod11_check(body), given, IsbnScheme::Issn)
+            .map(|()| Identifier::Issn(normalized)),
+        10 => verify(mod11_check(body), given, IsbnScheme::Isbn)
+            .map(|()| Identifier::Isbn(normalized)),
         13 => {
             // The 13-digit form has no `X` position at all; `check_digit` would happily
             // compare one, so it is rejected as the character error it is.
             if !given.is_ascii_digit() {
-                return Err(IsbnProblem::Characters { found: given });
+                return Err(IsbnProblem::Characters {
+                    found: given,
+                    scheme: Some(IsbnScheme::Isbn),
+                });
             }
-            verify(mod10_check(body), given).map(|()| Identifier::Isbn(normalized))
+            verify(mod10_check(body), given, IsbnScheme::Isbn)
+                .map(|()| Identifier::Isbn(normalized))
         }
         digits => Err(IsbnProblem::Length { digits }),
     }
@@ -77,13 +86,14 @@ fn first_bad_character(compact: &[char]) -> Option<char> {
 }
 
 /// Compare the computed check character against the one that was typed.
-fn verify(expected: char, given: char) -> Result<(), IsbnProblem> {
+fn verify(expected: char, given: char, scheme: IsbnScheme) -> Result<(), IsbnProblem> {
     if expected == fold_x(given) {
         Ok(())
     } else {
         Err(IsbnProblem::CheckDigit {
             expected,
             found: given,
+            scheme,
         })
     }
 }
@@ -168,14 +178,16 @@ mod tests {
             parse("978-3-596-29433-4"),
             Err(IsbnProblem::CheckDigit {
                 expected: '6',
-                found: '4'
+                found: '4',
+                scheme: IsbnScheme::Isbn,
             })
         );
         assert_eq!(
             parse("978-3-596-29433-1"),
             Err(IsbnProblem::CheckDigit {
                 expected: '6',
-                found: '1'
+                found: '1',
+                scheme: IsbnScheme::Isbn,
             })
         );
     }
@@ -193,7 +205,8 @@ mod tests {
             parse("3-935221-46-1"),
             Err(IsbnProblem::CheckDigit {
                 expected: '0',
-                found: '1'
+                found: '1',
+                scheme: IsbnScheme::Isbn,
             })
         );
     }
@@ -212,7 +225,8 @@ mod tests {
             parse("0028-0837"),
             Err(IsbnProblem::CheckDigit {
                 expected: '6',
-                found: '7'
+                found: '7',
+                scheme: IsbnScheme::Issn,
             })
         );
     }
@@ -223,23 +237,38 @@ mod tests {
     }
 
     /// A letter anywhere but the check position is a character error, whatever the
-    /// length — that message is far more use than "must be 10 or 13 digits".
+    /// length — that message is far more use than "must be 8, 10 or 13 digits". "Kafka"
+    /// is 5 characters, which fits no scheme, so it carries none; the 13-character second
+    /// case does fit one, and the character error still says so.
     #[test]
     fn letters_are_reported_as_letters() {
-        assert_eq!(parse("Kafka"), Err(IsbnProblem::Characters { found: 'K' }));
+        assert_eq!(
+            parse("Kafka"),
+            Err(IsbnProblem::Characters {
+                found: 'K',
+                scheme: None,
+            })
+        );
         assert_eq!(
             parse("978-3-59A-29433-6"),
-            Err(IsbnProblem::Characters { found: 'A' })
+            Err(IsbnProblem::Characters {
+                found: 'A',
+                scheme: Some(IsbnScheme::Isbn),
+            })
         );
     }
 
     /// An `X` is only a check value where the format has one; in a 13-digit number it is
-    /// simply a wrong character.
+    /// simply a wrong character, and the scheme is still named because the length fits
+    /// one.
     #[test]
     fn an_isbn13_has_no_x_position() {
         assert_eq!(
             parse("978-3-596-29433-X"),
-            Err(IsbnProblem::Characters { found: 'X' })
+            Err(IsbnProblem::Characters {
+                found: 'X',
+                scheme: Some(IsbnScheme::Isbn),
+            })
         );
     }
 

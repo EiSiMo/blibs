@@ -130,6 +130,55 @@ fn a_wrong_isbn_check_digit_names_the_expected_digit() {
         .stderr(contains("6"));
 }
 
+/// The same 8-digit index accepts an ISSN, and its check digit is verified for the same
+/// reason. An earlier version of the message named the scheme it was *not* checking
+/// ("invalid ISBN") even though the digit it printed came from the ISSN rule — a user
+/// checking that digit against the ISBN rule would find the tool "broken". `0002-9549`
+/// has the correct check digit `8`.
+#[test]
+fn a_wrong_issn_check_digit_names_the_issn_scheme() {
+    blibs()
+        .args(["search", "--isbn", "0002-9549"])
+        .assert()
+        .code(2)
+        .stderr(contains("invalid ISSN"))
+        .stderr(contains("expected 8"))
+        .stderr(contains("invalid ISBN").not());
+}
+
+/// 9 digits is too long for an ISSN and too short for an ISBN, so the message cannot
+/// pretend to know which scheme was intended — it must fall back to a neutral word and
+/// state every length the tool does accept.
+#[test]
+fn a_nine_digit_input_names_no_scheme_and_every_accepted_length() {
+    blibs()
+        .args(["search", "--isbn", "123456789"])
+        .assert()
+        .code(2)
+        .stderr(contains("invalid identifier"))
+        .stderr(contains("must be 8, 10 or 13 digits, got 9"))
+        .stderr(contains("invalid ISBN").not())
+        .stderr(contains("invalid ISSN").not());
+}
+
+/// A broken ISBN-10 check digit must still say ISBN, not the generic fallback — only the
+/// missing-scheme case (the test above) gets the neutral word.
+#[test]
+fn a_wrong_isbn10_check_digit_still_says_isbn() {
+    blibs()
+        .args(["search", "--isbn", "3-935221-46-1"])
+        .assert()
+        .code(2)
+        .stderr(contains("invalid ISBN"))
+        .stderr(contains("expected 0"));
+}
+
+// The trailing `X` being legal in both the ISBN-10 and the ISSN check position — and
+// nowhere else — is covered network-free at the parser level: see
+// `cli::isbn::tests::an_isbn10_may_end_in_x` and `cli::isbn::tests::an_issn_may_end_in_x`
+// (`src/cli/isbn.rs`). Asserting success here would require a real search, which this
+// file is network-free by construction.
+
 /// An unknown library in `--at` is a usage error — the search *must* have that library,
 /// so a typo cannot be answered with "no hits". Under `--json` the envelope goes to
 /// stderr and stdout stays empty, so a pipeline never parses half a document.

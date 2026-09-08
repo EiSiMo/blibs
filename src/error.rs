@@ -470,11 +470,14 @@ pub enum UsageError {
         input: String,
     },
     /// The identifier index ignores the check digit, so a typo returns the *wrong* book.
-    #[error("invalid ISBN {input:?}: {problem}")]
+    ///
+    /// The leading word is not always "ISBN": an 8-digit input is an ISSN, and a length
+    /// that fits neither scheme cannot claim one — [`IsbnProblem::scheme_word`] picks it.
+    #[error("invalid {} {input:?}: {problem}", .problem.scheme_word())]
     Isbn {
         /// What the user typed.
         input: String,
-        /// Which part of the ISBN is wrong.
+        /// Which part of the number is wrong, and for which scheme.
         problem: IsbnProblem,
     },
     /// `--language` was given something that is not a bibliographic language code.
@@ -901,11 +904,53 @@ fn clap_suggestion(error: &clap::Error) -> Option<String> {
         .map(|text| text.trim().to_string())
 }
 
-/// Which part of an ISBN failed validation. Structured so that the hint can name it —
-/// and, for the dangerous case, name the digit that was expected.
+/// Which numbering scheme an [`IsbnProblem`] was found against.
+///
+/// The length decides it: 8 digits is an ISSN, 10 or 13 is an ISBN. A length that fits
+/// neither carries no scheme at all — that is why [`IsbnProblem::Characters`] holds an
+/// `Option`, and a message about it must not pick one anyway.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IsbnScheme {
+    /// 8 digits, modulo 11.
+    Issn,
+    /// 10 digits (modulo 11) or 13 digits (modulo 10).
+    Isbn,
+}
+
+impl IsbnScheme {
+    /// The scheme a number of this length belongs to, or `None` if it belongs to neither.
+    pub fn from_len(len: usize) -> Option<Self> {
+        match len {
+            8 => Some(IsbnScheme::Issn),
+            10 | 13 => Some(IsbnScheme::Isbn),
+            _ => None,
+        }
+    }
+
+    /// The name to put in front of "invalid ... " and in a scheme-specific hint.
+    fn name(self) -> &'static str {
+        match self {
+            IsbnScheme::Issn => "ISSN",
+            IsbnScheme::Isbn => "ISBN",
+        }
+    }
+
+    /// What the scheme identifies, for the check-digit hint's "wrong ___" wording — an
+    /// ISSN is checked out under the same catalogue as a serial, not "a book".
+    fn identifies(self) -> &'static str {
+        match self {
+            IsbnScheme::Issn => "serial",
+            IsbnScheme::Isbn => "book",
+        }
+    }
+}
+
+/// Which part of an ISBN or ISSN failed validation. Structured so that the hint can name
+/// it — and, for the dangerous case, name the digit that was expected.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IsbnProblem {
-    /// Not 10 or 13 digits after stripping hyphens and spaces.
+    /// Not 8, 10 or 13 digits after stripping hyphens and spaces — too short or too long
+    /// to be any scheme, so no scheme is named.
     Length {
         /// How many digits were left after stripping.
         digits: usize,
@@ -914,34 +959,63 @@ pub enum IsbnProblem {
     Characters {
         /// The first offending character.
         found: char,
+        /// The scheme implied by the input's length, if it matches one.
+        scheme: Option<IsbnScheme>,
     },
     /// The check digit does not match the rest — the dangerous case, because the index
-    /// ignores it and would return a different book.
+    /// ignores it and would return a different record.
     CheckDigit {
         /// The digit the rest of the number implies.
         expected: char,
         /// The digit the user typed.
         found: char,
+        /// The scheme the check was performed under; always known here, because the
+        /// check only runs once the length has matched one.
+        scheme: IsbnScheme,
     },
 }
 
 impl IsbnProblem {
+    /// The word to put in front of "invalid ... " — the scheme this problem was found
+    /// under, or "identifier" where the length fits neither.
+    fn scheme_word(&self) -> &'static str {
+        match self {
+            IsbnProblem::Length { .. } => "identifier",
+            IsbnProblem::Characters { scheme, .. } => scheme.map_or("identifier", IsbnScheme::name),
+            IsbnProblem::CheckDigit { scheme, .. } => scheme.name(),
+        }
+    }
+
     /// What to do about it. The check-digit case explains *why* this is refused instead
-    /// of sent: `dc.identifier` drops the check digit, so a typo finds the wrong book
+    /// of sent: `dc.identifier` drops the check digit, so a typo finds the wrong record
     /// rather than none.
     pub fn hint(self) -> String {
         match self {
             IsbnProblem::Length { .. } => {
-                "an ISBN has 10 or 13 digits; hyphens and spaces are fine".to_string()
+                "an ISSN has 8 digits, an ISBN has 10 or 13; hyphens and spaces are fine"
+                    .to_string()
             }
-            IsbnProblem::Characters { .. } => {
-                "an ISBN is digits only, except for a trailing X in an ISBN-10".to_string()
+            IsbnProblem::Characters { scheme, .. } => match scheme {
+                Some(IsbnScheme::Issn) => {
+                    "an ISSN is digits only, except for a trailing X".to_string()
+                }
+                Some(IsbnScheme::Isbn) => {
+                    "an ISBN is digits only, except for a trailing X in an ISBN-10".to_string()
+                }
+                None => "an ISBN or ISSN is digits only, except for a trailing X in an \
+                          ISBN-10 or ISSN"
+                    .to_string(),
+            },
+            IsbnProblem::CheckDigit {
+                expected, scheme, ..
+            } => {
+                let what = scheme.identifies();
+                format!(
+                    "the catalogue ignores the check digit, so a typo would quietly \
+                     return the wrong {what} — check the digits; as typed, the last one \
+                     would have to be {expected}"
+                )
             }
-            IsbnProblem::CheckDigit { expected, .. } => format!(
-                "the catalogue ignores the check digit, so a typo would quietly return \
-                 the wrong book — check the digits; as typed, the last one would have to \
-                 be {expected}"
-            ),
         }
     }
 }
@@ -950,12 +1024,14 @@ impl fmt::Display for IsbnProblem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             IsbnProblem::Length { digits } => {
-                write!(f, "must be 10 or 13 digits, got {digits}")
+                write!(f, "must be 8, 10 or 13 digits, got {digits}")
             }
-            IsbnProblem::Characters { found } => {
+            IsbnProblem::Characters { found, .. } => {
                 write!(f, "contains {found:?}, which is not a digit")
             }
-            IsbnProblem::CheckDigit { expected, found } => {
+            IsbnProblem::CheckDigit {
+                expected, found, ..
+            } => {
                 write!(f, "check digit is {found}, expected {expected}")
             }
         }
@@ -1432,6 +1508,7 @@ mod tests {
                 problem: IsbnProblem::CheckDigit {
                     expected: '1',
                     found: '4',
+                    scheme: IsbnScheme::Isbn,
                 },
             }
             .into(),
@@ -1824,6 +1901,7 @@ mod tests {
             problem: IsbnProblem::CheckDigit {
                 expected: '1',
                 found: '4',
+                scheme: IsbnScheme::Isbn,
             },
         }
         .into();
@@ -1832,6 +1910,81 @@ mod tests {
             "invalid ISBN \"978-3-596-29433-4\": check digit is 4, expected 1"
         );
         assert!(error.hint().unwrap_or_default().contains("be 1"));
+    }
+
+    /// An ISSN's check digit failure must say ISSN, not ISBN — the earlier bug named the
+    /// wrong scheme even though the digit itself was computed by the right rule.
+    #[test]
+    fn an_issn_check_digit_message_says_issn_not_isbn() {
+        let error: Error = UsageError::Isbn {
+            input: "0002-9549".to_string(),
+            problem: IsbnProblem::CheckDigit {
+                expected: '8',
+                found: '9',
+                scheme: IsbnScheme::Issn,
+            },
+        }
+        .into();
+        assert_eq!(
+            error.to_string(),
+            "invalid ISSN \"0002-9549\": check digit is 9, expected 8"
+        );
+        assert!(error.hint().unwrap_or_default().contains("be 8"));
+    }
+
+    /// 9 digits is too long for an ISSN and too short for an ISBN: the message must not
+    /// pick a scheme, and must state every length the tool accepts, not just two of them.
+    #[test]
+    fn a_length_that_fits_no_scheme_names_none_and_lists_all_three_lengths() {
+        let error: Error = UsageError::Isbn {
+            input: "123456789".to_string(),
+            problem: IsbnProblem::Length { digits: 9 },
+        }
+        .into();
+        assert_eq!(
+            error.to_string(),
+            "invalid identifier \"123456789\": must be 8, 10 or 13 digits, got 9"
+        );
+        let hint = error.hint().unwrap_or_default();
+        assert!(
+            hint.contains('8') && hint.contains("10") && hint.contains("13"),
+            "{hint}"
+        );
+    }
+
+    /// A bad character in an 8-digit input is still recognisable as an ISSN attempt, and
+    /// the message says so.
+    #[test]
+    fn a_bad_character_in_an_eight_digit_input_says_issn() {
+        let error: Error = UsageError::Isbn {
+            input: "0002-95X9".to_string(),
+            problem: IsbnProblem::Characters {
+                found: 'X',
+                scheme: Some(IsbnScheme::Issn),
+            },
+        }
+        .into();
+        assert_eq!(
+            error.to_string(),
+            "invalid ISSN \"0002-95X9\": contains 'X', which is not a digit"
+        );
+    }
+
+    /// A bad character in an input whose length fits no scheme cannot claim one either.
+    #[test]
+    fn a_bad_character_with_no_matching_length_names_no_scheme() {
+        let error: Error = UsageError::Isbn {
+            input: "Kafka".to_string(),
+            problem: IsbnProblem::Characters {
+                found: 'K',
+                scheme: None,
+            },
+        }
+        .into();
+        assert_eq!(
+            error.to_string(),
+            "invalid identifier \"Kafka\": contains 'K', which is not a digit"
+        );
     }
 
     /// An empty result is exit 1, and its text must distinguish "the catalogue has
