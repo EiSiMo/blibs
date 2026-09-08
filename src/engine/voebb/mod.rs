@@ -527,6 +527,9 @@ fn network_holding(id: &RecordId) -> Holding {
         mine: false,
         // Not the row's traffic light: that one summarises every branch in the network.
         summary: Status::Unknown,
+        // The result list states no holdings prose; the record page does, and
+        // `merge_detail` takes the whole holding from there.
+        holdings_statement: None,
         items: Vec::new(),
     };
     libraries::name_holding(&mut holding);

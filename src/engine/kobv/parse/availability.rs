@@ -277,6 +277,8 @@ pub fn merge(response: &AvailabilityResponse, holdings: &mut Vec<Holding>) -> Ve
                 local_id: None,
                 mine: false,
                 summary: summary_of(&group.items),
+                // KOBV states its holdings as copies, never as prose.
+                holdings_statement: None,
                 items: group.items.clone(),
             });
         }
@@ -352,6 +354,8 @@ fn new_holding(isil: &Isil) -> Holding {
         local_id: None,
         mine: false,
         summary: Status::Unknown,
+        // KOBV states its holdings as copies, never as prose.
+        holdings_statement: None,
         items: Vec::new(),
     };
     // One naming rule for both engines and this parser: `library` is the full official
@@ -440,6 +444,9 @@ fn item(row: ElementRef<'_>, columns: &Columns) -> Item {
         status: cells
             .get(columns.availability)
             .map_or(Status::Unknown, |cell| status_of(*cell)),
+        // The portal's availability fragment carries no return date in any of its column
+        // layouts — voebb.de does, and states it beside the status word there.
+        due_date: None,
         // Only voebb.de states one; the portal's fragment never does.
         order_option: None,
     }
@@ -1092,6 +1099,8 @@ mod tests {
             local_id: Some("BV041830956".to_string()),
             mine: false,
             summary: Status::Unknown,
+            // Prose holdings: only voebb.de states any.
+            holdings_statement: None,
             items: Vec::new(),
         }
     }
@@ -1165,6 +1174,8 @@ mod tests {
                 call_number: Some("MCV".to_string()),
                 volume: None,
                 status: Status::Reference,
+                // A return date: only voebb.de states one.
+                due_date: None,
                 order_option: None,
             }],
             announced_extra: None,

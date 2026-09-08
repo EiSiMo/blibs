@@ -523,7 +523,39 @@ pub mod note_kinds {
 
     /// voebb.de listed no copies for a record because the copies belong to the volumes
     /// of a multi-part work, which are records of their own. Not "held nowhere".
+    ///
+    /// Set from what the page says about **itself** — `Medienart` = `[Mehrteiliges
+    /// Werk]` — and never from the shape of its item table. An empty table is not the
+    /// same statement: of the nine records in the 2026-09-08 sample whose table is
+    /// present and empty, only two are multi-part works, and the other seven are a
+    /// newspaper, a journal-like series, a magazine issue, a score at work level and
+    /// three film and audiobook series. "Search for the volume" is advice a newspaper
+    /// does not deserve; that case
+    /// is [`VOEBB_NO_COPIES_LISTED`].
     pub const VOEBB_MULTIVOLUME: &str = "voebb_multivolume";
+
+    /// voebb.de listed no copies for a record and said nothing about why.
+    ///
+    /// The sibling of [`VOEBB_MULTIVOLUME`] and the larger half of it: the item table is
+    /// **present and empty**, and the record is not a multi-part work. Measured
+    /// 2026-09-08 on `[Zeitung]`, `[Zeitschriftenartige Reihe]`, `[Zeitschriftenheft]`,
+    /// `[Noten]`, `[DVD]` and `[CD]` records. Two tags rather than one because the
+    /// difference is a sentence a reader acts on: a multi-part work has volumes to search
+    /// for, and this has nothing this tool can name.
+    ///
+    /// What such a record *does* state about its holdings, where it states anything, is
+    /// prose in [`crate::model::Holding::holdings_statement`] — a field rather than a
+    /// third tag, because it is data and not a limitation, and because a tag could only
+    /// say that it exists.
+    pub const VOEBB_NO_COPIES_LISTED: &str = "voebb_no_copies_listed";
+
+    /// voebb.de stated a return date for a copy in a form this tool cannot read, so the
+    /// copy carries none rather than a guessed one. The note keeps the raw text.
+    ///
+    /// Never set for a copy that simply has no date — that is the normal case and says
+    /// nothing. Only a `Fällig am:` whose value is not a date reaches here, which means
+    /// the site changed how it writes them.
+    pub const VOEBB_DUE_DATE_UNREADABLE: &str = "voebb_due_date_unreadable";
 
     /// The record is a lending-platform title: it has no copies on a shelf, and its loan
     /// state is stated only as prose in the link to the platform — where this tool
@@ -628,10 +660,24 @@ pub mod note_kinds {
     /// The record is a serial, and the availability service answers one status for the
     /// *title* — no volume, no year, no shelfmark. Which volumes are actually held cannot
     /// be determined from it.
+    ///
+    /// **Not** set where the record states its run itself. voebb.de writes one into a
+    /// `Bestand` row that reaches the output as
+    /// [`crate::model::Holding::holdings_statement`] (`Bestand in ZLB: 1994/95,1 -
+    /// 1998/99,17(22.Apr.) … Signatur: A 80 ZC 181`), and a note saying the years cannot
+    /// be determined would then be printed directly above them. The tag means "nothing
+    /// answered this", and it has to keep meaning only that.
     pub const SERIAL_VOLUMES_UNKNOWN: &str = "serial_volumes_unknown";
 
     /// A copy is on loan and carries no return date: due dates and holds live behind a
     /// patron login, which this tool never passes.
+    ///
+    /// Since round 3 this is a statement about the copies that are **out and dateless**,
+    /// not about the catalogue: voebb.de does state return dates
+    /// ([`crate::model::Item::due_date`]), and a record all of whose out copies carry one
+    /// gets no note. A record with both kinds still does — `Verloren` and `Nicht im Regal`
+    /// are out with nothing to say, and they are the reason the note is per record and the
+    /// date is per copy.
     pub const LOAN_WITHOUT_DUE_DATE: &str = "loan_without_due_date";
 
     /// A key in `--at` is claimed by more than one entry of the library list, and the
@@ -965,20 +1011,40 @@ fn ambiguous_key_note(location: &Location) -> Option<Note> {
 
 /// The two limitations a record itself implies: the run of a serial, and the due date of
 /// a copy that is out. Each is stated **once**, not per copy.
+///
+/// Both are notes about an **absence**, and both grew a case where the absence is no
+/// longer there (round 3): voebb.de states a serial's run in prose and a copy's return
+/// date beside its status. A note that fires whether or not the answer is present stops
+/// being a signal an agent can switch on, and — worse — stands next to the answer
+/// contradicting it. So each is asked for the answer first.
 fn record_notes(record: &Record) -> Vec<Note> {
     let mut notes = Vec::new();
-    if matches!(record.format, Format::Journal | Format::Ejournal) {
+    // The serial note says which volumes are held "cannot be determined here". Where the
+    // record states its run itself — `Holding::holdings_statement`, voebb.de's `Bestand`
+    // line — that is simply untrue, and it would be printed directly above the years it
+    // denies. Rewording it was the alternative and is the wrong one: what a re-worded note
+    // would add ("the run is prose, and names one library") is what the field already
+    // shows, and the tag would then mean two opposite things.
+    let run_stated = record
+        .holdings
+        .iter()
+        .any(|holding| holding.holdings_statement.is_some());
+    if matches!(record.format, Format::Journal | Format::Ejournal) && !run_stated {
         notes.push(Note::new(note_kinds::SERIAL_VOLUMES_UNKNOWN, SERIAL_NOTE));
     }
-    // Never for an online resource: nothing about it is on loan, its copy lines say
+    // A copy that is out **and** states no date. voebb.de states one for most of them
+    // (`Item::due_date`), and the note beside a copy line reading `on loan, due 22 Sep
+    // 2026` would deny what the line says.
+    //
+    // Never for an online resource either: nothing about it is on loan, its copy lines say
     // "currently unavailable" rather than "on loan", and this sentence beside them was the
     // second half of the invented loan (round 2, §1.9).
-    let out = record
+    let undated = record
         .holdings
         .iter()
         .flat_map(|holding| &holding.items)
-        .any(|item| item.status == Status::Unavailable);
-    if out && !record.is_online_resource() {
+        .any(|item| item.status == Status::Unavailable && item.due_date.is_none());
+    if undated && !record.is_online_resource() {
         notes.push(Note::new(note_kinds::LOAN_WITHOUT_DUE_DATE, LOAN_NOTE));
     }
     notes
@@ -992,6 +1058,11 @@ const SERIAL_NOTE: &str = "which volumes are held cannot be determined here — 
 
 /// What a copy on loan cannot say. Due dates and holds live behind a patron login, and
 /// this tool never signs in — so it says that instead of suggesting a date.
+///
+/// The wording still holds after `Item::due_date` (round 3), because the note is now only
+/// ever attached to a record with a copy that is out and states **no** date: for that copy
+/// the date really is only in the library's own catalogue. It is a sentence about the
+/// copies that have nothing to say, not a claim that no catalogue ever states a date.
 const LOAN_NOTE: &str = "a copy on loan carries no due date here — return dates and holds \
      are only in the library's own catalogue, behind a patron login";
 
@@ -1022,6 +1093,8 @@ mod tests {
             note_kinds::AVAILABILITY_FILTER_UNSTATED,
             note_kinds::HOLDING_WITHOUT_ISIL,
             note_kinds::VOEBB_MULTIVOLUME,
+            note_kinds::VOEBB_NO_COPIES_LISTED,
+            note_kinds::VOEBB_DUE_DATE_UNREADABLE,
             note_kinds::VOEBB_ONLINE_ONLY,
             note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
             note_kinds::VOEBB_ONLINE_URL_ONLY,
@@ -1276,6 +1349,8 @@ mod tests {
                     local_id: Some("BV008885798".to_owned()),
                     mine: true,
                     summary: Status::Available,
+                    // Prose holdings: only voebb.de states any.
+                    holdings_statement: None,
                     items: vec![
                         Item {
                             location: Some("ZB Grimm-Zentrum, 7. OG / Bereich B".to_owned()),
@@ -1284,6 +1359,8 @@ mod tests {
                             call_number: Some("96 A 10064".to_owned()),
                             volume: None,
                             status: Status::Available,
+                            // A return date: only voebb.de states one.
+                            due_date: None,
                             order_option: None,
                         },
                         Item {
@@ -1293,6 +1370,8 @@ mod tests {
                             call_number: Some("96 A 10064+1".to_owned()),
                             volume: Some("1".to_owned()),
                             status: Status::Unavailable,
+                            // A return date: only voebb.de states one.
+                            due_date: None,
                             order_option: None,
                         },
                     ],
@@ -1307,6 +1386,8 @@ mod tests {
                     local_id: Some("275177939".to_owned()),
                     mine: false,
                     summary: Status::Reference,
+                    // Prose holdings: only voebb.de states any.
+                    holdings_statement: None,
                     // The portal wrote one of its placeholders in the location cell:
                     // what is not stated is `null`, never an empty string.
                     items: vec![Item {
@@ -1316,6 +1397,8 @@ mod tests {
                         call_number: Some("A 1234".to_owned()),
                         volume: None,
                         status: Status::Reference,
+                        // A return date: only voebb.de states one.
+                        due_date: None,
                         order_option: None,
                     }],
                 },
@@ -1356,6 +1439,8 @@ mod tests {
                 local_id: None,
                 mine: true,
                 summary: Status::Reference,
+                // Prose holdings: only voebb.de states any.
+                holdings_statement: None,
                 items: vec![Item {
                     location: Some("AGB Erwachsenenbibliothek".to_owned()),
                     branch: Some("SIG00036".to_owned()),
@@ -1363,6 +1448,8 @@ mod tests {
                     call_number: Some("Kaf 1".to_owned()),
                     volume: None,
                     status: Status::Reference,
+                    // A return date: only voebb.de states one.
+                    due_date: None,
                     order_option: Some("nicht entleihbar (Freihand) - Präsenzbestand".to_owned()),
                 }],
             }],
@@ -1710,6 +1797,8 @@ mod tests {
             local_id: Some("ZLB34296964".to_owned()),
             mine: true,
             summary: Status::Available,
+            // Prose holdings: only voebb.de states any.
+            holdings_statement: None,
             items: vec![Item {
                 location: None,
                 branch: Some("SIG00036".to_owned()),
@@ -1717,6 +1806,8 @@ mod tests {
                 call_number: Some("112/000 106 782".to_owned()),
                 volume: None,
                 status: Status::Available,
+                // A return date: only voebb.de states one.
+                due_date: None,
                 order_option: None,
             }],
         });
@@ -1800,6 +1891,93 @@ mod tests {
                 note_kinds::SERIAL_VOLUMES_UNKNOWN,
                 note_kinds::LOAN_WITHOUT_DUE_DATE
             ]
+        );
+    }
+
+    /// The due-date note is about the copies that have nothing to say, and stops being
+    /// said the moment they do. voebb.de states return dates (round 3), and a record whose
+    /// every out copy carries one would otherwise be told, right beneath `on loan · back
+    /// 2026-09-22`, that no due date is known here.
+    #[test]
+    fn a_copy_that_states_its_return_date_is_not_told_that_none_is_known() {
+        let mut record = kobv_record();
+        for holding in &mut record.holdings {
+            for item in &mut holding.items {
+                if item.status == Status::Unavailable {
+                    item.due_date = Some("2026-09-22".to_owned());
+                }
+            }
+        }
+        let result = ShowResult::new(Some(record), Engine::Kobv, &[], AvailabilityMode::Fetched);
+        assert!(
+            result
+                .notes
+                .iter()
+                .all(|note| note.kind != note_kinds::LOAN_WITHOUT_DUE_DATE),
+            "{:?}",
+            result.notes
+        );
+    }
+
+    /// And it is still said where a copy is out with nothing to say — `Verloren` and
+    /// `Nicht im Regal` are `unavailable` and carry no date, so a record can hold both
+    /// kinds at once. That is why the date is per copy and the note is per record.
+    #[test]
+    fn a_record_with_a_dated_and_an_undated_loan_still_owes_the_note() {
+        let mut record = kobv_record();
+        let out: Vec<&mut Item> = record
+            .holdings
+            .iter_mut()
+            .flat_map(|holding| &mut holding.items)
+            .filter(|item| item.status == Status::Unavailable)
+            .collect();
+        assert_eq!(out.len(), 1, "the fixture has one copy out");
+        // One out with a date, one out without.
+        let holding = record.holdings.first_mut().expect("a holding");
+        holding.items[1].due_date = Some("2026-09-22".to_owned());
+        holding.items[0].status = Status::Unavailable;
+        let result = ShowResult::new(Some(record), Engine::Kobv, &[], AvailabilityMode::Fetched);
+        assert!(
+            result
+                .notes
+                .iter()
+                .any(|note| note.kind == note_kinds::LOAN_WITHOUT_DUE_DATE),
+            "{:?}",
+            result.notes
+        );
+    }
+
+    /// The serial note says the volumes "cannot be determined here". Where the record
+    /// states its run itself — voebb.de's `Bestand` line — that sentence would be printed
+    /// directly above the years it denies, so it is not said at all.
+    #[test]
+    fn a_serial_that_states_its_run_is_not_told_that_it_is_unknown() {
+        let mut record = kobv_record();
+        record.format = Format::Journal;
+        let bare = ShowResult::new(
+            Some(record.clone()),
+            Engine::Kobv,
+            &[],
+            AvailabilityMode::Fetched,
+        );
+        assert!(
+            bare.notes
+                .iter()
+                .any(|note| note.kind == note_kinds::SERIAL_VOLUMES_UNKNOWN),
+            "without a statement the limitation stands: {:?}",
+            bare.notes
+        );
+
+        record.holdings[0].holdings_statement =
+            Some("Bestand in ZLB: 1994/95,1 - 1998/99,17(22.Apr.)".to_owned());
+        let stated = ShowResult::new(Some(record), Engine::Kobv, &[], AvailabilityMode::Fetched);
+        assert!(
+            stated
+                .notes
+                .iter()
+                .all(|note| note.kind != note_kinds::SERIAL_VOLUMES_UNKNOWN),
+            "{:?}",
+            stated.notes
         );
     }
 

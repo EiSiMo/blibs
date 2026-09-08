@@ -229,8 +229,9 @@ pub enum Voice {
 
 /// The wording for a status, in the legend and on a copy line.
 ///
-/// `on loan` never carries a date: due dates live behind a patron login and this tool
-/// never signs in.
+/// The label itself never carries a date — the due date is appended by the copy line
+/// (`on loan, due 22 Sep 2026`), so that one wording serves the legend, where there is no
+/// copy and no date, and the line, where there may be both.
 pub fn label(status: Status, voice: Voice) -> &'static str {
     match (status, voice) {
         (Status::Available, Voice::Copy | Voice::Access) => "available",

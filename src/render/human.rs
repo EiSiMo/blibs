@@ -12,6 +12,11 @@
 //! - For a serial, a line saying that holdings runs cannot be determined: the service
 //!   gives one traffic light for the *title*, with no volume, and a green light would
 //!   otherwise read as a statement about the year the user wants.
+//! - **A copy that is out says when it comes back** where the catalogue states a date, in
+//!   the status cell it belongs to and never in a column of its own ([`status_text`]).
+//! - **A library that states its holdings in prose says so at the holding**, verbatim and
+//!   wrapped, above whatever copies it also has ([`write_holdings_statement`]) — for a
+//!   newspaper that sentence is the entire answer.
 //! - When a client-side filter was in play, a line saying how large the window was — so
 //!   that "nothing found" is never mistaken for "nothing exists".
 //! - **A footnote about particular records names them**, under its own sentence: four
@@ -94,9 +99,36 @@ const SHOW_AUTHOR_NAME: usize = 32;
 const ROLE_COLUMN: usize = 12;
 /// Label column of every `Label  value` block. Exactly as wide as the longest label.
 const FIELD_LABEL: usize = 11;
-/// Status column. Wide enough for the longest wording in [`label`], so that a following
-/// `order_option` never collides with it.
+/// Status column — a **floor**, not a width ([`status_width`]): wide enough for the
+/// wordings in [`label`], so that a following `order_option` never collides with it, and
+/// widened for a page whose copies state a return date beside the status.
 const STATUS_COLUMN: usize = 20;
+
+/// What a holding's prose statement is introduced with.
+///
+/// **`stated`, because it is not a copy line.** The items above it are shelves the service
+/// listed one by one; this is what the library says about its run in its own words, and a
+/// newspaper's only answer to "is it there" is this sentence. Without the label it reads as
+/// an orphaned copy whose columns went missing.
+const STATEMENT_LABEL: &str = "stated holdings: ";
+
+/// The hanging indent of a wrapped holdings statement.
+///
+/// **Not the label's width**, which is what every other labelled line here uses: at 17
+/// columns it would leave a 40-column terminal 16 for the text itself. Two columns are
+/// enough to tell a continuation from a line of its own when the line above it opens with a
+/// label.
+const STATEMENT_HANG: usize = 2;
+
+/// The English month names, for a return date a human reads.
+///
+/// A **display table like [`LANGUAGE_NAMES`]**: the ISO form is what the JSON carries and
+/// what an agent parses, and only the terminal line is spelled out. `22 Sep 2026` rather
+/// than `2026-09-22` because the reader of this line is deciding whether to wait three
+/// weeks, and rather than `22/09/2026` because half the world reads that as 9 September.
+const MONTH_NAMES: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 /// ISO-639-2/B codes and the English name `show` prints for them.
 ///
@@ -335,7 +367,6 @@ fn write_grouped_block(
     writeln!(out)?;
 
     let record_layout = grouped_record_layout();
-    let item_layout = search_item_layout();
     let record_rows: Vec<Vec<Cell>> = block
         .records
         .iter()
@@ -349,6 +380,7 @@ fn write_grouped_block(
 
     let record_widths = record_layout.widths(&record_rows, available(style, RECORD_INDENT));
     let all_items: Vec<Vec<Cell>> = item_rows.iter().flatten().cloned().collect();
+    let item_layout = search_item_layout(status_width(&all_items));
     let item_widths = item_layout.widths(&all_items, available(style, ITEM_INDENT));
 
     for ((entry, record_row), items) in block.records.iter().zip(&record_rows).zip(&item_rows) {
@@ -360,12 +392,35 @@ fn write_grouped_block(
             RECORD_INDENT,
             style,
         )?;
+        for holding in holdings_at(entry, block.location) {
+            write_holdings_statement(out, holding, ITEM_INDENT, style)?;
+        }
         for item in items {
             write_row(out, &item_layout, item, &item_widths, ITEM_INDENT, style)?;
         }
         shown.push(entry.status);
     }
     Ok(())
+}
+
+/// The holdings of one record **at this block's location**, in the record's own order.
+///
+/// The same [`select::holding_is_at`] the copy lines were selected with, and not a second
+/// spelling of the narrowing: a renderer that re-derived which holding belongs to a
+/// location would drift from the one that answered, which has already cost a green light
+/// over a book a branch had lent out (CLAUDE.md, *The traps*).
+///
+/// Empty without a location — the flat list has no copy lines to hang a statement under.
+fn holdings_at<'a>(entry: &BlockRecord<'a>, location: Option<&Location>) -> Vec<&'a Holding> {
+    let Some(location) = location else {
+        return Vec::new();
+    };
+    entry
+        .record
+        .holdings
+        .iter()
+        .filter(|holding| select::holding_is_at(holding, location))
+        .collect()
 }
 
 /// The flat list: a heading with the true total, then one numbered line per hit.
@@ -871,26 +926,47 @@ fn flat_record_layout(numbering: Option<Numbering>) -> Layout {
 /// The shelfmark column is [`Column::Fixed`] and its cell is never shortened: half a
 /// shelfmark does not find a book. It overflows into the status column instead, which is
 /// visible and honest.
-fn item_layout(location_width: usize, shelfmark_width: usize) -> Layout {
+fn item_layout(location_width: usize, shelfmark_width: usize, status_width: usize) -> Layout {
     Layout::new(vec![
         Column::Flex {
             ideal: location_width,
             min: 12,
         },
         Column::Fixed(shelfmark_width),
-        Column::Fixed(STATUS_COLUMN),
+        Column::Fixed(status_width),
         Column::Last,
     ])
 }
 
+/// How wide the status column of one block has to be: [`STATUS_COLUMN`], or the widest
+/// status cell where a copy states a return date behind its status.
+///
+/// **Measured over the whole block, and then fixed.** A [`Column::Flex`] would have been
+/// the obvious way to let the column grow, but a flexible column is also the first to give
+/// its width back: at 80 columns the layout took those four columns off the status again
+/// and the one row with a date pushed its neighbour out of line. So the block decides the
+/// width once, from its own rows, and the location column — which may be shortened, and
+/// says so with an ellipsis — is what gives way instead.
+fn status_width(rows: &[Vec<Cell>]) -> usize {
+    rows.iter()
+        .filter_map(|row| row.get(STATUS_CELL))
+        .map(Cell::width)
+        .max()
+        .unwrap_or(0)
+        .max(STATUS_COLUMN)
+}
+
+/// Where the status stands in an item row, for [`status_width`].
+const STATUS_CELL: usize = 2;
+
 /// The copy layout of the grouped list.
-fn search_item_layout() -> Layout {
-    item_layout(SEARCH_ITEM_LOCATION, 19)
+fn search_item_layout(status_width: usize) -> Layout {
+    item_layout(SEARCH_ITEM_LOCATION, 19, status_width)
 }
 
 /// The copy layout of `show`, which indents one column less and has more room.
-fn show_item_layout() -> Layout {
-    item_layout(SHOW_ITEM_LOCATION, 16)
+fn show_item_layout(status_width: usize) -> Layout {
+    item_layout(SHOW_ITEM_LOCATION, 16, status_width)
 }
 
 /// One record under a location heading. The marker is that **location's** traffic light,
@@ -1026,12 +1102,84 @@ fn item_row(item: &Item, voice: Voice, style: Style) -> Vec<Cell> {
         Cell::new(item.call_number.clone().unwrap_or_default())
             .styled(style.dim())
             .whole(),
-        Cell::new(label(item.status, voice).to_owned()).styled(style.status(item.status)),
+        Cell::new(status_text(item, voice))
+            .styled(style.status(item.status))
+            .whole(),
     ];
     if let Some(order) = &item.order_option {
         cells.push(Cell::new(order.clone()).styled(style.dim()));
     }
     cells
+}
+
+/// What the status column of a copy says: the traffic light in words, and the return date
+/// where the catalogue stated one.
+///
+/// **One cell, not two.** A column of its own would stand empty on every copy that is in —
+/// and most are — for the sake of the few that are out; here the date joins the sentence it
+/// belongs to (`on loan, due 22 Sep 2026`), and the column widens for the page that has one
+/// ([`item_layout`]).
+///
+/// The date is printed whatever the light says. A return date beside `available` is odd,
+/// but it is what the catalogue stated, and dropping a stated field to make the line tidier
+/// is the failure mode this renderer must not have.
+fn status_text(item: &Item, voice: Voice) -> String {
+    let word = label(item.status, voice);
+    match non_blank(item.due_date.as_deref()) {
+        Some(date) => format!("{word}, due {}", due_date(date)),
+        None => word.to_owned(),
+    }
+}
+
+/// An ISO-8601 date as a human reads it — `2026-09-22` becomes `22 Sep 2026`.
+///
+/// Exactly the policy of [`language_name`]: a value this table cannot name is **printed as
+/// it stands**. `Item::due_date` is ISO by construction, but a renderer that reformatted
+/// whatever it was handed would answer a changed upstream format with a wrong date, and a
+/// wrong deadline is worse than an unpretty one.
+fn due_date(date: &str) -> String {
+    iso_date(date).unwrap_or_else(|| date.to_owned())
+}
+
+/// The three parts of an ISO date, spelled out — `None` for anything that is not exactly
+/// `YYYY-MM-DD` with a month between 1 and 12.
+fn iso_date(date: &str) -> Option<String> {
+    let mut parts = date.split('-');
+    let year = parts.next()?;
+    let month: usize = parts.next()?.parse().ok()?;
+    let day: u32 = parts.next()?.parse().ok()?;
+    if parts.next().is_some() || year.len() != 4 || !year.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return None;
+    }
+    let month = MONTH_NAMES.get(month.checked_sub(1)?)?;
+    Some(format!("{day} {month} {year}"))
+}
+
+/// Write what a library says about its holdings in prose, where it says anything.
+///
+/// The one place both `search` and `show` print it, so the two cannot come to word it
+/// differently. It is **verbatim** — the statement is free text in the library's own
+/// language and is never split into a location and a shelfmark ([`Holding::holdings_statement`]) —
+/// and it is wrapped like every other sentence outside a table rather than laid out as a
+/// row, because it runs well past a terminal and a cut one loses the end of a run.
+fn write_holdings_statement(
+    out: &mut dyn Write,
+    holding: &Holding,
+    indent: usize,
+    style: Style,
+) -> io::Result<()> {
+    let Some(statement) = non_blank(holding.holdings_statement.as_deref()) else {
+        return Ok(());
+    };
+    write_paragraph(
+        out,
+        &format!("{STATEMENT_LABEL}{statement}"),
+        indent,
+        STATEMENT_HANG,
+        style.dim(),
+        style,
+    )
 }
 
 /// Which vocabulary the copy lines of a record may use.
@@ -1449,12 +1597,16 @@ fn write_holdings(
         .iter()
         .map(|entry| item_rows(&entry.items, voice, style))
         .collect();
-    let layout = show_item_layout();
     let all: Vec<Vec<Cell>> = rows.iter().flatten().cloned().collect();
+    let layout = show_item_layout(status_width(&all));
     let widths = layout.widths(&all, available(style, SHOW_ITEM_INDENT));
 
     for (entry, items) in split.mine.iter().zip(&rows) {
         write_holding_heading(out, entry, style)?;
+        // Above the copies: the statement is about the run as a whole, and the copies are
+        // instances of it. A holding may carry one, copies, both or neither — a newspaper
+        // is the statement alone, and this is the only line that answers for it.
+        write_holdings_statement(out, entry.holding, SHOW_ITEM_INDENT, style)?;
         for row in items {
             write_row(out, &layout, row, &widths, SHOW_ITEM_INDENT, style)?;
         }
@@ -1827,6 +1979,8 @@ mod tests {
             local_id: None,
             mine: false,
             summary,
+            // Prose holdings: only voebb.de states any.
+            holdings_statement: None,
             items,
         }
     }
@@ -1839,6 +1993,8 @@ mod tests {
             call_number: Some(call_number.to_owned()),
             volume: None,
             status,
+            // A return date: only voebb.de states one.
+            due_date: None,
             order_option: None,
         }
     }
@@ -2835,6 +2991,8 @@ AGB (VÖBB) · 35 results · showing 2
             call_number: None,
             volume: None,
             status,
+            // A return date: only voebb.de states one.
+            due_date: None,
             order_option: None,
         }
     }
@@ -3356,6 +3514,282 @@ almafu_BV008885798
         assert!(!output.contains("volumes are held"));
     }
 
+    /// The verbatim `Bestand` line of `voebb_SAK13708822`, measured 2026-09-08. Long,
+    /// German, and not a grammar — which is why it is printed whole and never split.
+    const STATEMENT: &str = "Bestand in ZLB: 1994/95,1 - 1998/99,17(22.Apr.) Mikrofilm \
+         Standort: BStB Signatur: A 80 ZC 181 Beil.:Mikro";
+
+    /// One copy, with everything voebb.de states about it.
+    fn copy(location: &str, call: &str, status: Status, due: Option<&str>) -> Item {
+        Item {
+            location: Some(location.to_owned()),
+            branch: None,
+            branch_name: None,
+            call_number: Some(call.to_owned()),
+            volume: None,
+            status,
+            due_date: due.map(str::to_owned),
+            order_option: Some("Ausleihbar".to_owned()),
+        }
+    }
+
+    /// A one-record answer at `HU`, whose single holding is `holding`. The vehicle for the
+    /// copy-line tests below: one block, one record, one library.
+    fn one_holding(holding: Holding) -> (SearchResult, Vec<Location>, Record) {
+        let (mut result, locations) = vorleser();
+        result.records.truncate(1);
+        result.shown = 1;
+        result.records[0].holdings = vec![holding];
+        let record = result.records[0].clone();
+        (result, locations[..1].to_vec(), record)
+    }
+
+    /// A holding at `HU`, with a prose statement, copies, both or neither.
+    fn hu_holding(statement: Option<&str>, items: Vec<Item>) -> Holding {
+        Holding {
+            holdings_statement: statement.map(str::to_owned),
+            ..holding(
+                "DE-11",
+                "HU Berlin",
+                "Humboldt-Universität zu Berlin, Universitätsbibliothek",
+                Status::Unavailable,
+                items,
+            )
+        }
+    }
+
+    /// The copy lines of an output, indent and painting removed.
+    fn copy_lines(output: &str) -> Vec<String> {
+        output
+            .lines()
+            .filter(|line| line.contains("Erwachsenenbereich") || line.contains("Kinderbereich"))
+            .map(|line| strip_ansi(line.trim_start()))
+            .collect()
+    }
+
+    /// "When is it back" is a use case (`plan/usecases.md`), voebb.de answers it — eight
+    /// times on `voebb_SAK34906286` alone — and the renderer used to drop the answer.
+    ///
+    /// The date joins the status rather than opening a column of its own: most copies are
+    /// in and would pay for it with an empty cell.
+    #[test]
+    fn a_copy_on_loan_says_when_it_comes_back() {
+        let (result, locations, record) = one_holding(hu_holding(
+            None,
+            vec![copy(
+                "Erwachsenenbereich",
+                "Schl",
+                Status::Unavailable,
+                Some("2026-09-22"),
+            )],
+        ));
+        for output in [
+            rendered(&result, &locations),
+            rendered_show(&record, &locations),
+        ] {
+            assert!(
+                strip_ansi(&output).contains("on loan, due 22 Sep 2026"),
+                "{output}"
+            );
+        }
+    }
+
+    /// The date is written as a person reads it. `2026-09-22` is what the JSON carries and
+    /// what an agent parses; `22/09/2026` would be 9 September to half the world.
+    #[test]
+    fn a_return_date_is_spelled_out_and_never_guessed() {
+        assert_eq!(due_date("2026-09-22"), "22 Sep 2026");
+        assert_eq!(due_date("2026-01-05"), "5 Jan 2026");
+        assert_eq!(due_date("2026-10-01"), "1 Oct 2026");
+        // Anything this table cannot name is printed as it stands — the policy of
+        // `language_name` and `role_name`, for the same reason: a reformatted deadline that
+        // is not the stated one is worse than an unpretty one.
+        for stated in [
+            "22.9.2026",
+            "2026-13-01",
+            "2026-09",
+            "2026-09-22-01",
+            "",
+            "later",
+        ] {
+            assert_eq!(due_date(stated), stated, "{stated:?} is not an ISO date");
+        }
+    }
+
+    /// The column widens for the page that has a date, and the copies that have none keep
+    /// their neighbour in line — the whole reason the width is measured per block.
+    #[test]
+    fn the_status_column_widens_for_a_date_without_breaking_the_alignment() {
+        let (result, locations, record) = one_holding(hu_holding(
+            None,
+            vec![
+                copy(
+                    "Erwachsenenbereich",
+                    "Schl",
+                    Status::Unavailable,
+                    Some("2026-09-22"),
+                ),
+                copy("Kinderbereich", "Schl", Status::Available, None),
+            ],
+        ));
+        for output in [
+            rendered(&result, &locations),
+            rendered_show(&record, &locations),
+        ] {
+            let lines = copy_lines(&output);
+            assert_eq!(lines.len(), 2, "{output}");
+            let order_at: Vec<Option<usize>> =
+                lines.iter().map(|line| line.find("Ausleihbar")).collect();
+            assert_eq!(order_at[0], order_at[1], "{lines:#?}");
+            assert!(order_at[0].is_some(), "{lines:#?}");
+        }
+    }
+
+    /// A page without a single return date is laid out exactly as it was before dates
+    /// existed: the width is a floor, and nothing pays for a column it does not use.
+    #[test]
+    fn a_page_without_a_date_keeps_the_status_column_it_had() {
+        let rows = vec![vec![
+            Cell::new("Erwachsenenbereich"),
+            Cell::new("Schl"),
+            Cell::new("on loan"),
+        ]];
+        assert_eq!(status_width(&rows), STATUS_COLUMN);
+        assert_eq!(status_width(&[]), STATUS_COLUMN);
+        let dated = vec![vec![
+            Cell::new("Erwachsenenbereich"),
+            Cell::new("Schl"),
+            Cell::new("on loan, due 22 Sep 2026"),
+        ]];
+        assert_eq!(status_width(&dated), "on loan, due 22 Sep 2026".len());
+    }
+
+    /// A newspaper has no copies and is not "held nowhere": the page states a run, a house
+    /// and a shelfmark in one prose line, and the tool used to answer that sentence with
+    /// silence.
+    #[test]
+    fn a_holding_that_states_its_run_in_prose_prints_it() {
+        let (result, locations, record) = one_holding(hu_holding(Some(STATEMENT), Vec::new()));
+        for output in [
+            rendered(&result, &locations),
+            rendered_show(&record, &locations),
+        ] {
+            let said = one_line(&strip_ansi(&output));
+            assert!(
+                said.contains("stated holdings: Bestand in ZLB:"),
+                "{output}"
+            );
+            assert!(
+                said.contains("Signatur: A 80 ZC 181 Beil.:Mikro"),
+                "{output}"
+            );
+        }
+    }
+
+    /// A statement and copies are not alternatives. The statement is about the run, the
+    /// copies are the shelves it is on, and it stands above them.
+    #[test]
+    fn a_holding_prints_its_statement_above_its_copies() {
+        let (result, locations, record) = one_holding(hu_holding(
+            Some(STATEMENT),
+            vec![copy(
+                "Erwachsenenbereich",
+                "A 80 ZC 181",
+                Status::Unavailable,
+                Some("2026-01-05"),
+            )],
+        ));
+        for output in [
+            rendered(&result, &locations),
+            rendered_show(&record, &locations),
+        ] {
+            let plain = strip_ansi(&output);
+            let statement = plain.find("stated holdings:").expect("the statement");
+            let copy = plain.find("Erwachsenenbereich").expect("the copy line");
+            assert!(
+                statement < copy,
+                "the run comes before its shelves: {output}"
+            );
+            assert!(plain.contains("on loan, due 5 Jan 2026"), "{output}");
+        }
+    }
+
+    /// A statement belongs to the library that made it. It is picked with the same
+    /// `select::holding_is_at` the copy lines are picked with, so a block never shows
+    /// another library's prose.
+    #[test]
+    fn a_statement_stays_in_the_block_of_its_own_library() {
+        let (mut result, locations) = vorleser();
+        result.records.truncate(1);
+        result.shown = 1;
+        // Without a stated membership the blocks are built from the holdings, which is
+        // what this test is about: the record is held at `DE-1` and nowhere else.
+        result.at.clear();
+        result.records[0].holdings = vec![Holding {
+            holdings_statement: Some(STATEMENT.to_owned()),
+            ..holding(
+                "DE-1",
+                "Stabi Berlin",
+                "Staatsbibliothek zu Berlin",
+                Status::Available,
+                vec![copy(
+                    "Haus Potsdamer Straße",
+                    "1 A",
+                    Status::Available,
+                    None,
+                )],
+            )
+        }];
+        let output = strip_ansi(&rendered(&result, &locations));
+        let hu = output.find("HU Berlin ·").expect("the HU block");
+        let stabi = output.find("Stabi Berlin ·").expect("the Stabi block");
+        let statement = output.find("stated holdings:").expect("the statement");
+        assert!(hu < stabi && stabi < statement, "{output}");
+    }
+
+    /// Prose runs past a terminal, and a cut statement loses the end of a run. It is
+    /// wrapped like every other sentence outside a table, at the width there is.
+    #[test]
+    fn a_long_statement_is_wrapped_and_never_cut() {
+        let (result, locations, record) = one_holding(hu_holding(Some(STATEMENT), Vec::new()));
+        let mut search_out = Vec::new();
+        search(
+            &result,
+            &locations,
+            &mut search_out,
+            Style::plain(MIN_WIDTH),
+        )
+        .expect("bytes");
+        let mut show_out = Vec::new();
+        show(
+            &record,
+            &locations,
+            &[],
+            &mut show_out,
+            Style::plain(MIN_WIDTH),
+        )
+        .expect("bytes");
+        for bytes in [search_out, show_out] {
+            let output = strip_ansi(&String::from_utf8(bytes).expect("UTF-8"));
+            let said = one_line(&output);
+            assert!(
+                said.contains(&one_line(STATEMENT)),
+                "nothing of the statement is lost at {MIN_WIDTH} columns: {output}"
+            );
+            for line in output.lines().filter(|line| {
+                line.contains("Bestand") || line.contains("Signatur") || line.contains("Mikrofilm")
+            }) {
+                // The title above it is shortened at 40 columns and says so; a statement
+                // never is, because the end of a run is the half a reader is after.
+                assert!(!line.contains('…'), "a statement is never cut: {line:?}");
+                assert!(
+                    display_width(line) <= MIN_WIDTH,
+                    "{line:?} runs past {MIN_WIDTH} columns"
+                );
+            }
+        }
+    }
+
     /// The terminal caps the lists; the JSON never does.
     #[test]
     fn the_author_and_subject_lists_are_capped_and_counted() {
@@ -3408,6 +3842,8 @@ almafu_BV008885798
                 call_number: Some("Kaf 3".to_owned()),
                 volume: None,
                 status: Status::Unavailable,
+                // A return date: only voebb.de states one.
+                due_date: None,
                 order_option: None,
             }],
         )];
@@ -3442,6 +3878,8 @@ almafu_BV008885798
             call_number: Some(call_number.to_owned()),
             volume: None,
             status,
+            // A return date: only voebb.de states one.
+            due_date: None,
             order_option: None,
         }
     }

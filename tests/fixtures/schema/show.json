@@ -57,6 +57,7 @@
         "local_id": "BV008885798",
         "mine": true,
         "summary": "available",
+        "holdings_statement": null,
         "items": [
           {
             "location": "ZB Grimm-Zentrum, 7. OG / Bereich B",
@@ -65,6 +66,7 @@
             "call_number": "96 A 10064",
             "volume": null,
             "status": "available",
+            "due_date": null,
             "order_option": null
           },
           {
@@ -74,6 +76,7 @@
             "call_number": "96 A 10064+1",
             "volume": "1",
             "status": "unavailable",
+            "due_date": null,
             "order_option": null
           }
         ]
@@ -86,6 +89,7 @@
         "local_id": "275177939",
         "mine": false,
         "summary": "reference",
+        "holdings_statement": null,
         "items": [
           {
             "location": null,
@@ -94,6 +98,7 @@
             "call_number": "A 1234",
             "volume": null,
             "status": "reference",
+            "due_date": null,
             "order_option": null
           }
         ]

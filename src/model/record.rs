@@ -263,6 +263,21 @@ pub struct Holding {
     pub mine: bool,
     /// The traffic light for this library, summarised over its items.
     pub summary: Status,
+    /// What the record states about this library's holdings **in prose**, verbatim.
+    ///
+    /// voebb.de's `Bestand` row, measured 2026-09-08 on `voebb_SAK13708822`:
+    /// `Bestand in ZLB: 1994/95,1 - 1998/99,17(22.Apr.) Mikrofilm Standort: BStB
+    /// Signatur: A 80 ZC 181 Beil.:Mikro`. It is carried **whole** and never split into
+    /// a location and a shelfmark: the words `Standort:` and `Signatur:` inside it are
+    /// free text and not a grammar — one of the two measured lines has neither — and a
+    /// shelfmark guessed out of it would be quoted as though the catalogue had stated it
+    /// as one.
+    ///
+    /// This is where a record with no copies of its own says what is held: such a record
+    /// has an **empty** item table, so a filled statement next to an empty [`Self::items`]
+    /// is the normal shape and not a loss. `None` for every KOBV holding — the union
+    /// catalogue states its holdings as `924` fields, which arrive as items.
+    pub holdings_statement: Option<String>,
     /// The individual copies, once availability has been fetched. Empty is ambiguous on
     /// its own — [`crate::model::AvailabilityMode`] on the result says whether it means
     /// "not asked" or "asked, nothing came back".
@@ -286,6 +301,22 @@ pub struct Item {
     pub volume: Option<String>,
     /// Loan status of this copy.
     pub status: Status,
+    /// The return date of a copy that is out, as **ISO-8601** (`2026-09-22`).
+    ///
+    /// voebb.de writes it into the availability cell behind the status word
+    /// (`Ausgeliehen -  Fällig am: 22.9.2026`), with the day *and* the month unpadded —
+    /// measured 2026-09-08, eight of them on `voebb_SAK34906286` alone. The JSON form is
+    /// the ISO one because this tool is written for agents as much as for people; the
+    /// German form is never passed through.
+    ///
+    /// `None` says the catalogue stated none, which is the normal case for a copy that is
+    /// in, and the only case for KOBV — its availability service reports no return dates
+    /// at all. A stated date this tool cannot read is never bent into shape: it stays
+    /// `None` and the result carries `voebb_due_date_unreadable` with the raw text.
+    ///
+    /// It never decides [`Self::status`]. That comes from the marker class alone, so a
+    /// changed date format costs a date and never a traffic light.
+    pub due_date: Option<String>,
     /// Ordering option as free text, e.g. `Außenmagazin, bestellbar`. Only voebb.de
     /// supplies these; not an enum, because the vocabulary has never been collected.
     pub order_option: Option<String>,
@@ -293,8 +324,11 @@ pub struct Item {
 
 /// Loan status.
 ///
-/// `on loan` never carries a date: due dates live behind a patron login, and this tool
-/// never signs in. Output must not suggest a deadline it cannot know.
+/// A status is a light and never a date. Where a catalogue does state a return date it
+/// travels beside the light in [`Item::due_date`], and voebb.de does state one — eight on
+/// `voebb_SAK34906286`, measured 2026-09-08, which is what this comment used to deny.
+/// KOBV's availability service states none, and there the output must not suggest a
+/// deadline it cannot know.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Status {

@@ -158,6 +158,25 @@ genügt nicht — `detail_on_loan.html` ist ein gedrucktes Buch mit einer
 „E-Ressource ohne Exemplare“ durchgehen. `detail_overdrive.html` trägt **beides**, `URL`
 und `Link zu Overdrive`; deshalb wird der Leihlink zuerst geprüft.
 
+### Nachtrag 2026-09-08 (Runde 3) — drei Seiten aus einer Stichprobe über die Medienarten
+
+Gezogen am **2026-09-08** aus einer Stichprobe von 23 Detailseiten quer über die
+`Medienart`-Werte, mit demselben Rezept wie oben (`GET …/prod00?sp=SPROD00&sp=<SAK…>`,
+`-L`, eigener Cookie-Jar, UA `blibs/0.1 (+https://github.com/EiSiMo/blibs)`, seriell) und
+mit `slim.py` eingedampft. Die Stichprobe hat drei Falschaussagen sichtbar gemacht, je eine
+Datei je Fall.
+
+| Datei | Satz | Was sie belegt |
+| --- | --- | --- |
+| `detail_newspaper.html` | `SAK13708822` (*Die Zeit*) | **Die leere Exemplartabelle heißt nicht „mehrbändiges Werk".** `Medienart` = `[Zeitung]`, `table#resptable-1` vorhanden und leer, genau wie beim mehrbändigen Werk — und zwei Zeilen darüber steht die Zeile `Bestand`: `Bestand in ZLB: 1994/95,1 - 1998/99,17(22.Apr.) Mikrofilm Standort: BStB Signatur: A 80 ZC 181 Beil.:Mikro`. Das Werkzeug sagte „keine Exemplare" zu einem Satz, der Standort **und** Signatur nennt. Freitext: `Standort:`/`Signatur:` sehen nach Struktur aus und sind keine — die zweite gemessene `Bestand`-Zeile (`SAK12509005`) hat gar kein `Standort:` |
+| `detail_series.html` | `SAK34799780` (*Harry Potter*, DVD-Reihe) | Dieselbe leere Tabellenform noch einmal, ohne jede Erklärung auf der Seite: `Medienart` = `[DVD]`, eine `Band`-Zeile mit den Teilen. Der Fall, für den es keinen Satz gibt, den man behaupten dürfte — Vermerk `voebb_no_copies_listed` |
+| `detail_due_dates.html` | `SAK34906286` (Konsolenspiel, 23 Exemplare stadtweit) | Drei Funde in einer Datei: **acht Rückgabedaten** in der Spalte `Verfügbarkeit` (`Ausgeliehen -  Fällig am: 22.9.2026`, Tag *und* Monat einstellig) — `plan/voebb.md` §9 hielt fest, ein Fälligkeitsdatum stehe „nirgends"; der **ungemessene Wortlaut** `verfügbar oder "Heute zurückverbucht"` mit Klasse `available`; und eine Bibliothekszeile **ohne `<a>`**, reiner Text `Stadtteilbibliothek Hakenfelde - ist zurzeit geschlossen`. Dazu `Medienart` = `[Konsolenspiel]`, eine von sechs Medienarten, die auf `Unknown` fielen |
+
+Ein Rückgabedatum trägt auch `SAK34954522` (ein gewöhnlicher Roman, `Fällig am: 24.9.2026`)
+— es ist also kein Sonderfall der Spielekonsolen. Die ältere Messung „46 Exemplare, kein
+Rückgabedatum" (§ `detail_on_loan.html` oben) bleibt für *jene* Seite richtig: sie trägt
+tatsächlich keines.
+
 ## Was gekürzt wurde
 
 Zusammen waren es 1,1 MB, davon der Löwenanteil Rahmenwerk. `slim.py` entfernt daraus
@@ -195,4 +214,11 @@ Nicht angefasst: `noaccess.html` (die Datei ist der Beweis, dass dort weder `<ti
 | `noaccess.html` | 8 KiB | 8 KiB |
 | `detail_*.html` (5) | 314 KiB | 91 KiB |
 | `detail_online_url.html` | 58 KiB | 17 KiB |
-| **gesamt** | **1,1 MB** | **384 KiB** |
+| `detail_newspaper.html` | 60 KiB | 17 KiB |
+| `detail_series.html` | 60 KiB | 18 KiB |
+| `detail_due_dates.html` | 70 KiB | 29 KiB |
+| **alle `*.html` zusammen** | — | **707 KiB** (gemessen 2026-09-08) |
+
+Die Zeile *alle zusammen* ist die nachgemessene Größe des Verzeichnisses; die Einzelzeilen
+darüber sind die Messungen ihres jeweiligen Zugtages und summieren sich nicht darauf, weil
+zwischendurch abgeleitete Dateien dazugekommen sind.

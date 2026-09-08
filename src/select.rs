@@ -1005,6 +1005,8 @@ mod tests {
             local_id: None,
             mine: false,
             summary,
+            // Prose holdings: only voebb.de states any.
+            holdings_statement: None,
             items,
         }
     }
@@ -1017,6 +1019,8 @@ mod tests {
             call_number: None,
             volume: None,
             status,
+            // A return date: only voebb.de states one.
+            due_date: None,
             order_option: None,
         }
     }

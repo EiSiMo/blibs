@@ -505,6 +505,8 @@ fn name_holding_is_the_one_naming_rule() {
         local_id: None,
         mine: false,
         summary: Status::Unknown,
+        // Prose holdings: only voebb.de states any.
+        holdings_statement: None,
         items: Vec::new(),
     };
     name_holding(&mut known);

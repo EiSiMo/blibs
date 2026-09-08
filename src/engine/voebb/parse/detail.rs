@@ -181,8 +181,13 @@ fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> 
         online,
         isbns: isbns_of(bibliographic.values("ISBN")),
         subjects: subjects_of(bibliographic.values("Schlagwortkette")),
-        urls: urls_of(bibliographic),
-        holdings: vec![holding_of(id, items, lending_status(link))],
+        urls: urls_of(bibliographic, id),
+        holdings: vec![holding_of(
+            id,
+            items,
+            lending_status(link),
+            holdings_statement_of(bibliographic),
+        )],
     }
 }
 
@@ -198,7 +203,16 @@ fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> 
 /// ([`lending_status`]). It is only ever consulted when `items` is empty — a copy on a
 /// shelf is a stronger statement than a sentence in a link, and where both exist the
 /// copies decide.
-fn holding_of(id: &RecordId, items: Vec<Item>, without_items: Status) -> Holding {
+///
+/// `holdings_statement` is the *other* thing a record with no copies can still say: the
+/// prose `Bestand` line ([`holdings_statement_of`]). It is carried verbatim and never
+/// turned into a status — what a run of volumes says about a loan is nothing.
+fn holding_of(
+    id: &RecordId,
+    items: Vec<Item>,
+    without_items: Status,
+    holdings_statement: Option<String>,
+) -> Holding {
     let summary = if items.is_empty() {
         without_items
     } else {
@@ -212,6 +226,7 @@ fn holding_of(id: &RecordId, items: Vec<Item>, without_items: Status) -> Holding
         local_id: Some(id.local_id().to_string()),
         mine: false,
         summary,
+        holdings_statement,
         items,
     };
     // The naming rule lives in one place for both engines; this parser only supplies the
@@ -380,8 +395,13 @@ fn languages_of(values: &[String]) -> Vec<String> {
 /// | --- | --- |
 /// | `Band`, `Buch` | [`Format::Book`] |
 /// | `E-Ressource`, `E-Book`, `Onleihe` | [`Format::Ebook`], and `online` |
+/// | `E-Audio` | [`Format::Audio`], and `online` |
 /// | `Hörbuch`, `CD`, `Tonträger` | [`Format::Audio`] |
 /// | `DVD`, `Blu-ray`, `Video` | [`Format::Video`] |
+/// | `Noten` | [`Format::Score`] |
+/// | `Karte/Plan` | [`Format::Map`] |
+/// | `Zeitung`, `Zeitschrift`, `Zeitschriftenartige Reihe`, `Zeitschriftenheft` | [`Format::Journal`] |
+/// | `Konsolenspiel` | [`Format::Object`] |
 /// | `Medienkombination` | [`Format::Mixed`] |
 /// | anything else, `Mehrteiliges Werk` included | [`Format::Unknown`] |
 ///
@@ -389,13 +409,50 @@ fn languages_of(values: &[String]) -> Vec<String> {
 /// *level*, not a material, and the volumes that carry the material are records of their
 /// own. `online` also comes in from a `Link zu …` row, which is why it is an
 /// argument here and not derived from the table alone.
+///
+/// Six rows were added on 2026-09-08, after a sample of 23 records across the material
+/// types found that many `Medienart` values falling through to [`Format::Unknown`] and
+/// out of every `--format` filter. Two of the decisions deserve their reason stated:
+///
+/// - `[E-Audio]` is [`Format::Audio`] *plus* `online`, not an `e`-variant of its own: the
+///   vocabulary deliberately has no `e`-form per material, and every record carries
+///   `online` separately ([`Format`]).
+/// - `[Konsolenspiel]` is [`Format::Object`] — **not** [`Format::Electronic`], and that is
+///   a trap rather than an oversight, so please do not tidy it. `Electronic` reads like
+///   the obvious answer (MARC codes a video game as leader/06 `m`, a computer file), but
+///   in this crate that word does not mean "a computer file", it means "a resource nobody
+///   carries off a shelf": [`crate::model::Record::is_online_resource`] counts it among
+///   the online formats. A cartridge on a shelf in Spandau is not that, and the mapping
+///   was measured doing the damage — the copy that is out turned from `on loan` into
+///   `currently unavailable` and the note about the missing due date disappeared with it.
+///   `Object` is the only one of the fifteen words that claims nothing false: a carrier on
+///   a shelf is a thing. A vocabulary word of its own was considered and rejected —
+///   `--format game` would be a filter `kobv` can never answer, and the vocabulary is
+///   filled by both engines.
+///
+/// Two values in the table were not in the sample. `Zeitschrift` stands beside the three
+/// serial spellings that were measured, because leaving the plainest of them out would be
+/// a hole rather than a caution. No second *game* spelling is here: the 23 pages were
+/// searched for one and carry none — `Konsolenspiel` is the only one, and the `Spiel` on
+/// `voebb_SAK34906286` is the value of its `Art/Inhalt` row, not a `Medienart`. Guessing
+/// at whether the site would write `Brettspiel`, `Gesellschaftsspiel` or `Spiel` would be
+/// inventing vocabulary, not extending it.
 pub(in crate::engine::voebb) fn format_of(medienart: &str, online: bool) -> (Format, bool) {
     let value = fold(medienart.trim_matches(['[', ']']).trim());
     let format = match value.as_str() {
         "band" | "buch" => Format::Book,
         "e-ressource" | "e-book" | "onleihe" => return (Format::Ebook, true),
+        "e-audio" => return (Format::Audio, true),
         "horbuch" | "cd" | "tontrager" => Format::Audio,
         "dvd" | "blu-ray" | "video" => Format::Video,
+        "noten" => Format::Score,
+        "karte/plan" => Format::Map,
+        "zeitung" | "zeitschrift" | "zeitschriftenartige reihe" | "zeitschriftenheft" => {
+            Format::Journal
+        }
+        // `Object`, never `Electronic` — see the note above this function; the wrong one
+        // of those two turns a cartridge on a shelf into an online resource.
+        "konsolenspiel" => Format::Object,
         "medienkombination" => Format::Mixed,
         _ => Format::Unknown,
     };
@@ -450,6 +507,32 @@ fn subjects_of(values: &[String]) -> Vec<String> {
     subjects
 }
 
+/// The label of the prose holdings statement.
+const HOLDINGS_ROW: &str = "Bestand";
+
+/// What the record states about the network's holdings in prose, or `None`.
+///
+/// The `Bestand` row, measured 2026-09-08 on the two of 23 sampled records that carry one
+/// — both serials whose item table is present and empty:
+///
+/// ```text
+/// Bestand in ZLB: 1993 - 2012(2013) Signatur: A 5 Brock 100
+/// Bestand in ZLB: 1994/95,1 - 1998/99,17(22.Apr.) Mikrofilm Standort: BStB Signatur: A 80 ZC 181 Beil.:Mikro
+/// ```
+///
+/// Carried **whole**. The `Standort:`/`Signatur:` words inside it look like a structure
+/// and are not one — the first line has no `Standort:` at all, the second puts a carrier
+/// (`Mikrofilm`) between the run and the location — so splitting it would mean guessing
+/// where a shelfmark begins and then quoting the guess as the catalogue's own word. A
+/// human reads the shelfmark out of the line; an agent at least has the line.
+///
+/// Without it the tool answered "no copies" for `voebb_SAK13708822`, whose page names a
+/// location *and* a shelfmark two rows above the empty table.
+fn holdings_statement_of(bibliographic: &Bibliographic) -> Option<String> {
+    let lines = bibliographic.values(HOLDINGS_ROW);
+    (!lines.is_empty()).then(|| lines.join(" "))
+}
+
 /// The label prefix of every e-lending link voebb.de states.
 ///
 /// Measured: `Link zur Onleihe` and `Link zu Overdrive`. The vendor behind it is not the
@@ -485,6 +568,11 @@ const URL_ROW: &str = "URL";
 /// into a confident answer with no copies. So `Medienart` has to say the record *is*
 /// electronic as well — the same pairing [`is_missing_record`] uses, for the same reason.
 ///
+/// That second marker is [`format_of`]'s **online flag**, not its `Format::Ebook`. The two
+/// stopped being the same thing when `[E-Audio]` was measured (2026-09-08): it is an
+/// electronic title with a material of its own, and asking for `Ebook` would have read
+/// its page as broken.
+///
 /// Consulted only after [`lending_link`], because `detail_overdrive.html` carries **both**
 /// rows and its loan state, such as it is, belongs to the lending link.
 ///
@@ -493,7 +581,7 @@ const URL_ROW: &str = "URL";
 /// begins with [`LENDING_LINK`] and is prose in a `p.info`, not a row.
 fn online_access_url(bibliographic: &Bibliographic) -> Option<&str> {
     let medienart = bibliographic.first("Medienart").unwrap_or_default();
-    if format_of(medienart, false).0 != Format::Ebook {
+    if !format_of(medienart, false).1 {
         return None;
     }
     bibliographic
@@ -545,14 +633,16 @@ fn lending_status(row: Option<&BibRow>) -> Status {
 
 /// The links of the bibliographic tables, classified by the label of their row.
 ///
-/// Only labelled rows are read. The unlabelled first row of every page is the record's
-/// own permalink, which is already in [`crate::model::RecordId`] and would otherwise put
-/// a self-link into every record.
-fn urls_of(bibliographic: &Bibliographic) -> Vec<ResourceUrl> {
+/// Every link but the record's own permalink ([`is_self_link`]) — a record never points
+/// at itself.
+fn urls_of(bibliographic: &Bibliographic, id: &RecordId) -> Vec<ResourceUrl> {
     let mut urls = Vec::new();
     for row in &bibliographic.rows {
         let kind = url_kind(&row.label);
         for (url, label) in &row.links {
+            if is_self_link(url, id) {
+                continue;
+            }
             urls.push(ResourceUrl {
                 url: url.clone(),
                 kind,
@@ -561,6 +651,25 @@ fn urls_of(bibliographic: &Bibliographic) -> Vec<ResourceUrl> {
         }
     }
     urls
+}
+
+/// Whether a link is the page's own permalink rather than a link out of the record.
+///
+/// Every detail page opens with an unlabelled `table.gi` row holding a copy button
+/// (`class="permalink-unclicked"`, text `Kopierlink`) whose target is this very record —
+/// all 23 pages of the 2026-09-08 sample carry one. Left in, it puts a link from every
+/// record to itself into [`crate::model::Record::urls`], which is how `blibs show
+/// voebb_SAK34364366` came to print `Online https://www.voebb.de/…?sp=SAK34364366 (link)`
+/// under a record that *is* that page. The doc comment above [`urls_of`] had promised the
+/// opposite since the module was written; nothing implemented it.
+///
+/// Recognised by **what it points at**, never by where it sits. The unlabelled row is not
+/// reliably the permalink: three of the 23 pages carry a second unlabelled row with a real
+/// link — a `d-nb.info` table of contents, a URN resolver, a ZLB viewer — so dropping
+/// unlabelled rows would have cost those. A link that names this record's own number is
+/// this record, whichever row it stands in, and that is exactly the promise being kept.
+fn is_self_link(url: &str, id: &RecordId) -> bool {
+    url.contains(id.local_id())
 }
 
 /// What a link under this label points at. A lending link is the resource itself; the
@@ -583,7 +692,7 @@ fn url_kind(label: &str) -> UrlKind {
 /// | State | Meaning | Result |
 /// | --- | --- | --- |
 /// | table with rows | a normal record | the copies |
-/// | table without rows (and without `<thead>`) | a multi-part work; the volumes are records of their own | empty, [`note_kinds::VOEBB_MULTIVOLUME`] |
+/// | table without rows (and without `<thead>`) | the record states no copies of its own | empty, [`note_kinds::VOEBB_MULTIVOLUME`] or [`note_kinds::VOEBB_NO_COPIES_LISTED`] — [`no_copies_note`] decides from `Medienart` |
 /// | no table, but a `Link zu …` row | an electronic title; the loan state is in the link text, and [`lending_status`] reads it into the holding | empty, [`note_kinds::VOEBB_ONLINE_ONLY`] or [`note_kinds::VOEBB_ONLINE_STATE_UNSTATED`] |
 /// | no table and no lending link, but `Medienart` says electronic and a `URL` row points somewhere | an electronic title whose access is a plain link, with no loan state anywhere | empty, [`note_kinds::VOEBB_ONLINE_URL_ONLY`] |
 ///
@@ -659,10 +768,9 @@ fn items_of(
 
     let rows: Vec<ElementRef<'_>> = table.select(&selectors.item_row).collect();
     if rows.is_empty() {
-        notes.push(Note::new(
-            note_kinds::VOEBB_MULTIVOLUME,
-            "voebb.de lists no copies for a multi-part work — the copies belong to its \
-             volumes, which are records of their own; search for the volume",
+        notes.push(no_copies_note(
+            bibliographic.first("Medienart").unwrap_or_default(),
+            holdings_statement_of(bibliographic).as_deref(),
         ));
         return Ok(Vec::new());
     }
@@ -672,6 +780,59 @@ fn items_of(
         .into_iter()
         .map(|row| item(row, &columns, notes))
         .collect())
+}
+
+/// The `Medienart` of a record whose parts carry the copies, folded as [`format_of`] folds.
+const MULTIVOLUME: &str = "mehrteiliges werk";
+
+/// Why an item table that is present and empty is empty, worded from what the page says
+/// about **itself**.
+///
+/// The shape of the table says only *that* there are no copies. Until 2026-09-08 it was
+/// also read as saying *why*, and every such record was told "the copies belong to the
+/// volumes, which are records of their own; search for the volume". Measured over 23
+/// records across the material types, nine have that shape and only two are multi-part
+/// works: the other seven are a newspaper, a journal-like series, a magazine issue, a
+/// score at work level and three film and audiobook series. Sending the reader of a
+/// newspaper record off to "search for the volume" is not merely unhelpful, it is a
+/// direction to nowhere.
+///
+/// So `Medienart` decides, and everything it does not name gets a sentence that claims
+/// nothing: the table is empty, this is what the page calls the record, and an empty table
+/// is never "held nowhere".
+///
+/// Where the record states its holdings in prose the note **points at** that statement and
+/// does not repeat it. It used to quote the line, which was right while nothing else
+/// showed it; now [`crate::model::Holding::holdings_statement`] is rendered above the
+/// copies in both paths, and quoting it again put `Standort: BStB Signatur: A 80 ZC 181`
+/// on the screen twice, two lines apart. A note that repeats what stands above it teaches
+/// the reader to skip notes.
+fn no_copies_note(medienart: &str, statement: Option<&str>) -> Note {
+    if fold(medienart.trim_matches(['[', ']']).trim()) == MULTIVOLUME {
+        return Note::new(
+            note_kinds::VOEBB_MULTIVOLUME,
+            "voebb.de lists no copies for a multi-part work — the copies belong to its \
+             volumes, which are records of their own; search for the volume",
+        );
+    }
+    let called = match non_empty(medienart) {
+        Some(kind) => format!("the page calls the record {kind}"),
+        None => "the page states no Medienart for it".to_string(),
+    };
+    let stated = match statement {
+        Some(_) => {
+            ". What this record states about its holdings it states in prose, above —              whole, because that form cannot be taken apart without guessing"
+        }
+        None => "",
+    };
+    Note::new(
+        note_kinds::VOEBB_NO_COPIES_LISTED,
+        format!(
+            "voebb.de lists no copies on this record — its item table is present and \
+             empty and {called}. That is never \"held nowhere\": where such a record has \
+             parts, the copies stand on their records{stated}"
+        ),
+    )
 }
 
 /// One row of the item table. Every cell may legitimately be empty, so nothing here
@@ -707,8 +868,77 @@ fn item(row: ElementRef<'_>, columns: &Columns, notes: &mut Vec<Note>) -> Item {
             order_option.as_deref(),
             notes,
         ),
+        due_date: due_date_of(cell(Some(columns.availability)), notes),
         order_option,
     }
+}
+
+/// What voebb.de writes in front of a return date in the availability cell.
+const DUE_MARKER: &str = "Fällig am:";
+
+/// The return date of a copy that is out, as ISO-8601, or `None`.
+///
+/// `plan/voebb.md` §9 says a return date "steht nirgends in der Tabelle", checked against
+/// 46 copies. That was true of those 46 and is not true of the catalogue: the availability
+/// cell reads `Ausgeliehen -  Fällig am: 22.9.2026`, eight times on `voebb_SAK34906286`
+/// and once on the plain novel `voebb_SAK34954522` (measured 2026-09-08). It is the answer
+/// to "when is it back", which is a question `plan/usecases.md` asks and this parser was
+/// throwing away.
+///
+/// It is read from the same cell as the status and decides nothing about it: the traffic
+/// light comes from the marker class ([`status_of`]), so a date this function cannot read
+/// costs a date and never a light.
+///
+/// A cell with no `Fällig am:` has no date and says nothing — the common case, and no
+/// note. A cell that *has* the marker and a value that is not a date means the site
+/// changed how it writes them, and that is
+/// [`note_kinds::VOEBB_DUE_DATE_UNREADABLE`] with the raw text rather than a guess.
+fn due_date_of(cell: Option<ElementRef<'_>>, notes: &mut Vec<Note>) -> Option<String> {
+    let text = text_of(cell?);
+    let (_, stated) = text.split_once(DUE_MARKER)?;
+    let stated = stated.trim();
+    if let Some(date) = parse_due_date(stated) {
+        return Some(date);
+    }
+    notes.push(Note::new(
+        note_kinds::VOEBB_DUE_DATE_UNREADABLE,
+        format!(
+            "voebb.de stated a return date for a copy that blibs cannot read — {stated:?} \
+             is not a date in the `d.m.yyyy` form the site writes them in, so the copy is \
+             reported without one rather than with a guess"
+        ),
+    ));
+    None
+}
+
+/// `22.9.2026` → `2026-09-22`, or `None` for anything that is not that.
+///
+/// Day **and** month arrive unpadded, so neither may be assumed two digits; the year must
+/// be four, which is what keeps a truncated or reordered value from passing. The check is
+/// a range check and not a calendar: `31.2.2026` survives it. Rejecting a date the site
+/// printed because this parser disagrees about February would lose a real return date over
+/// a data-entry error upstream, and the value is quoted, not computed with.
+fn parse_due_date(stated: &str) -> Option<String> {
+    let mut parts = stated.split('.');
+    let day = decimal(parts.next()?)?;
+    let month = decimal(parts.next()?)?;
+    let year_field = parts.next()?.trim();
+    if parts.next().is_some() || year_field.len() != 4 {
+        return None;
+    }
+    let year = decimal(year_field)?;
+    ((1..=31).contains(&day) && (1..=12).contains(&month))
+        .then(|| format!("{year:04}-{month:02}-{day:02}"))
+}
+
+/// One field of a date: ASCII digits and nothing else, so that `+9` and `٩` are not
+/// numbers here even where `str::parse` would take them.
+fn decimal(field: &str) -> Option<u32> {
+    let field = field.trim();
+    if field.is_empty() || !field.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    field.parse().ok()
 }
 
 /// Area and shelfmark out of a location cell that has no shelfmark column.
@@ -1118,6 +1348,41 @@ mod tests {
     const OVERDRIVE: &str = include_str!("../../../../tests/fixtures/voebb/detail_overdrive.html");
     const ONLINE_URL: &str =
         include_str!("../../../../tests/fixtures/voebb/detail_online_url.html");
+    const NEWSPAPER: &str = include_str!("../../../../tests/fixtures/voebb/detail_newspaper.html");
+    const SERIES: &str = include_str!("../../../../tests/fixtures/voebb/detail_series.html");
+    const DUE_DATES: &str = include_str!("../../../../tests/fixtures/voebb/detail_due_dates.html");
+
+    /// Every record page fixture, with the number it was fetched under. The rules that
+    /// have to hold for *all* of them — no record links to itself — are checked over this.
+    const RECORD_PAGES: [(&str, &str); 11] = [
+        (AVAILABLE, "SAK13776205"),
+        (ON_LOAN, "SAK00177143"),
+        (REFERENCE, "SAK15912360"),
+        (ONLINE, "SAK16112988"),
+        (ONLINE_AVAILABLE, "SAK16112988"),
+        (ONLINE_URL, "SAK34364366"),
+        (OVERDRIVE, "SAK34672596"),
+        (MULTIVOLUME, "SAK13927817"),
+        (NEWSPAPER, "SAK13708822"),
+        (SERIES, "SAK34799780"),
+        (DUE_DATES, "SAK34906286"),
+    ];
+
+    /// The one holding every voebb.de record has.
+    fn holding(page: &DetailPage) -> &Holding {
+        match page.record.holdings.as_slice() {
+            [holding] => holding,
+            other => panic!(
+                "a voebb record has exactly one holding, found {}",
+                other.len()
+            ),
+        }
+    }
+
+    /// The kinds of the notes a page produced, in order.
+    fn kinds(page: &DetailPage) -> Vec<&str> {
+        page.notes.iter().map(|note| note.kind).collect()
+    }
 
     /// Parse a fixture under the id it was fetched with.
     fn parsed(html: &str, local: &str) -> DetailPage {
@@ -1535,6 +1800,315 @@ mod tests {
         // `[Mehrteiliges Werk]` states a level, not a material, and is never guessed at.
         assert_eq!(page.record.format, Format::Unknown);
         assert_eq!(page.record.isbns, vec!["3765341479"]);
+    }
+
+    /// The regression the multi-part note used to be. Five of the seven material types
+    /// whose item table is present and empty are not multi-part works, and every one of
+    /// them was told "search for the volume" — a newspaper included.
+    #[test]
+    fn an_empty_item_table_only_claims_a_multi_part_work_when_the_page_says_so() {
+        for (html, local) in [(NEWSPAPER, "SAK13708822"), (SERIES, "SAK34799780")] {
+            let page = parsed(html, local);
+            assert!(items(&page).is_empty(), "{local}");
+            assert_eq!(
+                kinds(&page),
+                [note_kinds::VOEBB_NO_COPIES_LISTED],
+                "{local}"
+            );
+            let message = &page.notes[0].message;
+            assert!(
+                !message.contains("volume"),
+                "a record that is not a multi-part work must not be sent after one: \
+                 {message}"
+            );
+        }
+        // And the one that is one keeps the sentence that is true of it.
+        let multivolume = parsed(MULTIVOLUME, "SAK13927817");
+        assert_eq!(kinds(&multivolume), [note_kinds::VOEBB_MULTIVOLUME]);
+    }
+
+    /// `voebb_SAK13708822` names a location *and* a shelfmark two rows above its empty
+    /// item table, and the tool answered "no copies" for it. The line is carried whole:
+    /// `Standort:`/`Signatur:` inside it look like structure and are free text.
+    #[test]
+    fn a_serial_states_its_holdings_in_prose_and_the_line_is_carried_whole() {
+        let page = parsed(NEWSPAPER, "SAK13708822");
+        assert_eq!(
+            holding(&page).holdings_statement.as_deref(),
+            Some(
+                "Bestand in ZLB: 1994/95,1 - 1998/99,17(22.Apr.) Mikrofilm \
+                 Standort: BStB Signatur: A 80 ZC 181 Beil.:Mikro"
+            )
+        );
+        // The note points at the statement and does **not** repeat it. It quoted the
+        // line until the renderer printed `holdings_statement` itself; then the shelfmark
+        // stood on the screen twice, two lines apart, and a note that repeats what is
+        // above it teaches the reader to skip notes.
+        let message = &page.notes[0].message;
+        assert!(
+            !message.contains("A 80 ZC 181"),
+            "the note must not repeat the statement the renderer prints: {message:?}"
+        );
+        assert!(
+            message.contains("in prose, above"),
+            "the note must still point at it: {message:?}"
+        );
+        // A newspaper is a serial, not an unknown material.
+        assert_eq!(page.record.format, Format::Journal);
+    }
+
+    /// Only voebb.de states holdings in prose, and only some records do. Everything else
+    /// keeps `None` — an empty string here would render as a blank statement.
+    #[test]
+    fn a_record_without_a_bestand_row_states_no_prose_holdings() {
+        for (html, local) in RECORD_PAGES {
+            if local == "SAK13708822" {
+                continue;
+            }
+            let page = parsed(html, local);
+            assert_eq!(
+                holding(&page).holdings_statement,
+                None,
+                "{local} has no Bestand row"
+            );
+        }
+    }
+
+    /// `plan/voebb.md` §9 says a return date "steht nirgends", measured over 46 copies.
+    /// It is in the availability cell behind the status word, on both a console game and
+    /// a plain novel (2026-09-08). ISO-8601 out, because the day *and* the month arrive
+    /// unpadded and an agent must not have to parse `22.9.2026`.
+    #[test]
+    fn a_copy_on_loan_carries_the_return_date_the_cell_states() {
+        let page = parsed(DUE_DATES, "SAK34906286");
+        let dates: Vec<&str> = items(&page)
+            .iter()
+            .filter_map(|item| item.due_date.as_deref())
+            .collect();
+        assert_eq!(
+            dates,
+            [
+                "2026-09-22",
+                "2026-10-05",
+                "2026-10-05",
+                "2026-09-15",
+                "2026-09-15",
+                "2026-10-01",
+                "2026-09-12",
+                "2026-10-05",
+            ]
+        );
+        // A date only ever stands beside a copy that is out. The converse does not hold
+        // and must not be asserted: `Verloren` and `Nicht im Regal` are out with no date
+        // to give, which is exactly why the date is a field of its own and not a status.
+        for item in items(&page) {
+            assert!(
+                item.due_date.is_none() || item.status == Status::Unavailable,
+                "{item:?}"
+            );
+        }
+    }
+
+    /// The date is an extra, never a second route to a status: the light comes from the
+    /// marker class, so `Ausgeliehen -  Fällig am: …` is still simply unavailable and the
+    /// unmeasured wording `verfügbar oder "Heute zurückverbucht"` is still available.
+    #[test]
+    fn a_return_date_beside_the_status_word_changes_no_traffic_light() {
+        let page = parsed(DUE_DATES, "SAK34906286");
+        let lit = statuses(&page);
+        // 13 in — the twelve `Verfügbar` and the unmeasured wording
+        // `verfügbar oder "Heute zurückverbucht"`, which rides on the class.
+        assert_eq!(lit.iter().filter(|s| **s == Status::Available).count(), 13);
+        // 10 out — the eight with a date, plus `Verloren` and `Nicht im Regal`.
+        assert_eq!(
+            lit.iter().filter(|s| **s == Status::Unavailable).count(),
+            10
+        );
+        assert!(
+            !lit.contains(&Status::Unknown),
+            "no copy fell through: {lit:?}"
+        );
+        // Nothing about the dates produced a note.
+        assert!(page.notes.is_empty(), "{:?}", page.notes);
+    }
+
+    /// A stated date this parser cannot read is neither guessed nor swallowed: the copy
+    /// keeps its light, loses the date, and the raw text travels in a note.
+    #[test]
+    fn an_unreadable_return_date_is_a_note_and_never_a_guess() {
+        let changed = DUE_DATES.replace("Fällig am: 22.9.2026", "Fällig am: nächste Woche");
+        let page = parsed(&changed, "SAK34906286");
+        assert_eq!(
+            items(&page)
+                .iter()
+                .filter(|item| item.due_date.is_some())
+                .count(),
+            7
+        );
+        assert_eq!(kinds(&page), [note_kinds::VOEBB_DUE_DATE_UNREADABLE]);
+        assert!(
+            page.notes[0].message.contains("nächste Woche"),
+            "{:?}",
+            page.notes[0].message
+        );
+        // The light is untouched.
+        assert_eq!(
+            statuses(&page)
+                .iter()
+                .filter(|status| **status == Status::Unavailable)
+                .count(),
+            10
+        );
+    }
+
+    /// The forms the site writes, and the ones it does not. Day and month are unpadded,
+    /// the year is always four digits, and everything else stays `None`.
+    #[test]
+    fn a_return_date_is_read_unpadded_and_only_in_the_form_the_site_writes() {
+        assert_eq!(parse_due_date("22.9.2026").as_deref(), Some("2026-09-22"));
+        assert_eq!(parse_due_date("5.10.2026").as_deref(), Some("2026-10-05"));
+        assert_eq!(parse_due_date("05.10.2026").as_deref(), Some("2026-10-05"));
+        for wrong in [
+            "",
+            "22.9.26",
+            "2026-09-22",
+            "22/9/2026",
+            "22.9.2026.1",
+            "22..2026",
+            "0.9.2026",
+            "22.13.2026",
+            "+2.9.2026",
+            "nächste Woche",
+        ] {
+            assert_eq!(parse_due_date(wrong), None, "{wrong:?}");
+        }
+    }
+
+    /// The doc comment above `urls_of` promised this since the module was written and
+    /// nothing implemented it: every page's first `table.gi` row is a copy button
+    /// pointing at the record itself, and it ended up in `urls[]` of every voebb record.
+    #[test]
+    fn no_record_links_to_itself() {
+        for (html, local) in RECORD_PAGES {
+            let page = parsed(html, local);
+            for url in &page.record.urls {
+                assert!(
+                    !url.url.contains(local),
+                    "{local} links to itself: {:?}",
+                    url.url
+                );
+            }
+        }
+    }
+
+    /// Dropping *unlabelled* rows would have been the cheap filter and would have cost
+    /// three real links: three of the 23 sampled pages carry a second unlabelled row with
+    /// a table of contents, a URN resolver or a viewer behind it.
+    #[test]
+    fn the_links_that_are_not_the_permalink_survive() {
+        let page = parsed(ONLINE_URL, "SAK34364366");
+        assert!(
+            page.record
+                .urls
+                .iter()
+                .any(|url| url.url.contains("nbn-resolving.de")),
+            "{:?}",
+            page.record.urls
+        );
+    }
+
+    /// Six `Medienart` values fell through to `Unknown` and out of every `--format`
+    /// filter. Each value here was read off a record page of the 2026-09-08 sample,
+    /// except `Zeitschrift`, which stands beside the three serial spellings that were.
+    #[test]
+    fn the_measured_medienart_values_map_onto_the_format_vocabulary() {
+        let cases = [
+            ("[Buch]", Format::Book, false),
+            ("[Band]", Format::Book, false),
+            ("[CD]", Format::Audio, false),
+            ("[DVD]", Format::Video, false),
+            ("[Medienkombination]", Format::Mixed, false),
+            ("[Noten]", Format::Score, false),
+            ("[Karte/Plan]", Format::Map, false),
+            ("[Konsolenspiel]", Format::Object, false),
+            ("[Zeitung]", Format::Journal, false),
+            ("[Zeitschrift]", Format::Journal, false),
+            ("[Zeitschriftenartige Reihe]", Format::Journal, false),
+            ("[Zeitschriftenheft]", Format::Journal, false),
+            ("[E-Ressource]", Format::Ebook, true),
+            ("[E-Book]", Format::Ebook, true),
+            ("[E-Audio]", Format::Audio, true),
+            // A level, not a material — deliberately unknown.
+            ("[Mehrteiliges Werk]", Format::Unknown, false),
+        ];
+        for (medienart, format, online) in cases {
+            assert_eq!(format_of(medienart, false), (format, online), "{medienart}");
+        }
+    }
+
+    /// The trap behind `[Konsolenspiel]`, pinned so that "tidying" it to `electronic`
+    /// fails loudly. `Format::Electronic` is one of the four words
+    /// [`Record::is_online_resource`] treats as "nothing carries this off a shelf", and a
+    /// cartridge in Spandau is carried off a shelf 23 times over: with `electronic` the
+    /// copy that is out reads `currently unavailable` instead of `on loan` and loses the
+    /// note that no return date is known.
+    #[test]
+    fn a_console_game_is_a_thing_on_a_shelf_and_not_an_online_resource() {
+        let page = parsed(DUE_DATES, "SAK34906286");
+        assert_eq!(page.record.format, Format::Object);
+        assert!(!page.record.online);
+        assert!(
+            !page.record.is_online_resource(),
+            "a cartridge on a shelf is borrowed like a book"
+        );
+        // The wrong word, spelled out so the test says what it is guarding against.
+        assert!(
+            Record {
+                format: Format::Electronic,
+                ..page.record.clone()
+            }
+            .is_online_resource()
+        );
+    }
+
+    /// An electronic title is recognised by the online flag, not by `Format::Ebook`: the
+    /// two parted company when `[E-Audio]` was measured, and asking for `Ebook` would
+    /// read such a page as broken the moment it has a bare `URL` row instead of a
+    /// lending link.
+    #[test]
+    fn an_electronic_title_of_any_material_can_state_a_bare_url() {
+        let audio = ONLINE_URL.replace("[E-Ressource]", "[E-Audio]");
+        let page = parsed(&audio, "SAK34364366");
+        assert!(items(&page).is_empty());
+        assert_eq!(kinds(&page), [note_kinds::VOEBB_ONLINE_URL_ONLY]);
+        assert_eq!(page.record.format, Format::Audio);
+        assert!(page.record.online);
+    }
+
+    /// A house the library list does not carry keeps its text and loses only the branch —
+    /// and it is the *name* that decides, never the markup. `Stadtteilbibliothek
+    /// Hakenfelde - ist zurzeit geschlossen` has no link around it, which is not why it
+    /// does not resolve: the list writes the same house `Stadtbibliothek Spandau /
+    /// Stadtteilbibliothek Hakenfelde (Eröffnung 2026)`, and no shape of the cell text is
+    /// that. Guessing across the difference is what this module refuses to do.
+    #[test]
+    fn a_library_cell_without_a_link_still_names_its_house() {
+        let page = parsed(DUE_DATES, "SAK34906286");
+        let closed = items(&page)
+            .iter()
+            .find(|item| {
+                item.branch_name
+                    .as_deref()
+                    .is_some_and(|name| name.starts_with("Stadtteilbibliothek Hakenfelde"))
+            })
+            .expect("the fixture carries the closed branch");
+        assert_eq!(
+            closed.branch_name.as_deref(),
+            Some("Stadtteilbibliothek Hakenfelde - ist zurzeit geschlossen")
+        );
+        assert_eq!(closed.branch, None);
+        // The copy is never dropped over it.
+        assert_eq!(closed.status, Status::Unavailable);
     }
 
     /// A page without the bibliographic table is not a detail page. The error names the

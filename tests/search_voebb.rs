@@ -104,6 +104,14 @@ fn voebb_fetch() -> FixtureFetch {
             |request| record_of(request) == "SAK13776205",
             read_fixture("voebb/detail_available.html"),
         )
+        .route(
+            |request| record_of(request) == "SAK34906286",
+            read_fixture("voebb/detail_due_dates.html"),
+        )
+        .route(
+            |request| record_of(request) == "SAK13708822",
+            read_fixture("voebb/detail_newspaper.html"),
+        )
         .route(is_record_page, read_fixture("voebb/detail_on_loan.html"))
         .route(
             |request| has_field(request, "$Autosuggest"),
@@ -1422,6 +1430,73 @@ fn show_of_an_online_title_states_why_it_lists_no_copies() {
         kinds.contains(&"voebb_online_only"),
         "an agent branches on the kind, not on the wording: {json}"
     );
+}
+
+/// The return date reaches the JSON document, in the form an agent can use.
+///
+/// `plan/voebb.md` §9 recorded that no return date exists in the item table, checked over
+/// 46 copies; `voebb_SAK34906286` carries eight (measured 2026-09-08). The date is ISO
+/// here and German on the page, and it never touches the traffic light — that still comes
+/// from the marker class, so the copy that is out is out either way.
+#[test]
+fn show_of_a_borrowed_copy_carries_its_return_date_as_iso() {
+    let fetch = voebb_fetch();
+    let json = invoke(&["show", "voebb_SAK34906286", "--json"], &fetch).json();
+    let items = json["record"]["holdings"][0]["items"]
+        .as_array()
+        .unwrap_or_else(|| panic!("the record has copies: {json}"));
+    let dated: Vec<(&str, &str)> = items
+        .iter()
+        .filter_map(|item| Some((item["due_date"].as_str()?, item["status"].as_str()?)))
+        .collect();
+    assert_eq!(dated.len(), 8, "{json}");
+    for (date, status) in dated {
+        assert_eq!(
+            status, "unavailable",
+            "a date belongs to a copy that is out"
+        );
+        assert!(
+            date.len() == 10 && date.starts_with("2026-"),
+            "the JSON date is ISO-8601, not 22.9.2026: {date}"
+        );
+    }
+}
+
+/// A record whose item table is present and empty says so without inventing a volume, and
+/// hands over what the page *does* state about the holdings.
+///
+/// `voebb_SAK13708822` is a newspaper. It used to be told "the copies belong to the
+/// volumes, which are records of their own; search for the volume" — advice with no
+/// address — while the line naming its location and shelfmark, two rows above the empty
+/// table, was dropped entirely and the tool answered "no copies".
+#[test]
+fn show_of_a_serial_states_the_holdings_it_has_in_prose() {
+    let fetch = voebb_fetch();
+    let json = invoke(&["show", "voebb_SAK13708822", "--json"], &fetch).json();
+    let holding = &json["record"]["holdings"][0];
+    assert_eq!(holding["items"].as_array().map(Vec::len), Some(0), "{json}");
+    let statement = holding["holdings_statement"]
+        .as_str()
+        .unwrap_or_else(|| panic!("the Bestand line is carried: {json}"));
+    assert!(
+        statement.contains("Standort: BStB") && statement.contains("Signatur: A 80 ZC 181"),
+        "the line is quoted whole, not taken apart: {statement}"
+    );
+
+    let kinds: Vec<&str> = json["notes"]
+        .as_array()
+        .map(|notes| {
+            notes
+                .iter()
+                .filter_map(|note| note["kind"].as_str())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(
+        kinds.contains(&"voebb_no_copies_listed"),
+        "a newspaper is not a multi-part work: {json}"
+    );
+    assert!(!kinds.contains(&"voebb_multivolume"), "{json}");
 }
 
 /// `show <id> --at <branch>` answers for the branch, exactly as the search does.
