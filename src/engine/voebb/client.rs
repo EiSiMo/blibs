@@ -394,10 +394,16 @@ fn free_terms(query: &QuerySpec) -> String {
 /// - a query that needs more than four rows loses the last of them, the least selective
 ///   first.
 ///
+/// **The notes describe what was sent, not what was intended**, which is why the row list
+/// is cut to length *before* either of them is worded. Announcing the free-term row first
+/// and truncating it away afterwards produced two notes about one query that contradicted
+/// each other — "`Sommer` was searched as a title" next to "`Titel = "Sommer"` was not
+/// sent" (round 2, §1.13). The free-term row is the last one pushed and therefore the
+/// first one dropped, so it is exactly the row that used to be announced in vain.
+///
 /// An empty result means the query is free terms only and belongs in the single search
 /// box instead.
 fn advanced_rows(query: &QuerySpec) -> (Vec<(&'static str, String)>, Vec<Note>) {
-    let mut notes = Vec::new();
     let mut rows: Vec<(&'static str, String)> = Vec::new();
     if let Some(identifier) = &query.identifier {
         let value = match identifier {
@@ -418,8 +424,30 @@ fn advanced_rows(query: &QuerySpec) -> (Vec<(&'static str, String)>, Vec<Note>) 
     // Free terms on their own belong in the single search box, which is what an empty
     // row list tells the caller. Next to a flag they have nowhere else to go.
     let terms = free_terms(query);
-    if !rows.is_empty() && !terms.is_empty() {
+    let free_row = (!rows.is_empty() && !terms.is_empty()).then(|| {
         rows.push((fields::index::TITLE, terms.clone()));
+        rows.len() - 1
+    });
+
+    let truncated = (rows.len() > ADVANCED_ROWS).then(|| {
+        let dropped: Vec<String> = rows
+            .split_off(ADVANCED_ROWS)
+            .into_iter()
+            .map(|(index, value)| format!("{index} = {value:?}"))
+            .collect();
+        Note::new(
+            note_kinds::VOEBB_QUERY_TRUNCATED,
+            format!(
+                "voebb.de's advanced search has {ADVANCED_ROWS} rows, so {} was not sent",
+                dropped.join(", ")
+            ),
+        )
+    });
+
+    // Only now, and only if that row survived the cut: the note states what the form was
+    // actually asked, and a row that was dropped is the truncation note's business alone.
+    let mut notes = Vec::new();
+    if free_row.is_some_and(|position| position < rows.len()) {
         notes.push(Note::new(
             note_kinds::VOEBB_FREE_TERMS_AS_TITLE,
             format!(
@@ -428,21 +456,7 @@ fn advanced_rows(query: &QuerySpec) -> (Vec<(&'static str, String)>, Vec<Note>) 
             ),
         ));
     }
-
-    if rows.len() > ADVANCED_ROWS {
-        let dropped: Vec<String> = rows
-            .split_off(ADVANCED_ROWS)
-            .into_iter()
-            .map(|(index, value)| format!("{index} = {value:?}"))
-            .collect();
-        notes.push(Note::new(
-            note_kinds::VOEBB_QUERY_TRUNCATED,
-            format!(
-                "voebb.de's advanced search has {ADVANCED_ROWS} rows, so {} was not sent",
-                dropped.join(", ")
-            ),
-        ));
-    }
+    notes.extend(truncated);
     (rows, notes)
 }
 
@@ -518,7 +532,10 @@ mod tests {
         assert_eq!(notes[0].kind, note_kinds::VOEBB_FREE_TERMS_AS_TITLE);
     }
 
-    /// Five rows do not fit into four. The least selective one goes, and it is named.
+    /// Five rows do not fit into four. The least selective one goes, and it is named —
+    /// and, since round 2 (§1.13), nothing claims it was searched as a title after all:
+    /// the dropped row is exactly the free-term row, and two notes about one query that
+    /// contradict each other are worse than one note that is short.
     #[test]
     fn a_query_that_needs_more_than_four_rows_says_what_was_dropped() {
         let query = QuerySpec {
@@ -540,6 +557,11 @@ mod tests {
             .find(|note| note.kind == note_kinds::VOEBB_QUERY_TRUNCATED)
             .expect("the note exists");
         assert!(truncated.message.contains("Diogenes"), "{truncated:?}");
+        assert!(
+            !kinds.contains(&note_kinds::VOEBB_FREE_TERMS_AS_TITLE),
+            "the row that was dropped is never also announced as sent: {kinds:?}"
+        );
+        assert_eq!(notes.len(), 1, "{notes:?}");
     }
 
     /// The scope is always the network's holdings — never the entry page's default of

@@ -884,19 +884,37 @@ fn free_terms_next_to_a_flag_are_stated_in_a_note() {
     );
 }
 
+/// The measured result list with the AGB removed from its facet: 71 hits in the network,
+/// none of them at the branch. Derived, and documented as derived in the fixture README.
+fn branch_absent_fetch() -> FixtureFetch {
+    FixtureFetch::new()
+        .route(
+            |request| has_field(request, "$Autosuggest"),
+            read_fixture("voebb/results_without_agb.html"),
+        )
+        .fallback("voebb/start.html")
+}
+
+/// A search that finds nothing anywhere in the network, at a branch.
+fn nothing_anywhere_fetch() -> FixtureFetch {
+    FixtureFetch::new()
+        .route(
+            |request| has_field(request, "$Autosuggest"),
+            read_fixture("voebb/results_empty.html"),
+        )
+        .fallback("voebb/start.html")
+}
+
 /// A branch the facet does not list has **no hits for this search**, which is an honest
 /// answer and not a broken filter: the tree only carries branches that have hits. Total
 /// zero, a note, the block rendered anyway — and no filter request, because there is no
 /// checkbox to tick.
+///
+/// Here the network *does* have the book (71 hits), so `--at` is genuinely the cause and
+/// the closing line may say so.
 #[test]
 fn a_branch_the_facet_does_not_list_is_zero_hits_with_a_note() {
-    // The measured tree with the AGB taken out of it: the same page a search would
-    // produce for a work the AGB does not hold.
-    let without_agb =
-        read_fixture("voebb/results.html").replace("ZLB: Amerika-Gedenkbibliothek (AGB)", "ZLB");
-    let fetch = FixtureFetch::new()
-        .route(|request| has_field(request, "$Autosuggest"), without_agb)
-        .fallback("voebb/start.html");
+    let fetch = branch_absent_fetch();
     let recorder = fetch.recorder();
     let ran = invoke(
         &[
@@ -926,6 +944,357 @@ fn a_branch_the_facet_does_not_list_is_zero_hits_with_a_note() {
         2,
         "nothing is filtered when there is nothing to tick: {:?}",
         recorder.log()
+    );
+}
+
+/// The same shape in the terminal — and the advice that goes with it: the branch is the
+/// one without the book, so naming more libraries is the way out.
+#[test]
+fn a_branch_without_the_book_is_told_to_name_more_libraries() {
+    let fetch = branch_absent_fetch();
+    let ran = invoke(
+        &["search", "Vorleser", "--at", "AGB", "--no-availability"],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(
+        ran.err.contains("no results for Vorleser at AGB"),
+        "{}",
+        ran.err
+    );
+    assert!(
+        ran.err.contains("name more libraries in --at"),
+        "with hits in the network that advice can work: {}",
+        ran.err
+    );
+}
+
+/// The same output for a book **nobody** in the network has would be a lie: `--at` is not
+/// what emptied the result, and naming more libraries is guaranteed to fail again. The
+/// two cases used to be identical character for character (round 2, §1.2).
+#[test]
+fn a_book_nobody_has_does_not_blame_the_branch() {
+    let fetch = nothing_anywhere_fetch();
+    let ran = invoke(
+        &[
+            "search",
+            "Xylophonquark",
+            "--at",
+            "AGB",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(
+        ran.err.contains("not anywhere in the region"),
+        "the words are what came back empty: {}",
+        ran.err
+    );
+    assert!(
+        !ran.err.contains("name more libraries in --at"),
+        "advice that is guaranteed to fail again must not be given: {}",
+        ran.err
+    );
+    // And the note stops describing a facet the page never carried.
+    assert!(
+        !ran.out.contains("branch facet does not list"),
+        "{}",
+        ran.out
+    );
+}
+
+/// The distinction an agent reads: two tags, never one message parsed two ways.
+#[test]
+fn the_two_empty_branch_answers_carry_two_note_kinds() {
+    let kinds = |fetch: &FixtureFetch, terms: &str| -> Vec<String> {
+        let ran = invoke(
+            &[
+                "--json",
+                "search",
+                terms,
+                "--at",
+                "AGB",
+                "--no-availability",
+            ],
+            fetch,
+        );
+        ran.json()["notes"]
+            .as_array()
+            .expect("notes is an array")
+            .iter()
+            .filter_map(|note| note["kind"].as_str().map(str::to_owned))
+            .collect()
+    };
+
+    let absent = branch_absent_fetch();
+    assert!(
+        kinds(&absent, "Vorleser").contains(&"voebb_branch_not_listed".to_owned()),
+        "hits in the network, none at the branch"
+    );
+    let nowhere = nothing_anywhere_fetch();
+    let nowhere = kinds(&nowhere, "Xylophonquark");
+    assert!(
+        nowhere.contains(&"voebb_no_hits_in_network".to_owned()),
+        "{nowhere:?}"
+    );
+    assert!(
+        !nowhere.contains(&"voebb_branch_not_listed".to_owned()),
+        "a facet that was never on the page is never described: {nowhere:?}"
+    );
+}
+
+/// Two branches, one query, one network-wide zero: the note is the query's and is said
+/// once, not once per session.
+#[test]
+fn the_network_wide_zero_is_stated_once_for_two_branches() {
+    let fetch = nothing_anywhere_fetch();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Xylophonquark",
+            "--at",
+            "AGB,BSTB",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    let document = ran.json();
+    let kinds: Vec<&str> = document["notes"]
+        .as_array()
+        .expect("notes is an array")
+        .iter()
+        .filter_map(|note| note["kind"].as_str())
+        .collect();
+    assert_eq!(
+        kinds
+            .iter()
+            .filter(|kind| **kind == "voebb_no_hits_in_network")
+            .count(),
+        1,
+        "{kinds:?}"
+    );
+}
+
+/// A query that needs five rows loses one, and what is announced is what was **sent**.
+/// The two notes used to contradict each other: "`Sommer` was searched as a title" next
+/// to "`Titel = "Sommer"` was not sent" (round 2, §1.13).
+#[test]
+fn a_dropped_row_is_never_also_announced_as_searched() {
+    let fetch = advanced_fetch();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Sommer",
+            "--title",
+            "Vorleser",
+            "--author",
+            "Schlink",
+            "--subject",
+            "Roman",
+            "--isbn",
+            "9783257229530",
+            "--at",
+            "AGB",
+            "--limit",
+            "2",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let notes = document["notes"].as_array().expect("notes is an array");
+    let kinds: Vec<&str> = notes
+        .iter()
+        .filter_map(|note| note["kind"].as_str())
+        .collect();
+    assert!(kinds.contains(&"voebb_query_truncated"), "{notes:?}");
+    assert!(
+        !kinds.contains(&"voebb_free_terms_as_title"),
+        "the row that was dropped is not also reported as sent: {notes:?}"
+    );
+    let truncated = notes
+        .iter()
+        .find(|note| note["kind"] == "voebb_query_truncated")
+        .expect("the truncation note");
+    assert!(
+        truncated["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("Sommer")),
+        "{truncated:?}"
+    );
+}
+
+/// A note about one record names it. Three `voebb_online_only` notes over two blocks are
+/// guesswork otherwise, and `message` is prose an agent may not parse (round 2, §3.5).
+#[test]
+fn a_note_about_a_record_names_the_record() {
+    let fetch = voebb_fetch();
+    let ran = invoke(
+        &[
+            "--json", "search", "Vorleser", "--at", "AGB", "--limit", "3",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let note = document["notes"]
+        .as_array()
+        .expect("notes is an array")
+        .iter()
+        .find(|note| note["kind"] == "voebb_online_only")
+        .expect("the Onleihe record says why it has no copies");
+    assert_eq!(
+        note["records"],
+        serde_json::json!(["voebb_SAK16112988"]),
+        "{note:?}"
+    );
+}
+
+/// A window filter that matched **nothing** is a tag, not only a sentence. An agent used
+/// to have to derive it from `filtered && fetched > 0 && after_filter == 0` (round 2,
+/// §2.7).
+#[test]
+fn a_filter_that_matched_nothing_is_a_note_of_its_own() {
+    let fetch = voebb_fetch();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB",
+            "--format",
+            "map",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    let document = ran.json();
+    assert_eq!(document["window"]["after_filter"], 0);
+    assert!(document["window"]["fetched"].as_u64().unwrap_or_default() > 0);
+    let note = document["notes"]
+        .as_array()
+        .expect("notes is an array")
+        .iter()
+        .find(|note| note["kind"] == "window_filter_empty")
+        .expect("the empty filter has a tag of its own");
+    assert!(
+        note["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("--format map")),
+        "{note:?}"
+    );
+    // It is about the answer, not about records: the records it speaks of are the ones
+    // that are not in the document.
+    assert!(note.get("records").is_none(), "{note:?}");
+}
+
+/// `--sort` anchors the window, so its pages run out — and the message says so instead of
+/// falling through to a generic "no results". The sorted sibling of the filtered case.
+#[test]
+fn a_page_past_the_end_of_a_sorted_window_says_which_pages_hold_records() {
+    let fetch = voebb_fetch();
+    let ran = invoke(
+        &[
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB",
+            "--sort",
+            "year",
+            "--limit",
+            "10",
+            "--page",
+            "6",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(
+        ran.err.contains("--sort year put in order"),
+        "the sort is named, not a filter that never ran: {}",
+        ran.err
+    );
+    assert!(ran.err.contains("page 6"), "{}", ran.err);
+    assert!(
+        ran.err.contains("pages 1 to 2"),
+        "the 17 rows the slimmed fixture pages hold, at 10 a page: {}",
+        ran.err
+    );
+}
+
+/// The filtered wording is the one the report called the best line in the tool, and the
+/// sorted case must not have changed a byte of it: a filter still names the filter.
+#[test]
+fn a_page_past_the_end_of_a_filtered_window_still_names_the_filter() {
+    let fetch = voebb_fetch();
+    let ran = invoke(
+        &[
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB",
+            "--format",
+            "book",
+            "--sort",
+            "year",
+            "--limit",
+            "10",
+            "--page",
+            "6",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(
+        ran.err.contains("matched --format book"),
+        "with both set the filter is the more useful sentence: {}",
+        ran.err
+    );
+    assert!(!ran.err.contains("--sort year"), "{}", ran.err);
+}
+
+/// What the human sees for the same case, until phase 4 removes the older prose line:
+/// the new note and `footer_notes`' own sentence stand next to each other. Both are true,
+/// and neither contradicts the other — this test exists so that the day the prose goes,
+/// the note is provably still there.
+#[test]
+fn the_empty_filter_is_stated_to_humans_too() {
+    let fetch = voebb_fetch();
+    let ran = invoke(
+        &[
+            "search",
+            "Vorleser",
+            "--at",
+            "AGB",
+            "--format",
+            "map",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(
+        ran.out.contains("none of the") && ran.out.contains("--format map"),
+        "{}",
+        ran.out
     );
 }
 

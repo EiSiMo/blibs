@@ -7,7 +7,7 @@ use crate::model::{BranchRef, Engine, Holding, Isil, Location};
 
 /// The public library network of Berlin. **The one ISIL this crate names.**
 ///
-/// It is not a house but a union of 98 branches, and a KOBV record only ever says
+/// It is not a house but a union of branches, and a KOBV record only ever says
 /// `DE-609` — never which branch holds the copy. Naming one of its branches is therefore
 /// the single case in which a location is answered by the `voebb` engine instead of by
 /// `kobv`; every other branch cannot be searched on its own at all. The rule is
@@ -21,6 +21,19 @@ const VOEBB_LABEL: &str = "VÖBB";
 
 /// How many suggestions an unknown entry carries.
 const SUGGEST_LIMIT: usize = 3;
+
+/// How many characters of a name the KOBV library directory delivers.
+///
+/// A branch's `short_name` is derived from what that directory returned, so a branch whose
+/// directory name was longer arrives **already cut** — mid-word, with no ellipsis, and
+/// with the missing characters nowhere in the response. The full `name` beside it comes
+/// from the same source and is not cut.
+///
+/// Nothing here repairs the data: the characters were never delivered and no code can
+/// invent them. The width exists so that [`short_name_is_cut`] can say *that* a name is
+/// short of its subject; how many entries that affects is measured in `tests/libraries.rs`
+/// rather than asserted in prose here.
+const DIRECTORY_NAME_WIDTH: usize = 60;
 
 /// What separates the house from the branch in `HU/Germanistik`.
 ///
@@ -192,8 +205,9 @@ fn by_branch_key(typed: &str) -> Option<Entry> {
 /// 3. is contained in either name.
 ///
 /// Only the substring stage is meant to be typed at: `HU/Germanistik` is a fragment, not
-/// a name. It is also the stage that repairs the list's own truncation — 60 branch short
-/// names are cut off at 60 characters, and the full name is not.
+/// a name. It is also the stage that reaches past the directory's own truncation — a short
+/// name cut at [`DIRECTORY_NAME_WIDTH`] still has the full `name` beside it, and the
+/// fragment is matched against both (see [`short_name_is_cut`]).
 ///
 /// Several branches under one stage are [`UsageError::AmbiguousBranch`], never a pick:
 /// branch short names are *not* unique inside a house (`plan/libraries.md` §8.3).
@@ -251,8 +265,56 @@ fn by_path(typed: &str, house: &str, name: &str) -> Result<Entry, UsageError> {
 }
 
 /// One branch as an ambiguity message names it: the key to type, and the name to read.
+///
+/// The name is [`distinguishing_name`], not the short name: an ambiguity message exists to
+/// be chosen from, and a short name cut at [`DIRECTORY_NAME_WIDTH`] drops exactly the
+/// characters two candidates differ in — a list of names that end in the same truncation
+/// is not a choice.
 fn candidate(branch: &Branch) -> String {
-    format!("{} ({})", branch.kobvid, branch.short_name)
+    format!("{} ({})", branch.kobvid, distinguishing_name(branch))
+}
+
+/// Whether a branch's short name is the directory's truncation rather than a whole name.
+///
+/// Both halves of the test are needed. The width alone would be a false accusation against
+/// the one branch whose name happens to be exactly that long and complete; the comparison
+/// with `name` alone would accuse every branch whose short name was legitimately shortened
+/// by dropping a shared prefix or a trailing "Bibliothek", which is most of them.
+///
+/// This says something about the upstream data, and does not change it. A caller that has
+/// to print the name uses [`branch_label`]; one that has to tell two branches apart uses
+/// [`distinguishing_name`].
+pub fn short_name_is_cut(branch: &Branch) -> bool {
+    branch.short_name.chars().count() >= DIRECTORY_NAME_WIDTH
+        && branch.name.chars().count() > branch.short_name.chars().count()
+}
+
+/// A branch name that does not pretend to be whole: the short name, with an ellipsis where
+/// the directory cut it off.
+///
+/// For a column or a heading, where the full name has no room. The ellipsis is the honest
+/// part — it says characters are missing; it does not bring them back, and it must not be
+/// mistaken for the tool's own width-fitting, which happens later and on top of this.
+pub fn branch_label(branch: &Branch) -> String {
+    if short_name_is_cut(branch) {
+        format!("{}…", branch.short_name.trim_end())
+    } else {
+        branch.short_name.clone()
+    }
+}
+
+/// The fullest name the list holds for a branch: the short name, or the full one where the
+/// short one was cut.
+///
+/// For anywhere two branches have to be told apart — an ambiguity message above all, and
+/// any listing that puts several branches of one house next to each other. It is long on
+/// purpose: the alternative is a set of candidates that read identically.
+pub fn distinguishing_name(branch: &Branch) -> &str {
+    if short_name_is_cut(branch) {
+        &branch.name
+    } else {
+        &branch.short_name
+    }
 }
 
 /// One stage of [`by_path`], from strongest to weakest.
@@ -404,6 +466,86 @@ pub fn branch_location(library: &Library, branch: &Branch) -> Location {
     }
 }
 
+/// Every entry the list reaches under one ISIL, in the order [`lookup`] tries them.
+///
+/// The house first, because a house's ISIL is decided one step before any branch key is
+/// looked at, then the branches in list order. One element is the ordinary answer; more
+/// than one means the same code is claimed twice and only the first of them can ever be
+/// named by it.
+///
+/// Nothing here compares against a particular code: the collision is found by asking what
+/// two entries claim, so a new one shows up the day the data file grows it and an existing
+/// one disappears the day the file stops.
+fn claimants(isil: &str) -> Vec<Entry> {
+    let mut found: Vec<Entry> = Vec::new();
+    if let Some(library) = by_isil_ignoring_case(isil) {
+        found.push(Entry::Institution(library));
+    }
+    for library in all() {
+        for branch in &library.branches {
+            if branch
+                .isil
+                .as_deref()
+                .is_some_and(|own| own.eq_ignore_ascii_case(isil))
+            {
+                found.push(Entry::Branch {
+                    parent: library,
+                    branch,
+                });
+            }
+        }
+    }
+    found
+}
+
+/// What **else** answers to a branch's own ISIL.
+///
+/// Empty for almost every branch, which is what an ISIL is for: a code that names one
+/// place. A non-empty answer is the case the caller has to put into words — the branch's
+/// own ISIL is printed beside it as a key, and typing that key back reaches something in
+/// this list instead.
+///
+/// The entries come in resolution order, so the caller can name them the way the answer
+/// would arrive: the house that owns the code, then the sibling branches that also carry
+/// it. Which one `--at` actually lands on is [`isil_answers_elsewhere`], because a branch
+/// can also be the first claimant of its own code and then nothing is wrong.
+///
+/// Also empty for a branch the list gives no ISIL to at all — there is no key to be wrong
+/// about, and its KOBV id names it back.
+pub fn shares_isil(branch: &Branch) -> Vec<Entry> {
+    let Some(isil) = branch.isil.as_deref() else {
+        return Vec::new();
+    };
+    claimants(isil)
+        .into_iter()
+        .filter(|entry| !is_branch(*entry, branch))
+        .collect()
+}
+
+/// What `--at <this branch's own ISIL>` answers with, when that is not this branch.
+///
+/// `None` is the ordinary case and means the ISIL names the branch back. `Some` is the
+/// expensive one: the search runs, it succeeds, and it answers about somewhere else
+/// entirely — there is nothing in the result that looks wrong, so the only place this can
+/// be said is beside the key itself.
+///
+/// The answer is derived from the same order [`lookup`] walks, not from a rule about which
+/// kind of entry wins, so it stays true if that order ever changes.
+pub fn isil_answers_elsewhere(branch: &Branch) -> Option<Entry> {
+    let isil = branch.isil.as_deref()?;
+    let first = *claimants(isil).first()?;
+    (!is_branch(first, branch)).then_some(first)
+}
+
+/// Whether an entry is this very branch.
+///
+/// Compared by KOBV id rather than by address: ids are unique across houses and branches
+/// together (an invariant of the data file, checked in `tests/libraries.rs`), so this
+/// still answers correctly for a branch that was cloned out of the list.
+fn is_branch(entry: Entry, wanted: &Branch) -> bool {
+    matches!(entry, Entry::Branch { branch, .. } if branch.kobvid == wanted.kobvid)
+}
+
 /// Look up an institution by its exact ISIL.
 ///
 /// Falls back to a case-insensitive comparison, because ISILs also arrive from catalogue
@@ -446,32 +588,120 @@ pub fn by_kobvid(kobvid: &str) -> Option<(&'static Library, Option<&'static Bran
     None
 }
 
-/// Free-text search over alias, name, short name and city, for `libraries --find`.
+/// One house, and what of it a `--find` query matched.
 ///
-/// Case- and diacritic-insensitive substring matching, in list order. Branches are not
-/// searched: `--find` answers "which house do I mean", and 212 branch names would bury
-/// the 123 houses.
-pub fn find(query: &str) -> Vec<&'static Library> {
+/// The **grouped** shape is the point: a query that fits a dozen branches of one house
+/// produces one of these, not a dozen, so no house can be pushed out of the answer by its
+/// own branches. That was the reason branches were left out of the search altogether, and
+/// it survives here without the false statement that came with it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Found {
+    /// The house. Present whether or not it matched on its own.
+    pub library: &'static Library,
+    /// Whether the house's **own** text matched.
+    ///
+    /// `false` for a house that is here only as the heading its matching branches hang
+    /// under — a renderer shows it, because a branch name means nothing without its house,
+    /// but it is not itself one of the things the user was looking for.
+    pub matched: bool,
+    /// The branches of this house that matched, in list order.
+    ///
+    /// Empty is the ordinary case. Nothing is dropped here: how many of them are worth a
+    /// line is the renderer's decision, and it needs the whole set to say how many there
+    /// were.
+    pub branches: Vec<&'static Branch>,
+}
+
+impl Found {
+    /// How many things in this group matched — the house counts as one of them.
+    ///
+    /// For a caller that has to say what the search found before it decides how much of it
+    /// to print.
+    pub fn count(&self) -> usize {
+        usize::from(self.matched) + self.branches.len()
+    }
+}
+
+/// Free-text search over everything `--at` accepts, for `libraries --find`.
+///
+/// Case- and diacritic-insensitive substring matching, in list order, over a house's
+/// aliases, short name, full name, city, ISIL and KOBV id, and over a branch's aliases,
+/// short name, full name, ISIL and KOBV id. **A key the tool prints has to be a key the
+/// tool finds**: the listing shows the ISIL as a column and the branch view shows the KOBV
+/// id as the thing to type, so a search that could not match either was refusing to find
+/// what it had just recommended.
+///
+/// Branches are searched but never listed beside houses — see [`Found`] for why that is
+/// what keeps the old reasoning intact. A house appears when it matched itself, when one
+/// of its branches matched, or both.
+///
+/// An empty query matches **nothing**, not everything: `--find ""` is a query that named
+/// nothing, and the whole list is what the command prints without `--find` at all.
+pub fn find_entries(query: &str) -> Vec<Found> {
     let wanted = fold(query.trim());
     if wanted.is_empty() {
         return Vec::new();
     }
     all()
         .iter()
-        .filter(|library| matches_text(library, &wanted))
+        .filter_map(|library| {
+            let matched = matches_text(library, &wanted);
+            let branches: Vec<&'static Branch> = library
+                .branches
+                .iter()
+                .filter(|branch| branch_matches_text(branch, &wanted))
+                .collect();
+            (matched || !branches.is_empty()).then_some(Found {
+                library,
+                matched,
+                branches,
+            })
+        })
         .collect()
 }
 
-/// The fields `plan/libraries.md` §6 names, and only those.
+/// The houses [`find_entries`] found, for the callers that still take a flat list.
+///
+/// Exactly the houses that matched on their **own** text — a house that is only a heading
+/// for its branches is not an answer to "which house do I mean", and returning it here
+/// would answer a question about the Amerika-Gedenkbibliothek with the whole VÖBB.
+pub fn find(query: &str) -> Vec<&'static Library> {
+    find_entries(query)
+        .into_iter()
+        .filter(|found| found.matched)
+        .map(|found| found.library)
+        .collect()
+}
+
+/// The fields of a house that `--find` searches: what `plan/libraries.md` §6 names, plus
+/// the two keys the listing prints.
 fn matches_text(library: &Library, folded_query: &str) -> bool {
-    let fields = [&library.short_name, &library.name, &library.city];
+    let fields = [
+        &library.short_name,
+        &library.name,
+        &library.city,
+        &library.isil,
+    ];
     fields
         .into_iter()
+        .chain(library.kobvid.iter())
         .chain(library.aliases.iter())
         .any(|field| fold(field).contains(folded_query))
 }
 
-/// All institutions ordered by distance from a point, for `libraries --near`.
+/// The same for a branch. No city: a branch has an address, and the house's city applies
+/// to it — matching the house is what puts a branch in the answer at all.
+fn branch_matches_text(branch: &Branch, folded_query: &str) -> bool {
+    let fields = [&branch.short_name, &branch.name, &branch.kobvid];
+    fields
+        .into_iter()
+        .chain(branch.isil.iter())
+        .chain(branch.aliases.iter())
+        .any(|field| fold(field).contains(folded_query))
+}
+
+/// All institutions ordered by distance from a point, for the callers of `--near` that
+/// still take houses only. [`near_entries`] is the one that answers the question.
 ///
 /// Entries without usable coordinates are left out rather than sorted to the front. Every
 /// entry has coordinates today; the path exists because the list changes.
@@ -482,6 +712,74 @@ pub fn near(point: LatLon) -> Vec<(&'static Library, f64)> {
         .collect();
     ranked.sort_by(|(_, a), (_, b)| a.total_cmp(b));
     ranked
+}
+
+/// Every entry in the list — houses **and** branches — ordered by distance from a point.
+///
+/// The branches are the reason this exists. Most of them are the neighbourhood libraries
+/// of the public network, and "which library is round the corner from me" is a question
+/// about those, not about the head office of a union that has no reading room. A branch
+/// answers with its own coordinates ([`Entry::coords`]), which is why naming the
+/// Amerika-Gedenkbibliothek measures from Blücherplatz.
+///
+/// Entries the list places nowhere are left out rather than sorted to the front, exactly
+/// as in [`near`]. The sort is stable, so several entries in one building — a house and
+/// its main branch, say — keep list order instead of shuffling between runs.
+///
+/// This is the whole list, not a page of it: how many of 300-odd entries are worth
+/// printing is the caller's decision, and it cannot make it from a set already cut.
+pub fn near_entries(point: LatLon) -> Vec<(Entry, f64)> {
+    let mut ranked: Vec<(Entry, f64)> = entries()
+        .filter_map(|entry| Some((entry, point.distance_km(entry.coords()?))))
+        .collect();
+    ranked.sort_by(|(_, a), (_, b)| a.total_cmp(b));
+    ranked
+}
+
+/// Every addressable entry in the list: each house, immediately followed by its own
+/// branches.
+///
+/// The one place that says what "everything in the list" means, so that a count and a
+/// listing cannot disagree about it.
+pub fn entries() -> impl Iterator<Item = Entry> {
+    all().iter().flat_map(|library| {
+        std::iter::once(Entry::Institution(library)).chain(library.branches.iter().map(
+            move |branch| Entry::Branch {
+                parent: library,
+                branch,
+            },
+        ))
+    })
+}
+
+/// Every branch in the list with the house that holds it, in list order, for
+/// `libraries --branches`.
+///
+/// A flat list on purpose: this is the view that answers "which branches exist", and it is
+/// the one thing `blibs libraries` cannot show. Grouped by house is [`houses_with_branches`],
+/// which is the same data read the other way round.
+pub fn branches() -> Vec<(&'static Library, &'static Branch)> {
+    all()
+        .iter()
+        .flat_map(|library| library.branches.iter().map(move |branch| (library, branch)))
+        .collect()
+}
+
+/// The houses that have branches at all, in list order.
+///
+/// The footer under `blibs libraries` counts these, and the number is **derived** — the
+/// list is data, houses gain and lose branches, and a count written into a sentence is
+/// wrong the first time that happens.
+pub fn houses_with_branches() -> Vec<&'static Library> {
+    all()
+        .iter()
+        .filter(|library| !library.branches.is_empty())
+        .collect()
+}
+
+/// How many branches the whole list holds. Derived, for the same reason.
+pub fn branch_count() -> usize {
+    all().iter().map(|library| library.branches.len()).sum()
 }
 
 /// The full official name of an ISIL, for [`crate::model::Holding::library`].

@@ -109,6 +109,12 @@ impl<'f> Voebb<'f> {
     }
 
     /// One search on its own session: open, search, and — for a branch — filter.
+    ///
+    /// The unfiltered total is read **before** the facet is applied and carried out
+    /// whatever happens next. A branch the facet does not list is zero hits either way,
+    /// but the two ways are different answers: with hits in the network the branch is
+    /// genuinely the one without the book, and with none the words found nothing anywhere
+    /// and `--at` is not what emptied the result.
     fn search_at(
         &self,
         query: &QuerySpec,
@@ -117,20 +123,14 @@ impl<'f> Voebb<'f> {
     ) -> Result<Located, Error> {
         let mut session = self.client.open()?;
         let (view, mut notes) = self.client.search(&mut session, query)?;
+        let network_total = view.page.total;
 
         let view = match branch {
             None => view,
             Some(branch) => {
                 let filtered = self.client.filter_branch(&mut session, &view, branch)?;
                 let Some(filtered) = filtered else {
-                    notes.push(Note::new(
-                        note_kinds::VOEBB_BRANCH_NOT_LISTED,
-                        format!(
-                            "voebb.de's branch facet does not list {:?} for this search, \
-                             which means it holds nothing matching",
-                            branch.short_name
-                        ),
-                    ));
+                    notes.push(branch_missing_note(branch, network_total));
                     return Ok(Located {
                         total: Some(0),
                         hits: Vec::new(),
@@ -232,7 +232,7 @@ impl Catalog for Voebb<'_> {
         if request.locations.is_empty() {
             let found = self.search_at(&request.query, None, request.window)?;
             extend_records(&mut records, &found.hits);
-            notes.extend(found.notes);
+            extend_notes(&mut notes, found.notes);
         }
         for location in &request.locations {
             let branch = branch_of(location)?;
@@ -247,7 +247,7 @@ impl Catalog for Voebb<'_> {
                 total: found.total,
                 records: found.ids(),
             });
-            notes.extend(found.notes);
+            extend_notes(&mut notes, found.notes);
         }
 
         Ok(EngineSearch {
@@ -299,12 +299,13 @@ impl Catalog for Voebb<'_> {
                 }
                 // The row named a record the record page no longer knows. Saying nothing
                 // would leave an empty copy list that reads as "held nowhere".
-                None => notes.push(Note::new(
+                None => notes.push(Note::about(
                     note_kinds::AVAILABILITY_NOT_STATED,
                     format!(
                         "voebb.de listed {} in its results but has no record page for it",
                         record.id
                     ),
+                    [record.id.clone()],
                 )),
             }
         }
@@ -319,6 +320,40 @@ impl Catalog for Voebb<'_> {
     fn show(&self, id: &RecordId, _mode: AvailabilityMode) -> Result<Option<Record>, Error> {
         Ok(self.client.detail(id)?.map(|page| page.record))
     }
+}
+
+/// Why a branch came back with nothing, in the site's own terms.
+///
+/// Two answers, never one. `filter_branch` says `None` for both of them — the facet does
+/// not carry the branch — but the page underneath is a different page each time:
+///
+/// - **with hits in the network**, the tree is there and simply does not list this
+///   branch, which is voebb.de's way of saying the branch holds nothing matching;
+/// - **without hits**, there is no tree at all. Describing one would be a claim about a
+///   structure that was never on the page, and — worse — the closing line of an empty
+///   result would blame `--at` for a search that found nothing anywhere and advise naming
+///   more libraries, which is guaranteed to fail again (round 2, §1.2).
+///
+/// The tag is what [`crate::cli::run`] reads to choose the closing line; the wording is
+/// for the human beside it.
+fn branch_missing_note(branch: &Branch, network_total: u64) -> Note {
+    if network_total == 0 {
+        return Note::new(
+            note_kinds::VOEBB_NO_HITS_IN_NETWORK,
+            "voebb.de found nothing for this search anywhere in the network, so it \
+             offered no branch facet — the restriction to a branch is not what emptied \
+             this result",
+        );
+    }
+    Note::new(
+        note_kinds::VOEBB_BRANCH_NOT_LISTED,
+        format!(
+            "voebb.de's branch facet does not list {:?} for this search, which means it \
+             holds nothing matching — the network has {network_total} hits for these \
+             words, just not there",
+            branch.short_name
+        ),
+    )
 }
 
 /// The library list's branch behind a resolved location.
@@ -337,6 +372,20 @@ fn branch_of(location: &Location) -> Result<&'static Branch, Error> {
     libraries::by_kobvid(kobvid)
         .and_then(|(_, branch)| branch)
         .ok_or_else(|| missing(&format!("the library list's branch {kobvid:?}")))
+}
+
+/// Add one location's notes, skipping what another location already said.
+///
+/// One session runs per location, so a limitation of the *query* — the advanced form has
+/// no free-text index, the network has no hits at all — is reported once per location and
+/// is the same sentence every time. A note about a *branch* names it and is therefore
+/// never equal to another branch's, so nothing that says something distinct is lost here.
+fn extend_notes(notes: &mut Vec<Note>, found: Vec<Note>) {
+    for note in found {
+        if !notes.contains(&note) {
+            notes.push(note);
+        }
+    }
 }
 
 /// Add one location's rows to the record list, skipping the ones already there.
@@ -471,6 +520,32 @@ mod tests {
         assert_eq!(online.format, Format::Ebook);
         assert!(online.online);
         assert_eq!(record_of(&hit("SAK3", "x", None)).format, Format::Unknown);
+    }
+
+    /// A branch the facet does not list is two different answers, and they are two tags:
+    /// with hits in the network the branch is the one without the book, and without them
+    /// nothing on the page was ever a facet (round 2, §1.2).
+    #[test]
+    fn an_empty_branch_says_whether_the_network_had_the_book() {
+        let branch = libraries::by_kobvid("SIG00036")
+            .and_then(|(_, branch)| branch)
+            .expect("the AGB is in the library list");
+
+        let listed = branch_missing_note(branch, 71);
+        assert_eq!(listed.kind, note_kinds::VOEBB_BRANCH_NOT_LISTED);
+        assert!(listed.message.contains("71"), "{listed:?}");
+        assert!(listed.message.contains(&branch.short_name), "{listed:?}");
+
+        let nowhere = branch_missing_note(branch, 0);
+        assert_eq!(nowhere.kind, note_kinds::VOEBB_NO_HITS_IN_NETWORK);
+        assert!(
+            !nowhere.message.contains("facet does not list"),
+            "a page with no hits carries no facet to describe: {nowhere:?}"
+        );
+        assert!(
+            !nowhere.message.contains(&branch.short_name),
+            "the branch is not what emptied this result, so it is not named: {nowhere:?}"
+        );
     }
 
     /// Two locations that both hold an edition produce **one** record.

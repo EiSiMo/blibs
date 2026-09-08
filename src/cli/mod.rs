@@ -201,6 +201,21 @@ pub enum Command {
     Libraries(LibrariesArgs),
 }
 
+/// The largest value the counting flags (`--limit`, `--page`) accept from clap.
+///
+/// The two are declared as `i64` and not as `u32` on purpose. A `u32` cannot hold a
+/// negative value, so clap refuses `--limit -1` before this crate ever sees it — as an
+/// *unknown flag*, with the tip "to pass '-1' as a value, use '-- -1'", which would make
+/// the number a **search term** and answer a different question entirely. Letting the
+/// sign through to [`validate`] buys the same first-class message `--limit 0` and
+/// `--limit 51` already have ([`crate::error::UsageError::NegativeNumber`]).
+///
+/// The magnitude stays with clap, so that everything reaching `validate` fits in a `u32`
+/// and the domain types keep their own ranges to themselves. The accepted range is
+/// symmetric on purpose: with an open lower end clap prints `i64::MIN` at the user when a
+/// value is too large, which is noise about a type they never asked about.
+const COUNT_MAX: i64 = u32::MAX as i64;
+
 /// `blibs search`.
 #[derive(Debug, clap::Args)]
 #[command(after_help = SEARCH_AFTER_HELP)]
@@ -285,8 +300,14 @@ pub struct SearchArgs {
     /// is refused instead of quietly ignored. Each shown record costs one extra request
     /// for its availability, which is why nothing beyond the shown records is asked
     /// about.
-    #[arg(long, value_name = "N")]
-    pub limit: Option<u32>,
+    // Taken as an `i64` so that a negative value reaches [`validate`]: see [`COUNT_MAX`].
+    #[arg(
+        long,
+        value_name = "N",
+        allow_negative_numbers = true,
+        value_parser = clap::value_parser!(i64).range(-COUNT_MAX..=COUNT_MAX)
+    )]
+    pub limit: Option<i64>,
 
     /// Which page of results, 1-based [default: 1].
     ///
@@ -294,8 +315,14 @@ pub struct SearchArgs {
     /// voebb.de has no offset and every page past the first is another request on the
     /// same session, so --page times --limit may not reach past result 220 and a deeper
     /// window is refused instead of walked.
-    #[arg(long, value_name = "N")]
-    pub page: Option<u32>,
+    // An `i64` for the same reason as `--limit`: see [`COUNT_MAX`].
+    #[arg(
+        long,
+        value_name = "N",
+        allow_negative_numbers = true,
+        value_parser = clap::value_parser!(i64).range(-COUNT_MAX..=COUNT_MAX)
+    )]
+    pub page: Option<i64>,
 
     /// How to order the shown records [default: relevance].
     ///
@@ -448,9 +475,12 @@ pub struct Plan {
     /// The invocation echoed back in one string, for `query.terms` in the JSON and for
     /// the "no results for …" message.
     ///
-    /// The free terms when there are any, and otherwise the field flags that made the
-    /// query — a search built from flags alone must still echo back as something that
-    /// reproduces it, and an empty string would read as "you searched for nothing".
+    /// The free terms **and** the field flags, in that order: everything that narrowed
+    /// the search is named, because the count printed beside it belongs to all of it. An
+    /// echo that named only the free words made `552 results for Kafka` out of a query
+    /// that also carried `--title Prozess`, and turned an empty result into advice about
+    /// the wrong word. An empty string would read as "you searched for nothing", so a
+    /// search built from flags alone echoes its fields.
     pub terms_echo: String,
     /// The resolved locations, in the order the user gave them, without duplicates.
     /// Empty when `--at` was not given.

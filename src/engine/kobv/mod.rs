@@ -255,7 +255,15 @@ impl Catalog for Kobv<'_> {
             let Some(record) = records.get_mut(index) else {
                 continue;
             };
-            notes.extend(availability::merge(&answer, &mut record.holdings));
+            // Every note the availability answer produces is about this one record — a
+            // status word nobody knows, a block of copies without an ISIL, a service that
+            // holds no information. The id is attached here rather than inside `merge`,
+            // which sees holdings and not records, so that a reader never has to guess
+            // which of the displayed records a limitation belongs to (round 2, §3.5).
+            for mut note in availability::merge(&answer, &mut record.holdings) {
+                note.records.push(record.id.clone());
+                notes.push(note);
+            }
             name_libraries(&mut record.holdings);
         }
         Ok(notes)

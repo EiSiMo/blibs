@@ -384,7 +384,8 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>, unstated: usize) -
     // The engines' notes are collected first because the `--available` note reads them:
     // what voebb.de said about an electronic title decides how the footnote is worded.
     let mut notes = Vec::new();
-    notes.extend(unstated_note(unstated, online_only(&engine_notes)));
+    notes.extend(unstated_note(unstated, unstated_online(&engine_notes)));
+    notes.extend(window_filter_note(plan, &window));
     notes.extend(engine_notes);
 
     SearchResult {
@@ -420,16 +421,47 @@ fn unstated_hidden(outcomes: &[EngineOutcome]) -> usize {
     outcomes.iter().map(|outcome| outcome.hidden.unstated).sum()
 }
 
-/// How many of the displayed records were electronic titles whose loan status voebb.de
-/// states only as prose.
+/// The note for a window filter that matched **nothing**.
+///
+/// The one limitation the document could state only in prose. An agent had to derive it
+/// from `filtered && fetched > 0 && after_filter == 0` — three fields and a rule nobody
+/// wrote down — while the human output has been saying it in words since before there was
+/// a tag (round 2, §2.7). The three fields still say it; this says it once, in the
+/// vocabulary agents are told to switch on.
+///
+/// About the answer as a whole, so it names no records: the records it is about are
+/// exactly the ones that are *not* in the document.
+fn window_filter_note(plan: &Plan, window: &WindowInfo) -> Option<Note> {
+    if !window.filtered || window.fetched == 0 || window.after_filter > 0 {
+        return None;
+    }
+    let (filter, value) = active_filter(plan)?;
+    Some(Note::new(
+        note_kinds::WINDOW_FILTER_EMPTY,
+        format!(
+            "none of the {} fetched records matched {filter} {value} — the filter runs \
+             over the fetched window, so this is not a statement about the whole result",
+            window.fetched
+        ),
+    ))
+}
+
+/// How many of the displayed records were electronic titles that state **no** loan status
+/// at all.
 ///
 /// Counted from the notes rather than from the records, because the note is the only
 /// place that knowledge exists: `items[]` is empty for such a record and nothing in it
 /// distinguishes "no copies on a shelf" from "no copies stated".
-fn online_only(notes: &[Note]) -> usize {
+///
+/// Only [`note_kinds::VOEBB_ONLINE_STATE_UNSTATED`] counts, never its sibling: an Onleihe
+/// title whose `(Das Medium ist ausgeliehen / …)` was read *has* a status, is hidden by
+/// `--available` as a judged record, and saying of it that it is "not known to be on
+/// loan" would contradict the note printed two lines below. Overdrive states nothing, and
+/// that is the whole set this count may speak for.
+fn unstated_online(notes: &[Note]) -> usize {
     notes
         .iter()
-        .filter(|note| note.kind == note_kinds::VOEBB_ONLINE_ONLY)
+        .filter(|note| note.kind == note_kinds::VOEBB_ONLINE_STATE_UNSTATED)
         .count()
 }
 
@@ -439,17 +471,22 @@ fn online_only(notes: &[Note]) -> usize {
 /// The counts are in the message for the human; an agent branches on
 /// [`note_kinds::AVAILABILITY_FILTER_UNSTATED`] and never on the wording.
 ///
-/// `online` is why the wording is not one sentence. For an electronic title voebb.de
-/// *does* state the loan status — in the running text of its `Link zu …` row, which this
-/// tool does not read (`plan/voebb.md`) — so calling that "no status was stated" would
-/// blame the catalogue for a gap that is this tool's. The record itself is still hidden
-/// either way: an unread status is not a status.
+/// `online` is why the wording is not one sentence: an electronic title has no copies to
+/// say anything about, and a reader who is told "no status was stated" would look for a
+/// shelf that does not exist. It counts **only** the titles whose lending platform states
+/// nothing — Overdrive prints no parenthesis behind its link, while the Onleihe prints
+/// `(Das Medium ist ausgeliehen / …)` and that sentence is read into the status
+/// ([`unstated_online`]). Until round 2 this sentence claimed the tool did not read any of
+/// them and that none was known to be on loan, and then printed the Onleihe's own
+/// "ausgeliehen" two lines below (§3.6).
 fn unstated_note(unstated: usize, online: usize) -> Option<Note> {
     if unstated == 0 {
         return None;
     }
-    // The two counts are collected independently — one per hidden record, one per note —
-    // so the smaller one is the only number that can be claimed of the hidden records.
+    // The two counts are collected independently — one per hidden record, one per note.
+    // A record whose lending link says nothing has no status and is therefore among the
+    // hidden ones, so this clamp should never bind; it is here so that a future engine
+    // that reports differently cannot make the sentence claim more records than exist.
     let online = online.min(unstated);
     let message = match online {
         0 => format!(
@@ -458,8 +495,8 @@ fn unstated_note(unstated: usize, online: usize) -> Option<Note> {
         ),
         _ => format!(
             "--available hid {} whose status was not read; {online} of them {} electronic \
-             titles, whose loan status voebb.de states only in the text of its lending \
-             link and this tool does not read — none of them is known to be on loan",
+             titles whose lending platform states no loan status at all — none of those is \
+             known to be on loan",
             records(unstated),
             if online == 1 { "is an" } else { "are" }
         ),
@@ -499,10 +536,17 @@ fn at_blocks(plan: &Plan, outcomes: &[EngineOutcome]) -> Vec<AtBlock> {
 
 /// Why this search is empty — or that it is not.
 ///
-/// The four empty reasons are four different next steps, which is why they are not one:
-/// records that are all out want a larger page or another day, a filter that emptied a
-/// full window is a window problem, a location that holds nothing is a "look elsewhere",
-/// and only the last case means the catalogue really has nothing.
+/// Every empty reason is a different next step, which is why they are not one: records
+/// that are all out want a larger page or another day, a filter that emptied a full
+/// window is a window problem, an anchored window whose pages ran out wants an earlier
+/// page, a location that holds nothing is a "look elsewhere" — and only the last two mean
+/// the catalogue really has nothing, one of them with the region still to try and one
+/// without.
+///
+/// The order is the order of the questions, and it is load-bearing twice: `--available`
+/// comes first because those records exist and are merely out, and the *filtered* window
+/// comes before the *sorted* one because when both anchored the window it was the filter
+/// that removed records.
 fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize) -> Outcome {
     if result.shown > 0 {
         return Outcome::Found;
@@ -541,6 +585,27 @@ fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize) -> Outcome {
                 .max(1),
         });
     }
+    // The same sentence for the other thing that anchors a window. `--sort` pins the
+    // window to one block just as a filter does, so its pages run out the same way — and
+    // until this ran, `--sort year --limit 10 --page 6` fell through to a generic "no
+    // results" that explained none of it (round 2, the Phase-1 aftermath). It sits
+    // *after* the filtered case on purpose: with both set, the filter is what removed
+    // records and its wording is the more useful of the two.
+    if plan.sort != SortKey::Relevance
+        && result.window.after_filter > 0
+        && plan.cut().offset >= result.window.after_filter
+    {
+        let limit = u32::from(plan.limit.get());
+        return Outcome::Empty(EmptyReason::PastTheLastSorted {
+            sorted: result.window.after_filter,
+            sort: plan.sort.as_str().to_owned(),
+            page: plan.page.get(),
+            last: u32::try_from(result.window.after_filter)
+                .unwrap_or(u32::MAX)
+                .div_ceil(limit)
+                .max(1),
+        });
+    }
     if let Some((filter, value)) = active_filter(plan)
         && result.window.fetched > 0
     {
@@ -564,13 +629,23 @@ fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize) -> Outcome {
     // unfiltered count to compare against, and asking for one would be a second request
     // made purely to word a message.
     if !plan.locations.is_empty() {
-        let locations = plan
+        let locations: Vec<String> = plan
             .locations
             .iter()
             .map(|location| location.key.clone())
             .collect();
-        return Outcome::Empty(if counts_hits(result) {
-            EmptyReason::NoHoldings { locations }
+        if counts_hits(result) {
+            return Outcome::Empty(EmptyReason::NoHoldings { locations });
+        }
+        // The one case where the restriction is provably *not* the cause: voebb.de states
+        // the network-wide count beside its facet, and it was zero. "Name more libraries"
+        // would then be advice that is guaranteed to fail again, which is the whole
+        // reason this reason exists (round 2, §1.2).
+        return Outcome::Empty(if nothing_in_the_network(plan, result) {
+            EmptyReason::NoHitsAnywhere {
+                terms: plan.terms_echo.clone(),
+                locations,
+            }
         } else {
             EmptyReason::NoHitsAtLocations {
                 terms: plan.terms_echo.clone(),
@@ -581,6 +656,26 @@ fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize) -> Outcome {
     Outcome::Empty(EmptyReason::NoHits {
         terms: plan.terms_echo.clone(),
     })
+}
+
+/// Whether the words found nothing **anywhere**, rather than nothing at these locations.
+///
+/// Two conditions, and both are needed. voebb.de has to have said so — it is the only
+/// engine that sees an unrestricted count, and it reports that count as
+/// [`note_kinds::VOEBB_NO_HITS_IN_NETWORK`] — and every location in `--at` has to be one
+/// voebb answered for. A KOBV house beside it filters upstream and has no unrestricted
+/// total of its own, so its empty block leaves open exactly what the message would deny:
+/// that naming another library could help.
+fn nothing_in_the_network(plan: &Plan, result: &SearchResult) -> bool {
+    let stated = result
+        .notes
+        .iter()
+        .any(|note| note.kind == note_kinds::VOEBB_NO_HITS_IN_NETWORK);
+    stated
+        && plan
+            .locations
+            .iter()
+            .all(|location| location.engine == Engine::Voebb)
 }
 
 /// Whether any of the named locations reports hits at all.
@@ -826,10 +921,11 @@ mod tests {
         );
     }
 
-    /// voebb.de *does* state an electronic title's loan status — in the text of its
-    /// `Link zu …` row, which this tool does not read. Calling that "no status was
-    /// stated" blames the catalogue for a gap that is this tool's, so the wording names
-    /// the e-media instead.
+    /// An electronic title has no copies to say anything about, so "no status was
+    /// stated" would send the reader looking for a shelf. The wording names the e-media
+    /// instead — and, since round 2 (§3.6), it speaks only of the platforms that state
+    /// nothing: the Onleihe's own "ausgeliehen" is read, and claiming it was not was the
+    /// sentence that contradicted the note two lines below it.
     #[test]
     fn a_hidden_electronic_title_is_named_rather_than_called_unstated() {
         let note = unstated_note(2, 1).expect("two hidden records are worth a note");
@@ -839,7 +935,14 @@ mod tests {
             note.message.contains("1 of them is an electronic title"),
             "{note:?}"
         );
-        assert!(note.message.contains("lending link"), "{note:?}");
+        assert!(
+            note.message.contains("states no loan status at all"),
+            "{note:?}"
+        );
+        assert!(
+            !note.message.contains("this tool does not read"),
+            "the loan state is read wherever the platform states one: {note:?}"
+        );
     }
 
     /// The two counts are collected independently, so the message never claims more
@@ -863,15 +966,21 @@ mod tests {
     }
 
     /// The count comes from the notes the engines returned, because `items: []` alone
-    /// cannot tell an electronic title from a record whose copies were never stated.
+    /// cannot tell an electronic title from a record whose copies were never stated —
+    /// and it counts only the platform that states **nothing**. An Onleihe title whose
+    /// loan state was read is hidden as a judged record and has no business in a sentence
+    /// about records nobody judged (round 2, §3.6).
     #[test]
-    fn electronic_titles_are_counted_from_the_notes_the_engine_returned() {
+    fn only_the_titles_without_a_stated_loan_state_are_counted() {
         let notes = vec![
-            Note::new(note_kinds::VOEBB_ONLINE_ONLY, "an Onleihe title"),
+            Note::new(note_kinds::VOEBB_ONLINE_ONLY, "an Onleihe title, read"),
             Note::new(note_kinds::VOEBB_MULTIVOLUME, "a multi-part work"),
-            Note::new(note_kinds::VOEBB_ONLINE_ONLY, "an Overdrive title"),
+            Note::new(
+                note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
+                "an Overdrive title, silent",
+            ),
         ];
-        assert_eq!(online_only(&notes), 2);
-        assert_eq!(online_only(&[]), 0);
+        assert_eq!(unstated_online(&notes), 1);
+        assert_eq!(unstated_online(&[]), 0);
     }
 }

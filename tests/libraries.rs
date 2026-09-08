@@ -4,6 +4,10 @@ mod common;
 
 use blibs::error::UsageError;
 use blibs::libraries::data::{LIBRARIES_JSON, Library};
+use blibs::libraries::resolve::{
+    Found, branch_count, branch_label, branches, distinguishing_name, find_entries,
+    houses_with_branches, isil_answers_elsewhere, near_entries, shares_isil, short_name_is_cut,
+};
 use blibs::libraries::{
     Entry, alias_for, branch_location, by_isil, by_kobvid, by_portal_name, display_name, find,
     look_up, name_holding, near, resolve, short_name_for,
@@ -693,5 +697,380 @@ fn a_path_that_misses_suggests_whole_paths() {
             }
             other => panic!("{input:?}: expected UnknownLibrary, got {other:?}"),
         }
+    }
+}
+
+/// Every branch of every house, as the file itself holds them.
+fn parsed_branches() -> Vec<(String, blibs::libraries::Branch)> {
+    parsed()
+        .into_iter()
+        .flat_map(|library| {
+            library
+                .branches
+                .into_iter()
+                .map(move |branch| (library.isil.clone(), branch))
+        })
+        .collect()
+}
+
+/// A branch that `--at` accepts is a branch `--find` has to find.
+///
+/// The five names in the report (§1.11): two branch aliases, a fragment of a branch name,
+/// a VÖBB neighbourhood library, and a name shared by several branches of one house. Each
+/// of them resolves in `--at`, so "no library matched" was a false statement about all
+/// five.
+#[test]
+fn find_reaches_branches() {
+    for query in ["AGB", "PHILBIB", "Philologische", "Frohnau", "Germanistik"] {
+        let found = find_entries(query);
+        assert!(
+            found.iter().any(|group| !group.branches.is_empty()),
+            "{query:?} found no branch: {:?}",
+            found.len()
+        );
+    }
+}
+
+/// The listing prints the ISIL as a column and the branch view prints the KOBV id as the
+/// key to type; a search that could not match either was refusing to find what it had just
+/// recommended.
+#[test]
+fn find_reaches_the_keys_the_tool_prints() {
+    let house = by_isil(&Isil::new("DE-11")).expect("DE-11 is in the list");
+    assert!(
+        find_entries(&house.isil)
+            .iter()
+            .any(|group| group.matched && group.library.isil == "DE-11"),
+        "a house must be findable by its own ISIL"
+    );
+
+    let branch = house
+        .branches
+        .iter()
+        .find(|branch| branch.isil.is_some())
+        .expect("HU branches carry their own ISILs");
+    let isil = branch.isil.as_deref().unwrap_or_default();
+    assert!(
+        find_entries(isil)
+            .iter()
+            .any(|group| group.branches.iter().any(|hit| hit.kobvid == branch.kobvid)),
+        "a branch must be findable by its own ISIL"
+    );
+    assert!(
+        find_entries(&branch.kobvid)
+            .iter()
+            .any(|group| group.branches.iter().any(|hit| hit.kobvid == branch.kobvid)),
+        "a branch must be findable by the key the tool tells the user to type"
+    );
+}
+
+/// Branches are searched, and houses still are not buried by them.
+///
+/// The reason branches were excluded stands — it is the flat listing that would bury the
+/// houses, not the search. Grouping makes burying impossible by construction: whatever the
+/// query, the answer has at most one entry per house, so a house can never be pushed off
+/// it by its own branches.
+#[test]
+fn find_groups_branches_under_their_house() {
+    let found = find_entries("Zweigbibliothek");
+    let matched_branches: usize = found.iter().map(|group| group.branches.len()).sum();
+    assert!(
+        matched_branches > found.len(),
+        "the query has to match more branches than houses for this to prove anything"
+    );
+    assert!(
+        found.len() <= parsed().len(),
+        "{} groups for {} houses",
+        found.len(),
+        parsed().len()
+    );
+
+    let mut seen: Vec<&str> = Vec::new();
+    for group in &found {
+        assert!(
+            !seen.contains(&group.library.isil.as_str()),
+            "{} appears twice",
+            group.library.isil
+        );
+        seen.push(&group.library.isil);
+    }
+}
+
+/// A house is still findable by its own name, and it says so — `matched` is what tells a
+/// heading apart from an answer.
+#[test]
+fn find_still_answers_for_houses() {
+    let group = find_entries("grimm")
+        .into_iter()
+        .find(|group: &Found| group.library.isil == "DE-11")
+        .expect("grimm must find the Grimm-Zentrum");
+    assert!(group.matched, "the house matched on its own text");
+    assert!(group.count() >= 1);
+
+    // The flat view keeps answering exactly the houses that matched themselves, so the
+    // callers that have not moved over yet see no change.
+    assert!(find("grimm").iter().any(|library| library.isil == "DE-11"));
+    assert!(find("   ").is_empty(), "an empty query matches nothing");
+}
+
+/// A house that is only a heading says so, so a renderer does not offer it as a hit.
+#[test]
+fn a_house_carried_in_by_a_branch_is_not_itself_a_hit() {
+    let group = find_entries("Frohnau")
+        .into_iter()
+        .find(|group: &Found| !group.branches.is_empty())
+        .expect("Frohnau is a branch of the public network");
+    assert!(
+        !group.matched,
+        "{} matched on its own text, which makes this test prove nothing",
+        group.library.isil
+    );
+    assert!(
+        !find("Frohnau")
+            .iter()
+            .any(|library| library.isil == group.library.isil),
+        "the flat view must not answer a branch question with its house"
+    );
+}
+
+/// An ISIL that two entries claim is a key that names only one of them back.
+///
+/// Derived from the file, never from a code: the test finds the collisions the same way
+/// the resolver does — by asking what two entries claim — so it keeps working when the
+/// list gains or loses one.
+#[test]
+fn a_shared_isil_is_found_by_comparing_what_entries_claim() {
+    let libraries = parsed();
+    let houses: Vec<String> = libraries
+        .iter()
+        .map(|library| library.isil.to_lowercase())
+        .collect();
+    let branch_isils: Vec<String> = libraries
+        .iter()
+        .flat_map(|library| &library.branches)
+        .filter_map(|branch| branch.isil.as_deref().map(str::to_lowercase))
+        .collect();
+
+    let mut collisions = 0usize;
+    for (_, branch) in parsed_branches() {
+        let Some(isil) = branch.isil.as_deref().map(str::to_lowercase) else {
+            assert!(
+                shares_isil(&branch).is_empty(),
+                "a branch without an ISIL has no key to be wrong about"
+            );
+            continue;
+        };
+        let claimed = usize::from(houses.contains(&isil))
+            + branch_isils.iter().filter(|other| **other == isil).count();
+        let shared = shares_isil(&branch);
+        assert_eq!(
+            shared.len(),
+            claimed - 1,
+            "{} claims {isil} together with {claimed} entries",
+            branch.kobvid
+        );
+        if claimed == 1 {
+            assert!(
+                isil_answers_elsewhere(&branch).is_none(),
+                "{} owns {isil} alone",
+                branch.kobvid
+            );
+            continue;
+        }
+        collisions += 1;
+
+        // The expensive half: typing the key back answers about something else, and it is
+        // that something the caller has to be able to name.
+        let elsewhere = isil_answers_elsewhere(&branch)
+            .unwrap_or_else(|| panic!("{} shares {isil} and must say so", branch.kobvid));
+        assert!(
+            shared.contains(&elsewhere),
+            "what --at answers with must be among the entries that share the key"
+        );
+        match (elsewhere, look_up(&isil)) {
+            (Entry::Institution(house), Ok(Entry::Institution(resolved))) => {
+                assert!(std::ptr::eq(house, resolved), "the lookup must agree");
+            }
+            (_, resolved) => panic!("{isil} resolved to {resolved:?}, expected the house"),
+        }
+    }
+    assert!(
+        collisions > 0,
+        "the file has to carry at least one shared branch ISIL for this to prove anything"
+    );
+}
+
+/// `--near` ranks branches too — that is the set the question is about.
+#[test]
+fn near_entries_ranks_branches_beside_houses() {
+    let libraries = parsed();
+    let total = libraries.len() + libraries.iter().map(|l| l.branches.len()).sum::<usize>();
+
+    let Ok(Entry::Branch { branch, .. }) = look_up("AGB") else {
+        panic!("AGB is a branch of the public network");
+    };
+    let ranked = near_entries(branch.coords().expect("every entry has coordinates"));
+    assert_eq!(
+        ranked.len(),
+        total,
+        "houses and branches, all with coordinates"
+    );
+
+    let (first, distance) = ranked[0];
+    assert!(
+        matches!(first, Entry::Branch { branch: nearest, .. } if nearest.kobvid == branch.kobvid),
+        "the point's own branch must come first, got {first:?}"
+    );
+    assert!(distance < 1e-9, "distance to itself was {distance}");
+
+    let mut previous = 0.0;
+    for (_, distance) in &ranked {
+        assert!(*distance >= previous, "not sorted at {distance}");
+        previous = *distance;
+    }
+
+    // The house-only ranking is still there and is still houses only, so the caller that
+    // has not moved over yet sees no change.
+    let houses = near(branch.coords().expect("coordinates"));
+    assert_eq!(houses.len(), libraries.len());
+}
+
+/// The directory cuts a branch name at a fixed width, and the tool has to say so rather
+/// than print half a word as if it were a name.
+#[test]
+fn a_cut_short_name_is_marked_and_has_a_fuller_form() {
+    let mut cut = 0usize;
+    let mut whole = 0usize;
+    for (_, branch) in parsed_branches() {
+        if short_name_is_cut(&branch) {
+            cut += 1;
+            assert!(
+                branch_label(&branch).ends_with('…'),
+                "{} prints a cut name as if it were whole",
+                branch.kobvid
+            );
+            assert_eq!(
+                distinguishing_name(&branch),
+                branch.name,
+                "{} has to fall back to the name the directory did deliver whole",
+                branch.kobvid
+            );
+            assert!(
+                branch.name.chars().count() > branch.short_name.chars().count(),
+                "{} would gain nothing from the fuller form",
+                branch.kobvid
+            );
+        } else {
+            whole += 1;
+            assert_eq!(branch_label(&branch), branch.short_name);
+            assert_eq!(distinguishing_name(&branch), branch.short_name);
+        }
+    }
+    assert!(cut > 0, "the file carries cut short names");
+    assert!(whole > cut, "most branch names are whole");
+}
+
+/// A branch whose short name is exactly the directory's width but complete is not cut —
+/// an ellipsis there would be a false statement about data that is fine.
+#[test]
+fn a_complete_name_at_the_full_width_is_not_marked_as_cut() {
+    let complete: Vec<String> = parsed_branches()
+        .into_iter()
+        .filter(|(_, branch)| branch.short_name == branch.name && short_name_is_cut(branch))
+        .map(|(_, branch)| branch.kobvid)
+        .collect();
+    assert!(
+        complete.is_empty(),
+        "a name equal to the full name cannot be cut: {complete:?}"
+    );
+}
+
+/// The ambiguity message exists to be chosen from, so its candidates must differ where the
+/// branches differ — which a name cut at the directory's width does not.
+#[test]
+fn an_ambiguous_path_names_candidates_in_full() {
+    let error = look_up("TU/Institut für Architektur").expect_err("several branches match");
+    let UsageError::AmbiguousBranch { candidates, .. } = error else {
+        panic!("expected AmbiguousBranch");
+    };
+    assert!(
+        candidates.len() > 1,
+        "the fragment has to fit several branches"
+    );
+
+    let known = parsed_branches();
+    let mut cut = 0usize;
+    for candidate in &candidates {
+        let (kobvid, printed) = candidate
+            .split_once(" (")
+            .expect("a candidate is `<key> (<name>)`");
+        let printed = printed.trim_end_matches(')');
+        let (_, branch) = known
+            .iter()
+            .find(|(_, branch)| branch.kobvid == kobvid)
+            .unwrap_or_else(|| panic!("{kobvid} is not a branch in the list"));
+        assert_eq!(printed, distinguishing_name(branch), "{kobvid}");
+        if short_name_is_cut(branch) {
+            cut += 1;
+            assert!(
+                printed.chars().count() > branch.short_name.chars().count(),
+                "{kobvid} lost the characters that tell it apart"
+            );
+        }
+    }
+    assert!(
+        cut > 0,
+        "this house has to have a cut branch name to prove anything"
+    );
+
+    // And what is printed has to distinguish: two candidates reading the same are not a
+    // choice, which is exactly what the truncation produced.
+    let mut printed: Vec<&str> = candidates
+        .iter()
+        .filter_map(|candidate| candidate.split_once(" ("))
+        .map(|(_, name)| name.trim_end_matches(')'))
+        .collect();
+    printed.sort_unstable();
+    let count = printed.len();
+    printed.dedup();
+    assert_eq!(printed.len(), count, "two candidates read the same");
+}
+
+/// `libraries --branches` needs the branches and the footer needs the count, and both are
+/// derived from the file — a number written into a sentence is wrong the first time a
+/// house opens or closes one.
+#[test]
+fn branch_enumeration_matches_the_file() {
+    let libraries = parsed();
+    let expected: usize = libraries.iter().map(|library| library.branches.len()).sum();
+    assert_eq!(branch_count(), expected);
+    assert_eq!(branches().len(), expected);
+    assert_eq!(
+        houses_with_branches().len(),
+        libraries
+            .iter()
+            .filter(|library| !library.branches.is_empty())
+            .count()
+    );
+    for library in houses_with_branches() {
+        assert!(!library.branches.is_empty());
+    }
+    // Every branch is listed under the house that holds it, and every house that has
+    // branches is one of the houses the footer counts.
+    for (library, branch) in branches() {
+        assert!(
+            library
+                .branches
+                .iter()
+                .any(|held| held.kobvid == branch.kobvid),
+            "{} is listed under {}",
+            branch.kobvid,
+            library.isil
+        );
+        assert!(
+            houses_with_branches()
+                .iter()
+                .any(|house| house.isil == library.isil)
+        );
     }
 }

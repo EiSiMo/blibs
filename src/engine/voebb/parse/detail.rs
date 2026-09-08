@@ -78,6 +78,13 @@ pub fn parse_detail(html: &str, id: &RecordId) -> Result<DetailPage, Error> {
     let mut notes = Vec::new();
     let items = items_of(&document, &bibliographic, &mut notes)?;
     let record = record_of(id, &bibliographic, items);
+    // Every note this page produced is about this one record, and it is named here
+    // rather than at each `push` because that is true of all of them without exception:
+    // the page *is* the record. Three `voebb_online_only` notes over two blocks are
+    // guesswork otherwise, and `message` is prose an agent may not parse.
+    for note in &mut notes {
+        note.records.push(id.clone());
+    }
     Ok(DetailPage { record, notes })
 }
 
@@ -441,8 +448,9 @@ const LENDING_STATES: [(&str, Status); 2] = [
 /// [`Status::Unknown`] for a record with no such link, for one whose link carries no
 /// parenthesis (Overdrive), and for a parenthesis worded in a way this parser has not
 /// seen — a wording nobody measured must never become a guess, and the row's raw text
-/// travels on in [`note_kinds::VOEBB_ONLINE_ONLY`] so that a new wording is visible
-/// rather than silently swallowed.
+/// travels on in [`note_kinds::VOEBB_ONLINE_STATE_UNSTATED`] so that a new wording is
+/// visible rather than silently swallowed. That is also the tag [`items_of`] chooses by:
+/// [`Status::Unknown`] here means the note has to say that nothing was readable.
 ///
 /// The platform's name is never matched on; see [`LENDING_LINK`].
 fn lending_status(row: Option<&BibRow>) -> Status {
@@ -497,11 +505,27 @@ fn url_kind(label: &str) -> UrlKind {
 /// | --- | --- | --- |
 /// | table with rows | a normal record | the copies |
 /// | table without rows (and without `<thead>`) | a multi-part work; the volumes are records of their own | empty, [`note_kinds::VOEBB_MULTIVOLUME`] |
-/// | no table, but a `Link zu …` row | an electronic title; the loan state is in the link text, and [`lending_status`] reads it into the holding | empty, [`note_kinds::VOEBB_ONLINE_ONLY`] |
+/// | no table, but a `Link zu …` row | an electronic title; the loan state is in the link text, and [`lending_status`] reads it into the holding | empty, [`note_kinds::VOEBB_ONLINE_ONLY`] or [`note_kinds::VOEBB_ONLINE_STATE_UNSTATED`] |
 ///
 /// A missing table on a record that has no lending link is a named error: at that
 /// point the page has stopped being the page this parser knows, and an empty copy list
 /// would read as "held nowhere".
+///
+/// ## Why the electronic title has **two** tags
+///
+/// Since the lending link's parenthesis is read ([`lending_status`]), "an electronic
+/// title" is no longer one situation but two: the Onleihe states `(Das Medium ist
+/// ausgeliehen / …)` and the record is then judged like any record with a status, while
+/// Overdrive states nothing at all and the record stays genuinely unjudged. `cli::run`
+/// counts the second kind to word the `--available` footnote — "none of them is known to
+/// be on loan" is true of Overdrive and false of the Onleihe, and it used to be said of
+/// both.
+///
+/// A field on the note would have been the alternative, and it is the wrong one: `kind`
+/// is the only member of [`Note`] an agent is allowed to switch on, `message` is prose it
+/// may not parse, and `records[]` answers *which* record and not *what happened*. So the
+/// distinction is a tag, and the two live next to each other in
+/// [`crate::model::note_kinds`] where one limitation cannot grow two spellings.
 fn items_of(
     document: &Html,
     bibliographic: &Bibliographic,
@@ -513,14 +537,27 @@ fn items_of(
             return Err(missing_selector("table#resptable-1"));
         };
         let state = row.values.first().map_or("", String::as_str);
-        notes.push(Note::new(
-            note_kinds::VOEBB_ONLINE_ONLY,
-            format!(
-                "this is an electronic title ({}): it has no copies on a shelf, and \
-                 voebb.de states its loan status only as {state:?}",
-                row.label
+        let label = &row.label;
+        notes.push(match lending_status(Some(row)) {
+            // No parenthesis (Overdrive), or one worded in a way nobody measured. The
+            // raw text travels with the note so a new wording is visible rather than
+            // swallowed.
+            Status::Unknown => Note::new(
+                note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
+                format!(
+                    "this is an electronic title ({label}): it has no copies on a shelf, \
+                     and its lending link states no loan status this tool can read — \
+                     {state:?}"
+                ),
             ),
-        ));
+            _ => Note::new(
+                note_kinds::VOEBB_ONLINE_ONLY,
+                format!(
+                    "this is an electronic title ({label}): it has no copies on a shelf, \
+                     and its loan status is the one its lending link states — {state:?}"
+                ),
+            ),
+        });
         return Ok(Vec::new());
     };
 
@@ -1311,10 +1348,12 @@ mod tests {
         let page = parse_detail(&broken, &RecordId::voebb("SAK16112988"))
             .expect("an unknown wording is not a parse failure");
         assert_eq!(page.record.holdings[0].summary, Status::Unknown);
+        // Changed in round 2 (§3.6): an unreadable parenthesis is the *unstated* tag now,
+        // because that is the one `cli::run` may say "not known to be on loan" about.
         let note = page
             .notes
             .iter()
-            .find(|note| note.kind == note_kinds::VOEBB_ONLINE_ONLY)
+            .find(|note| note.kind == note_kinds::VOEBB_ONLINE_STATE_UNSTATED)
             .expect("an empty copy list is never silent");
         assert!(
             note.message.contains("eingearbeitet"),
@@ -1450,12 +1489,19 @@ mod tests {
         // two markers of §3.6 are matched positively; the absence of one is never the
         // other (round 2, §3.6).
         assert_eq!(page.record.holdings[0].summary, Status::Unknown);
+        // And a platform that states nothing gets the tag that says so: this is the one
+        // record `--available` may report as "not known to be on loan".
         let note = page
             .notes
             .iter()
-            .find(|note| note.kind == note_kinds::VOEBB_ONLINE_ONLY)
+            .find(|note| note.kind == note_kinds::VOEBB_ONLINE_STATE_UNSTATED)
             .expect("an empty copy list is never silent");
         assert!(note.message.contains("Overdrive"), "{note:?}");
+        assert_eq!(
+            note.records,
+            vec![RecordId::voebb("SAK34672596")],
+            "a note about one record names it: {note:?}"
+        );
         assert!(
             page.record
                 .urls

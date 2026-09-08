@@ -83,6 +83,31 @@ ausgeliehen. Ein zweiter Abruf hätte also nicht garantiert den fehlenden Fall g
 Die Struktur ist deshalb **nicht erfunden**, sondern die gemessene: geändert ist nur der
 Statuswortlaut innerhalb desselben `<a>`, und zwar der wörtlich mitgeschriebene.
 
+### Nachtrag 2026-09-08 (Runde 2, §1.2) — die zweite **abgeleitete** Datei
+
+`results_without_agb.html` ist die zweite Datei, die nicht vom Server stammt. Sie ist aus
+`results.html` abgeleitet, indem **ein ganzes Element** entfernt wurde — dasselbe Rezept
+wie `slim.py`, nur mit einer anderen Begründung: kein Zeichen des übrigen Markups ist
+umgeschrieben.
+
+| Datei | Herkunft | Was sie belegt |
+| --- | --- | --- |
+| `results_without_agb.html` | **abgeleitet** aus `results.html`: das eine `<li class="cbtree_leaf_li">` mit `sub-PTL1_tree_1_90` / *ZLB: Amerika-Gedenkbibliothek (AGB)* ist gelöscht (378 Byte), sonst nichts | Die Facette **führt die gesuchte Zweigstelle nicht, während die Suche netzweit Treffer hat** (`Treffer: 71` steht unverändert da). Das ist der Fall, in dem `--at` wirklich die Ursache des leeren Ergebnisses ist — der Gegenfall zu `results_empty.html`, wo die Suche schon netzweit null hatte und die Facette deshalb gar nicht existiert |
+
+Warum abgeleitet und nicht gemessen: die Datei müsste eine Suche belegen, die 71 Treffer
+im Netz und **keinen** in der AGB hat. So eine Anfrage ist gegen das Livesystem nur mit
+Glück zu finden und morgen eine andere; das strukturelle Merkmal — die Rubrik *Bibliothek*
+ohne den gesuchten Namen — ist dagegen genau das gemessene Dokument minus einen Knoten.
+Die zweite ZLB-Zweigstelle (`_91`, BStB), die verschobenen Baumnummern und der
+vollständige Rest des Baums bleiben unangetastet, ebenso `div#R06 p.info`, das Formular
+und die Blätter-Toolbar. Reproduzierbar mit:
+
+```python
+s = open("results.html").read()
+i = s.find('<li class="cbtree_leaf_li"><input type="checkbox" id="sub-PTL1_tree_1_90"')
+open("results_without_agb.html", "w").write(s[:i] + s[s.find("</li>", i) + 5:])
+```
+
 Dazu eine Falle ohne eigene Fixture, belegt an `advanced_form.html`: die Seite trägt
 **zwei** Schaltflächen mit der Beschriftung *Suchen* — die des Kopfzeilen-Suchschlitzes
 (`$Button`, `$$GFBO_1`, zuerst im Dokument) und die des Formulars selbst (`$Button$6`,
@@ -119,6 +144,7 @@ Nicht angefasst: `noaccess.html` (die Datei ist der Beweis, dass dort weder `<ti
 | --- | ---: | ---: |
 | `start.html` | 53 KiB | 12 KiB |
 | `results.html` | 171 KiB | 96 KiB |
+| `results_without_agb.html` | — (abgeleitet) | 96 KiB |
 | `results_filtered.html` | 169 KiB | 58 KiB |
 | `results_filtered_page2.html` | 146 KiB | 57 KiB |
 | `results_isbn.html` | 92 KiB | 35 KiB |

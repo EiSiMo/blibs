@@ -160,6 +160,94 @@ fn a_limit_above_fifty_is_refused_rather_than_clamped() {
         .stderr(contains("--limit must be between 1 and 50"));
 }
 
+/// §3.7: a negative count is blibs' own refusal, not clap's. clap reads `-1` as a flag
+/// and tips the user towards `-- -1`, which would make the number a **search term** — the
+/// one piece of advice here that leads somewhere worse than the mistake. Nothing is sent:
+/// this is exit 2 with the same quality of message `--limit 0` and `--limit 51` get.
+#[test]
+fn a_negative_count_is_refused_without_the_double_dash_tip() {
+    blibs()
+        .args(["search", "Kafka", "--limit", "-1"])
+        .assert()
+        .code(2)
+        .stderr(contains("--limit must be a positive number, got -1"))
+        // clap's own wording for this — "unexpected argument '-1' found", with the tip
+        // "to pass '-1' as a value, use '-- -1'" — is what must not appear. blibs' hint
+        // names the same form, to warn against it.
+        .stderr(contains("unexpected argument").not())
+        .stderr(contains("to pass").not());
+
+    blibs()
+        .args(["--json", "search", "Kafka", "--page", "-3"])
+        .assert()
+        .code(2)
+        .stdout(predicates::str::is_empty())
+        .stderr(contains("\"kind\": \"negative_number\""));
+}
+
+/// §1.7: `deu` is the ISO-639-2/**T** code for German and MARC carries the **B** variant
+/// `ger`, so the filter used to run, match nothing and exit 1 — "searched, does not
+/// exist" for a mistyped flag. It was the only input mistake in the whole test run that
+/// escaped as an exit 1, and for an agent that is the most expensive confusion there is:
+/// it narrows the query instead of fixing the flag.
+#[test]
+fn a_terminology_language_code_is_exit_two_naming_the_bibliographic_one() {
+    blibs()
+        .args(["search", "Kafka", "--language", "deu"])
+        .assert()
+        .code(2)
+        .stderr(contains("terminology code"))
+        .stderr(contains("--language ger"));
+
+    blibs()
+        .args(["--json", "search", "Kafka", "--language", "fra"])
+        .assert()
+        .code(2)
+        .stdout(predicates::str::is_empty())
+        .stderr(contains("\"kind\": \"language_code_variant\""))
+        .stderr(contains("fre"));
+}
+
+/// §2.10: with no status there is nothing to sort by, exactly as there is nothing to
+/// filter by — the same conflict, and the run reported an order that was a no-op.
+#[test]
+fn sorting_by_availability_without_availability_is_refused() {
+    blibs()
+        .args([
+            "search",
+            "Kafka",
+            "--sort",
+            "availability",
+            "--no-availability",
+        ])
+        .assert()
+        .code(2)
+        .stderr(contains("--sort availability cannot be combined"));
+}
+
+/// §3.7: a term of pure punctuation is read upstream as *no* term and answered with the
+/// whole index. Refused here, while a term in any script stays a term — the check is
+/// Unicode's idea of a letter or digit, not ASCII's.
+#[test]
+fn a_term_without_letters_or_digits_is_refused_before_anything_is_sent() {
+    blibs()
+        .args(["search", "@@@"])
+        .assert()
+        .code(2)
+        .stderr(contains("contains no letters or digits"));
+
+    // A term in any script survives the check. Asserted without a request, by letting a
+    // *later* refusal answer instead: the term check runs before `--limit` is looked at,
+    // so a complaint about the limit proves the term itself was accepted.
+    for term in ["1984", "日本", "Достоевский", "תלמוד"] {
+        blibs()
+            .args(["search", term, "--limit", "99"])
+            .assert()
+            .code(2)
+            .stderr(contains("--limit must be between 1 and 50"));
+    }
+}
+
 /// A VÖBB branch routes to the second engine, and voebb.de's advanced search has no
 /// index for a publisher. A flag the answering catalogue cannot honour is refused before
 /// anything is sent — a search that silently dropped `--publisher` would answer a

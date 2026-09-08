@@ -329,6 +329,24 @@ pub enum SortKey {
     Availability,
 }
 
+impl SortKey {
+    /// The word `--sort` is written with, which is also the word the JSON carries.
+    ///
+    /// One spelling for both directions: `cli::validate` parses these words, `serde`
+    /// lowercases the variant into the same ones, and a message that names the key —
+    /// [`crate::error::EmptyReason::PastTheLastSorted`] — reads it from here rather than
+    /// spelling the vocabulary a third time.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SortKey::Relevance => "relevance",
+            SortKey::Year => "year",
+            SortKey::Title => "title",
+            SortKey::Author => "author",
+            SortKey::Availability => "availability",
+        }
+    }
+}
+
 /// The scope a sort had access to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -462,9 +480,25 @@ pub mod note_kinds {
     /// of a multi-part work, which are records of their own. Not "held nowhere".
     pub const VOEBB_MULTIVOLUME: &str = "voebb_multivolume";
 
-    /// The record is an Onleihe title: it has no copies on a shelf, and its loan state
-    /// is stated only as prose in the link to the lending platform.
+    /// The record is a lending-platform title: it has no copies on a shelf, and its loan
+    /// state is stated only as prose in the link to the platform — where this tool
+    /// **read** it, so the holding's status is the platform's own statement.
+    ///
+    /// The sibling of [`VOEBB_ONLINE_STATE_UNSTATED`], and the two are two tags rather
+    /// than one because the difference decides a sentence: a record whose state was read
+    /// is judged like any other, while one whose link says nothing is genuinely
+    /// unjudged. `message` is prose an agent may not parse, and `records[]` says *which*
+    /// record — neither can carry the distinction, so `kind` has to.
     pub const VOEBB_ONLINE_ONLY: &str = "voebb_online_only";
+
+    /// The same record, with nothing to read: an electronic title whose lending link
+    /// states **no** loan status this tool knows.
+    ///
+    /// Two sources, both measured: Overdrive prints no parenthesis at all
+    /// (`plan/feedback_round_2.md` §3.6), and a wording nobody has seen must never become
+    /// a guess. The note carries the link's raw text so that a new wording shows up
+    /// instead of being swallowed, and the holding stays [`Status::Unknown`].
+    pub const VOEBB_ONLINE_STATE_UNSTATED: &str = "voebb_online_state_unstated";
 
     /// voebb.de's advanced search has no free-text index, so free terms next to a field
     /// flag were searched as a title — the closest index the form offers.
@@ -476,7 +510,23 @@ pub mod note_kinds {
 
     /// The branch facet does not list this branch for this search, which is the site's
     /// way of saying it holds nothing matching. Not an error, and not a broken filter.
+    ///
+    /// Only ever set when the **unfiltered** search had hits — otherwise there is no
+    /// facet tree on the page at all, and describing one would be a claim about a
+    /// structure that was never there. That case is
+    /// [`VOEBB_NO_HITS_IN_NETWORK`] instead.
     pub const VOEBB_BRANCH_NOT_LISTED: &str = "voebb_branch_not_listed";
+
+    /// The search found nothing anywhere in the VÖBB network, so there was no branch
+    /// facet to apply and the branch in `--at` is not what came back empty.
+    ///
+    /// The distinction this tag exists for is a piece of advice: with hits in the network
+    /// and none at the branch, naming more libraries is the way out; with none in the
+    /// network it is guaranteed to fail again, and the words are what has to change.
+    /// voebb.de is the only engine that can tell the two apart — it states the
+    /// network-wide count beside the facet, while the KOBV side filters upstream and
+    /// never sees an unrestricted total.
+    pub const VOEBB_NO_HITS_IN_NETWORK: &str = "voebb_no_hits_in_network";
 
     /// A branch of a KOBV institution was answered from the **copies** of the records
     /// that were fetched, not by a filter the catalogue applied.
@@ -811,9 +861,11 @@ mod tests {
             note_kinds::HOLDING_WITHOUT_ISIL,
             note_kinds::VOEBB_MULTIVOLUME,
             note_kinds::VOEBB_ONLINE_ONLY,
+            note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
             note_kinds::VOEBB_FREE_TERMS_AS_TITLE,
             note_kinds::VOEBB_QUERY_TRUNCATED,
             note_kinds::VOEBB_BRANCH_NOT_LISTED,
+            note_kinds::VOEBB_NO_HITS_IN_NETWORK,
             note_kinds::LOCATION_OTHER_CATALOGUE,
             note_kinds::SERIAL_VOLUMES_UNKNOWN,
             note_kinds::LOAN_WITHOUT_DUE_DATE,
@@ -830,6 +882,22 @@ mod tests {
                 !all[index + 1..].contains(kind),
                 "{kind:?} is used for two different notes"
             );
+        }
+    }
+
+    /// The word a sort key is written with is one word, not two: `--sort year`, the JSON
+    /// `sort.by`, and the message that says a sorted window ran out must all say `year`.
+    #[test]
+    fn a_sort_key_spells_itself_the_same_way_everywhere() {
+        for key in [
+            SortKey::Relevance,
+            SortKey::Year,
+            SortKey::Title,
+            SortKey::Author,
+            SortKey::Availability,
+        ] {
+            let json = serde_json::to_value(key).expect("a sort key serialises");
+            assert_eq!(json, serde_json::Value::String(key.as_str().to_owned()));
         }
     }
 

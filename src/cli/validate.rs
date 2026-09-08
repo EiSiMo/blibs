@@ -10,9 +10,13 @@
 //! | `--isbn` with a bad check digit | the index ignores it and returns the wrong book |
 //! | empty query | diagnostic 1/10 |
 //! | an empty value for any flag | almost always a shell variable that did not expand |
+//! | a term with no letter or digit | read as *no* term upstream: `'@and'` returns 8.55 M records |
 //! | query over 1000 characters | HTTP 414, returned as diagnostic 1/2 |
 //! | unknown library in `--at` | with up to three suggestions |
 //! | `--limit` outside 1..=50 | SRU caps at 50 silently |
+//! | `--limit`/`--page` negative | clap would offer `-- -1`, which searches for the number |
+//! | `--language deu` | the terminology code; the records carry the bibliographic `ger` |
+//! | two flags that cancel each other | `--available`/`--sort availability` with `--no-availability` |
 //!
 //! `--at` also decides the engines, and with them which flags can still be honoured: the
 //! advanced search on voebb.de has a row index for title, person, subject and ISBN, and
@@ -51,6 +55,46 @@ const MAX_QUERY_CHARS: usize = 1000;
 /// How long an ISO-639-2/B language code is.
 const LANGUAGE_CODE_LEN: usize = 3;
 
+/// The ISO-639-2 **terminology** codes, and the **bibliographic** code MARC carries in
+/// their place.
+///
+/// These twenty languages are the whole of it: ISO-639-2 gives a second, terminology code
+/// to exactly those whose bibliographic code was formed from the English name, and to no
+/// others. So this is a closed table, unlike the language vocabulary itself — a record can
+/// carry any code at all, and one that is in neither set keeps the old behaviour: the
+/// shape check passes and the filter simply matches nothing.
+///
+/// `deu` is not a random string but the code someone types who knows that three-letter
+/// codes exist and not that MARC picked the other set, which is why it is a usage error
+/// naming the code that was meant rather than a search that finds nothing.
+///
+/// The right-hand column is the same set `crate::render::human`'s `LANGUAGE_NAMES` is
+/// keyed by (`ger`, `fre`, `chi`, `gre`, `dut`, `cze`, `per` all appear there); no code on
+/// the **left** occurs in that table, which is the check that the two agree on which of
+/// the two ISO sets this tool speaks.
+const TERMINOLOGY_CODES: [(&str, &str); 20] = [
+    ("bod", "tib"),
+    ("ces", "cze"),
+    ("cym", "wel"),
+    ("deu", "ger"),
+    ("ell", "gre"),
+    ("eus", "baq"),
+    ("fas", "per"),
+    ("fra", "fre"),
+    ("hye", "arm"),
+    ("isl", "ice"),
+    ("kat", "geo"),
+    ("mkd", "mac"),
+    ("mri", "mao"),
+    ("msa", "may"),
+    ("mya", "bur"),
+    ("nld", "dut"),
+    ("ron", "rum"),
+    ("slk", "slo"),
+    ("sqi", "alb"),
+    ("zho", "chi"),
+];
+
 /// Validate a search invocation and resolve everything it names.
 ///
 /// The order of the checks is the order of the user's attention: what they typed as a
@@ -69,13 +113,16 @@ fn plan(args: &SearchArgs, json: bool, cache: bool) -> Result<Plan, UsageError> 
     if query.is_empty() {
         return Err(UsageError::EmptyQuery);
     }
+    if let Some(term) = first_without_text(args) {
+        return Err(UsageError::TermWithoutText { term });
+    }
     let chars = query_chars(args);
     if chars >= MAX_QUERY_CHARS {
         return Err(UsageError::QueryTooLong { chars });
     }
 
-    let limit = args.limit.map_or(Ok(Limit::DEFAULT), Limit::new)?;
-    let page = args.page.map_or(Ok(Page::FIRST), Page::new)?;
+    let limit = count(args.limit, "--limit")?.map_or(Ok(Limit::DEFAULT), Limit::new)?;
+    let page = count(args.page, "--page")?.map_or(Ok(Page::FIRST), Page::new)?;
     let locations = locations(&args.at)?;
     check_engine_support(args, &locations)?;
     let filters = Filters {
@@ -83,7 +130,8 @@ fn plan(args: &SearchArgs, json: bool, cache: bool) -> Result<Plan, UsageError> 
         language: args.language.as_deref().map(language).transpose()?,
     };
     check_window_depth(limit, page, &filters, &locations)?;
-    check_flag_conflicts(args)?;
+    let sort = sort_key(args.sort.as_deref())?;
+    check_flag_conflicts(args, sort)?;
 
     Ok(Plan {
         terms_echo: echo(args, &query),
@@ -91,7 +139,7 @@ fn plan(args: &SearchArgs, json: bool, cache: bool) -> Result<Plan, UsageError> 
         locations,
         limit,
         page,
-        sort: sort_key(args.sort.as_deref())?,
+        sort,
         filters,
         availability: availability(args.no_availability),
         only_available: args.available,
@@ -275,6 +323,26 @@ fn author(value: Option<&str>) -> Result<Option<String>, UsageError> {
     Ok(Some(name.to_owned()))
 }
 
+/// One of the counting flags, as far as clap could take it.
+///
+/// clap hands these over as `i64` (see `cli::COUNT_MAX`), so the only value that cannot
+/// be a count is a negative one — the upper bound is already the parser's. Refusing it
+/// here rather than leaving it to clap is the whole point: clap reads `--limit -1` as an
+/// unknown flag and suggests `-- -1`, which would search for the number instead of
+/// counting with it, while [`Limit::new`] and [`Page::new`] have first-class messages for
+/// every other way of getting these wrong.
+fn count(value: Option<i64>, flag: &str) -> Result<Option<u32>, UsageError> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    u32::try_from(value)
+        .map(Some)
+        .map_err(|_| UsageError::NegativeNumber {
+            flag: flag.to_owned(),
+            value: value.to_string(),
+        })
+}
+
 /// A value the user gave that carries no text at all.
 ///
 /// Almost always `--at "$LIBS"` or `--title "$Q"` with the variable unset. Dropping it
@@ -319,6 +387,27 @@ fn first_wildcard(args: &SearchArgs) -> Option<String> {
         .into_iter()
         .find(|(_, value)| value.contains(WILDCARDS))
         .map(|(_, value)| value.to_owned())
+}
+
+/// The first piece of query text without a single letter or digit in it.
+///
+/// `search '@and'` came back with 8.55 million records: the catalogue reads a term of
+/// pure punctuation as *no* term and answers with its whole index, which looks like a
+/// successful search and states nothing. Refused here for the same reason a wildcard is,
+/// and across the field flags too — `--title '@and'` is the same non-question.
+///
+/// The test is [`char::is_alphanumeric`] and deliberately not an ASCII range: a CJK
+/// title, a Cyrillic or a Hebrew word and a year such as `1984` are all ordinary search
+/// terms, and every one of them would be refused by an ASCII letter test.
+///
+/// Values with no text *at all* never reach this — [`query`] has already refused them by
+/// name as [`empty_value`], which is the sharper message of the two.
+fn first_without_text(args: &SearchArgs) -> Option<String> {
+    query_text(args)
+        .into_iter()
+        .map(|(_, value)| value.trim())
+        .find(|value| !value.is_empty() && !value.chars().any(char::is_alphanumeric))
+        .map(str::to_owned)
 }
 
 /// How long the query text is, counted in characters rather than bytes — the limit
@@ -413,13 +502,34 @@ fn language(value: &str) -> Result<String, UsageError> {
     }
     let well_formed =
         code.len() == LANGUAGE_CODE_LEN && code.chars().all(|c| c.is_ascii_lowercase());
-    if well_formed {
-        Ok(code)
-    } else {
-        Err(UsageError::LanguageCode {
+    if !well_formed {
+        return Err(UsageError::LanguageCode {
             input: value.to_owned(),
-        })
+        });
     }
+    if let Some(bibliographic) = bibliographic_variant(&code) {
+        return Err(UsageError::LanguageCodeVariant {
+            input: value.trim().to_owned(),
+            bibliographic: bibliographic.to_owned(),
+        });
+    }
+    Ok(code)
+}
+
+/// The bibliographic code for a terminology one, if that is what was given.
+///
+/// The shape check above cannot catch this: `deu` is three lowercase letters and passes
+/// it, so the filter used to run, match nothing and exit 1 — "searched, does not exist"
+/// for what is a mistyped flag, with advice to narrow a search that was never the
+/// problem. It is the one input mistake that escaped as an exit 1.
+///
+/// A code in neither set is left alone on purpose: MARC data carries codes no list has,
+/// and inventing a closed vocabulary here would refuse legitimate searches.
+fn bibliographic_variant(code: &str) -> Option<&'static str> {
+    TERMINOLOGY_CODES
+        .iter()
+        .find(|(terminology, _)| *terminology == code)
+        .map(|(_, bibliographic)| *bibliographic)
 }
 
 /// Refuse a window a VÖBB branch cannot be paged to.
@@ -502,16 +612,28 @@ fn check_engine_support(args: &SearchArgs, locations: &[Location]) -> Result<(),
 /// to ask whether they are — together there would be nothing left to filter on, and
 /// picking a winner would silently answer a question the user did not ask.
 ///
+/// `--sort availability` is the same sentence with one word changed: without a status
+/// there is nothing to *order* by either, and the run said `"sort": {"by":"availability"}`
+/// next to `"availability": "skipped"` — an order that was a no-op, asserted as though it
+/// had happened. It is therefore one more row of this table and not a note: a note would
+/// still leave the two claims standing side by side.
+///
 /// Deliberately not clap's `conflicts_with`: that produces [`UsageError::Cli`], whose
 /// `kind` is the catch-all `usage` and which carries no hint, while every refusal here
 /// owes the user the way out.
 ///
 /// The pairs are a table, so the next conflict is one line rather than a second function.
-fn check_flag_conflicts(args: &SearchArgs) -> Result<(), UsageError> {
-    let conflicts = [(
-        ("--available", args.available),
-        ("--no-availability", args.no_availability),
-    )];
+fn check_flag_conflicts(args: &SearchArgs, sort: SortKey) -> Result<(), UsageError> {
+    let conflicts = [
+        (
+            ("--available", args.available),
+            ("--no-availability", args.no_availability),
+        ),
+        (
+            ("--sort availability", sort == SortKey::Availability),
+            ("--no-availability", args.no_availability),
+        ),
+    ];
     for ((flag, asked), (with, refused)) in conflicts {
         if asked && refused {
             return Err(UsageError::ConflictingFlags {
@@ -525,30 +647,37 @@ fn check_flag_conflicts(args: &SearchArgs) -> Result<(), UsageError> {
 
 /// The invocation echoed back in one string, for headings and for `query.terms`.
 ///
-/// The free terms when there are any, with the quotes that made a phrase one — those
-/// quotes are the only place a reader can see that `"Der Prozess"` was searched as a
-/// phrase and not as two and-ed words, so they stay.
+/// **Everything that narrowed the search, in the order it was assembled**: the free terms
+/// first, unlabelled and with the quotes that made a phrase one, then the field flags as
+/// `field: value`. The quotes are the only place a reader can see that `"Der Prozess"`
+/// was searched as a phrase and not as two and-ed words, so they stay.
 ///
-/// A search built from field flags alone has no free terms, and is summarised by field
-/// instead — `title: Prozess, author: Kafka, year: 1953`. It used to be rebuilt as a
-/// command line, `--title Prozess --author Kafka`, which read as a complaint about the
-/// flags rather than as an echo of the search. This is a label, not something to paste
-/// back: the flags themselves are still in the user's shell history.
+/// It used to stop at the free terms as soon as there were any, which broke exactly the
+/// form `--help` advertises — free words and field flags combined with AND. The count
+/// beside the echo belongs to the **whole** query, so `blibs search --title Prozess
+/// Kafka` read as `552 results for Kafka` where `Kafka` alone has 13410, and an empty
+/// result sent the reader off to vary a word that was never the cause. Either half alone
+/// still reads exactly as it did: this is the shape both pure forms already had, with the
+/// other half missing.
 ///
-/// The fields are joined with a comma and not with the ` · ` the rest of the output uses,
+/// A label, not something to paste back — the field flags reproduce themselves, and the
+/// paste-able half is [`QuerySpec::echo`], which stays free terms only for that reason.
+///
+/// The parts are joined with a comma and not with the ` · ` the rest of the output uses,
 /// because the heading already puts that separator around the echo: `… · showing 1-1`
 /// would read as one more field.
 fn echo(args: &SearchArgs, query: &QuerySpec) -> String {
     let free = query.echo();
-    if !free.is_empty() {
-        return free;
-    }
-    query_text(args)
+    let fields = query_text(args)
         .into_iter()
-        // A free term carries no flag, and there are none left here anyway — the empty
-        // name is what distinguishes the two in `query_text`.
+        // A free term carries no flag — the empty name is what distinguishes the two in
+        // `query_text`, and the free terms are already in `free`, quoted as they were
+        // searched.
         .filter_map(|(flag, value)| Some((flag.strip_prefix("--")?, value)))
-        .map(|(field, value)| format!("{field}: {value}"))
+        .map(|(field, value)| format!("{field}: {value}"));
+    std::iter::once(free)
+        .filter(|free| !free.is_empty())
+        .chain(fields)
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -791,6 +920,26 @@ mod tests {
         assert_eq!(plan.terms_echo, "Kafka Prozess");
     }
 
+    /// §1.5: free words and field flags combine with AND — the form `--help` advertises —
+    /// and the count printed beside the echo is the count of that whole query. Echoing
+    /// only the free words made `552 results for Kafka` out of a search that also carried
+    /// `--title Prozess`, where `Kafka` alone has 13410, and turned an empty result into
+    /// advice about a word that was not the cause.
+    #[test]
+    fn a_mixed_search_echoes_the_free_words_and_the_fields() {
+        let plan = search(&["search", "Kafka", "--title", "Prozess"]).expect("the mixed form");
+        assert_eq!(plan.terms_echo, "Kafka, title: Prozess");
+
+        let plan = search(&["search", "Prozess", "--year", "1953", "--author", "Kafka"])
+            .expect("two flags beside a free word");
+        assert_eq!(plan.terms_echo, "Prozess, author: Kafka, year: 1953");
+
+        // A phrase keeps its quotes here too: they are the only place a reader sees that
+        // it was not searched as two and-ed words.
+        let plan = search(&["search", "Der Prozess", "--author", "Kafka"]).expect("a phrase");
+        assert_eq!(plan.terms_echo, "\"Der Prozess\", author: Kafka");
+    }
+
     /// An empty query is diagnostic 1/10 upstream, which would surface as exit 5 for
     /// what is plainly a usage error. "Empty" here means nothing was given at all — an
     /// argument that *was* given and holds no text is the sharper `empty_value`.
@@ -849,6 +998,47 @@ mod tests {
         }
     }
 
+    /// §3.7: the catalogue reads a term of pure punctuation as *no* term and answers with
+    /// its whole index, which looks like a successful search and states nothing. Refused
+    /// wherever it is typed, exactly as a wildcard is.
+    #[test]
+    fn a_term_without_letters_or_digits_is_refused() {
+        // A term starting with `-` never reaches this module: clap reads it as a flag,
+        // which is its business and unchanged here.
+        for term in ["+++", "...", "@@@", "!?", "«»"] {
+            // `?` and `*` are wildcards and keep their own, more specific message.
+            let expected = if term.contains(WILDCARDS) {
+                "wildcard_unsupported"
+            } else {
+                "term_without_text"
+            };
+            assert_eq!(usage_kind(&["search", term]), expected, "{term}");
+        }
+        assert_eq!(
+            usage_kind(&["search", "Kafka", "--title", "###"]),
+            "term_without_text"
+        );
+        let Err(error) = search(&["search", "###"]) else {
+            panic!("a term of pure punctuation must be refused");
+        };
+        assert!(error.to_string().contains("###"), "{error}");
+        assert_eq!(error.exit(), ExitCode::Usage, "{error}");
+    }
+
+    /// "Alphanumeric" is Unicode's, not ASCII's: a year, a CJK title, a Cyrillic, Greek
+    /// or Hebrew word are all ordinary search terms in this catalogue — there are
+    /// fixtures for each — and an ASCII letter test would refuse every one of them.
+    #[test]
+    fn a_term_in_any_script_is_still_a_term() {
+        for term in ["1984", "日本", "Достоевский", "Ἰλιάς", "תלמוד", "Œuvres"]
+        {
+            assert!(
+                search(&["search", term]).is_ok(),
+                "{term} is a search term like any other"
+            );
+        }
+    }
+
     #[test]
     fn an_over_long_query_is_refused() {
         let long = "a".repeat(MAX_QUERY_CHARS);
@@ -887,6 +1077,34 @@ mod tests {
 
     #[test]
     fn page_zero_is_refused() {
+        assert_eq!(
+            usage_kind(&["search", "Kafka", "--page", "0"]),
+            "page_out_of_range"
+        );
+    }
+
+    /// §3.7: a negative count used to fall through to clap, which read `-1` as a flag and
+    /// offered `-- -1` — the one tip that would turn the number into a **search term**.
+    /// The two counting flags have first-class messages for every other way of getting
+    /// them wrong, and this is the same mistake with a sign in front of it.
+    #[test]
+    fn a_negative_count_is_refused_by_blibs_and_not_by_clap() {
+        for (flag, value) in [("--limit", "-1"), ("--page", "-3"), ("--limit", "-50")] {
+            let Err(error) = search(&["search", "Kafka", flag, value]) else {
+                panic!("{flag} {value} must be refused");
+            };
+            assert_eq!(error.kind(), "negative_number", "{flag} {value}");
+            assert_eq!(error.exit(), ExitCode::Usage, "{error}");
+            assert!(error.to_string().contains(flag), "{error}");
+            assert!(error.to_string().contains(value), "{error}");
+            let hint = error.hint().unwrap_or_default();
+            assert!(hint.contains(flag), "{hint}");
+        }
+        // The in-range failures keep their own, sharper messages.
+        assert_eq!(
+            usage_kind(&["search", "Kafka", "--limit", "0"]),
+            "limit_out_of_range"
+        );
         assert_eq!(
             usage_kind(&["search", "Kafka", "--page", "0"]),
             "page_out_of_range"
@@ -1233,7 +1451,13 @@ mod tests {
         // Never a phrase: the author index holds authority forms.
         assert_eq!(plan.query.author.as_deref(), Some("Franz Kafka"));
         assert_eq!(plan.query.year, Some(1953));
-        assert_eq!(plan.terms_echo, "\"Der Prozess\" Kafka");
+        // §1.5: the echo names the field flags beside the free words now — the count
+        // printed with it is the count of the whole query, and this invocation is the
+        // mixed form the old echo silently dropped half of.
+        assert_eq!(
+            plan.terms_echo,
+            "\"Der Prozess\" Kafka, author: Franz Kafka, year: 1953"
+        );
         assert_eq!(plan.limit.get(), 5);
         assert_eq!(plan.page.get(), 2);
         assert_eq!(plan.sort, SortKey::Year);
@@ -1305,6 +1529,40 @@ mod tests {
         assert!(error.hint().is_some(), "a usage error names the way out");
     }
 
+    /// §2.10: the reasoning behind the pair above, word for word — with no status there
+    /// is nothing to *order* by either. The run reported `"sort": {"by":"availability"}`
+    /// beside `"availability": "skipped"`, an order that was a no-op stated as though it
+    /// had happened.
+    #[test]
+    fn sorting_by_availability_conflicts_with_no_availability() {
+        let Err(error) = search(&[
+            "search",
+            "Kafka",
+            "--sort",
+            "availability",
+            "--no-availability",
+        ]) else {
+            panic!("there is nothing to sort by when nothing is asked");
+        };
+        assert_eq!(error.exit(), ExitCode::Usage, "{error}");
+        assert_eq!(error.kind(), "conflicting_flags");
+        for flag in ["--sort availability", "--no-availability"] {
+            assert!(error.to_string().contains(flag), "{error}");
+        }
+        assert!(error.hint().is_some(), "a usage error names the way out");
+
+        // Every other sort key orders what the records themselves say, so it is none of
+        // availability's business.
+        for key in ["relevance", "year", "title", "author"] {
+            assert!(
+                search(&["search", "Kafka", "--sort", key, "--no-availability"]).is_ok(),
+                "--sort {key} needs no status"
+            );
+        }
+        // And the sort on its own is exactly what it always was.
+        assert!(search(&["search", "Kafka", "--sort", "availability"]).is_ok());
+    }
+
     #[test]
     fn no_availability_is_carried_as_skipped() {
         let plan = search(&["search", "Kafka", "--no-availability"]).expect("a bare search");
@@ -1339,6 +1597,66 @@ mod tests {
             error.hint().unwrap_or_default().contains("--language ger"),
             "{error}"
         );
+    }
+
+    /// §1.7: `deu` passes the shape check, so the filter used to run, match nothing and
+    /// exit 1 — "searched, does not exist" for a mistyped flag, with advice to narrow a
+    /// search that was never the problem. It was the only input mistake in the whole test
+    /// run that escaped as an exit 1.
+    #[test]
+    fn a_terminology_code_names_the_bibliographic_one() {
+        for (terminology, bibliographic) in TERMINOLOGY_CODES {
+            let Err(error) = search(&["search", "Kafka", "--language", terminology]) else {
+                panic!("--language {terminology} must be redirected");
+            };
+            assert_eq!(error.kind(), "language_code_variant", "{terminology}");
+            assert_eq!(error.exit(), ExitCode::Usage, "{error}");
+            assert!(error.to_string().contains(terminology), "{error}");
+            assert!(
+                error.hint().unwrap_or_default().contains(bibliographic),
+                "the hint must name the code that was meant: {error}"
+            );
+        }
+        // Case is the user's business, and the message shows what they typed.
+        let Err(error) = search(&["search", "Kafka", "--language", "DEU"]) else {
+            panic!("case does not make it a different code");
+        };
+        assert_eq!(error.kind(), "language_code_variant");
+        assert!(error.to_string().contains("DEU"), "{error}");
+    }
+
+    /// A code in neither set keeps today's behaviour: MARC data carries codes no list
+    /// has, so the shape check passes and the filter simply matches nothing. Inventing a
+    /// closed vocabulary here would refuse legitimate searches.
+    #[test]
+    fn a_code_that_is_neither_variant_is_still_accepted() {
+        for value in ["xyz", "ger", "eng", "grc", "gsw"] {
+            let plan = search(&["search", "Kafka", "--language", value])
+                .unwrap_or_else(|error| panic!("--language {value} must pass: {error}"));
+            assert_eq!(plan.filters.language.as_deref(), Some(value));
+        }
+    }
+
+    /// The table is a redirect, so it must not contain a cycle: no bibliographic code may
+    /// appear on the left, or `--language ger` would be sent somewhere else again. The
+    /// shape is checked here too, because a mistyped entry would silently never match.
+    #[test]
+    fn the_terminology_table_redirects_once_and_only_once() {
+        for (terminology, bibliographic) in TERMINOLOGY_CODES {
+            for code in [terminology, bibliographic] {
+                assert_eq!(code.len(), LANGUAGE_CODE_LEN, "{code}");
+                assert!(code.chars().all(|c| c.is_ascii_lowercase()), "{code}");
+            }
+            assert_ne!(terminology, bibliographic);
+            assert!(
+                bibliographic_variant(bibliographic).is_none(),
+                "{bibliographic} is a target and must not also be redirected"
+            );
+        }
+        let mut terminology: Vec<&str> = TERMINOLOGY_CODES.iter().map(|(t, _)| *t).collect();
+        terminology.sort_unstable();
+        terminology.dedup();
+        assert_eq!(terminology.len(), TERMINOLOGY_CODES.len());
     }
 
     /// The codes the records actually carry, in the case the index wants.
