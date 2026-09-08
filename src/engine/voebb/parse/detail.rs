@@ -20,14 +20,22 @@
 //! column promises a loan that does not exist, so the order column decides between
 //! [`Status::Available`] and [`Status::Reference`].
 //!
-//! **The item table has three states, and two of them are empty for different reasons.**
+//! **The item table has four states, and three of them are empty for different reasons.**
 //! Present with rows is the normal case; present without a header row is a multi-part
-//! work whose volumes are records of their own (`detail_multivolume`); absent altogether
-//! is an electronic title whose loan state sits in the *text* of its lending link
+//! work whose volumes are records of their own (`detail_multivolume`); absent with a
+//! lending link is an electronic title whose loan state sits in the *text* of that link
 //! (`detail_online`, `detail_online_available`, `detail_overdrive`) and is read from
-//! there by [`lending_status`]. Each
-//! empty item list carries a note saying which — an empty list on its own is
-//! indistinguishable from "held nowhere", which is the worst answer this tool can give.
+//! there by [`lending_status`]; absent with no lending link at all is an electronic title
+//! whose access is a plain `URL` row and whose loan state is stated nowhere
+//! (`detail_online_url`, [`online_access_url`]). Each empty item list carries a note
+//! saying which — an empty list on its own is indistinguishable from "held nowhere",
+//! which is the worst answer this tool can give.
+//!
+//! A fifth shape is not a state but a failure, and it costs **one record** rather than
+//! the answer: a page with no readable item table and none of those three explanations
+//! yields [`crate::model::note_kinds::VOEBB_PAGE_UNREADABLE`] and a record without
+//! copies. Only a page whose *bibliographic* half is gone is still an error — there is no
+//! record left to report at that point.
 //!
 //! **The item table names no ISIL and no branch id.** The branch is matched from the text
 //! of the *Bibliothek* column against the VÖBB branches of the library list, folded and
@@ -40,7 +48,7 @@ use std::sync::OnceLock;
 
 use scraper::{ElementRef, Html, Selector};
 
-use crate::error::Error;
+use crate::error::{Error, REPORT_URL};
 use crate::libraries::{self, Branch, VOEBB_NETWORK, text::fold};
 use crate::model::{
     Author, AuthorKind, Format, Holding, Isil, Item, Note, Record, RecordId, ResourceUrl, Status,
@@ -69,14 +77,23 @@ pub struct DetailPage {
 /// the page itself repeats the number in several shapes, and reconstructing it from one
 /// of them is how a `voebb_` prefix gets lost.
 ///
-/// Fails only when the page is not a detail page at all — no `table.gi`, no `Titel` row,
-/// an item table whose header this parser does not recognise, or a missing item table on
-/// a record that has no lending link either. Everything softer is a note.
+/// Fails only when the page is not a **detail page at all** — no `table.gi`, no `Titel`
+/// row. Everything below that line is a note, the item table included: a table this
+/// parser cannot read costs the record its copies and nothing else, because the record
+/// is right there on the page and throwing it away over its copy list answers less than
+/// keeping it. The record then carries no items and [`Status::Unknown`], and
+/// [`page_unreadable`] says which selector stopped matching.
 pub fn parse_detail(html: &str, id: &RecordId) -> Result<DetailPage, Error> {
     let document = Html::parse_document(html);
     let bibliographic = Bibliographic::read(&document)?;
     let mut notes = Vec::new();
-    let items = items_of(&document, &bibliographic, &mut notes)?;
+    let items = match items_of(&document, &bibliographic, &mut notes) {
+        Ok(items) => items,
+        Err(error) => {
+            notes.push(page_unreadable(&error));
+            Vec::new()
+        }
+    };
     let record = record_of(id, &bibliographic, items);
     // Every note this page produced is about this one record, and it is named here
     // rather than at each `push` because that is true of all of them without exception:
@@ -86,6 +103,33 @@ pub fn parse_detail(html: &str, id: &RecordId) -> Result<DetailPage, Error> {
         note.records.push(id.clone());
     }
     Ok(DetailPage { record, notes })
+}
+
+/// The note that stands in for a record page this parser could not read.
+///
+/// The **one** place this note is worded, and both paths reach it: this module builds it
+/// when the item table alone is unreadable and the record survives, and
+/// [`crate::engine::voebb`] builds it when the whole page is unreadable and the result
+/// row is all that is left. One rule with two spellings is how `show` once painted a
+/// green light over a book a branch had lent out, and a note is no safer than a filter.
+///
+/// The caller decides *whether* an error may become a note —
+/// [`crate::error::Error::is_unreadable_document`] is that decision, and a timeout must
+/// never arrive here. This function only words it.
+///
+/// The message carries the failure verbatim: it names the selector, which is the only
+/// thing that tells a maintainer what the site changed. It names no record — the note's
+/// `records[]` does that, and a message that enumerated them could not be folded together
+/// with the identical note about the next record.
+pub fn page_unreadable(error: &Error) -> Note {
+    Note::new(
+        note_kinds::VOEBB_PAGE_UNREADABLE,
+        format!(
+            "voebb.de's record page is no longer a page blibs can read in full ({error}), \
+             so no copies could be listed for it — the record itself stands, its copies \
+             are simply unknown here; please report that selector at {REPORT_URL}"
+        ),
+    )
 }
 
 /// Whether this page is voebb.de's answer to a record number it does not hold.
@@ -425,6 +469,41 @@ fn lending_link(bibliographic: &Bibliographic) -> Option<&BibRow> {
         .find(|row| row.label.starts_with(LENDING_LINK))
 }
 
+/// The label of the row that carries a bare access link.
+const URL_ROW: &str = "URL";
+
+/// Where an electronic title without a lending link says its access is, or `None`.
+///
+/// The fourth state of the item table (`detail_online_url.html`, `voebb_SAK34364366`,
+/// measured 2026-09-08): `Medienart` `[E-Ressource]`, no `table#resptable-1`, no
+/// `Link zu …` row at all, and one `URL` row pointing at a URN resolver. It is a regular
+/// record and not a broken page — and it took a whole search down before it had a name.
+///
+/// **Two positive markers, never one.** The `URL` row on its own is not enough: a printed
+/// book carries one for its table of contents, and reading a missing item table as "an
+/// electronic title" because of it would turn a page this parser stopped understanding
+/// into a confident answer with no copies. So `Medienart` has to say the record *is*
+/// electronic as well — the same pairing [`is_missing_record`] uses, for the same reason.
+///
+/// Consulted only after [`lending_link`], because `detail_overdrive.html` carries **both**
+/// rows and its loan state, such as it is, belongs to the lending link.
+///
+/// The label is matched on a row of `table.gi`, never on the page's text: the hint block
+/// beside this very record reads "Bitte klicken Sie auf den Link zum Anbieter", which
+/// begins with [`LENDING_LINK`] and is prose in a `p.info`, not a row.
+fn online_access_url(bibliographic: &Bibliographic) -> Option<&str> {
+    let medienart = bibliographic.first("Medienart").unwrap_or_default();
+    if format_of(medienart, false).0 != Format::Ebook {
+        return None;
+    }
+    bibliographic
+        .rows
+        .iter()
+        .find(|row| row.label.eq_ignore_ascii_case(URL_ROW))
+        .and_then(|row| row.links.first())
+        .map(|(url, _)| url.as_str())
+}
+
 /// The two loan states an e-lending link states about itself, folded.
 ///
 /// Transcribed from the live site (`plan/voebb.md`); the three measured wordings are
@@ -499,17 +578,20 @@ fn url_kind(label: &str) -> UrlKind {
 
 /// The copies, and a note whenever there are none.
 ///
-/// The three states of `table#resptable-1`, all three fixture-backed:
+/// The four states of `table#resptable-1`, all four fixture-backed:
 ///
 /// | State | Meaning | Result |
 /// | --- | --- | --- |
 /// | table with rows | a normal record | the copies |
 /// | table without rows (and without `<thead>`) | a multi-part work; the volumes are records of their own | empty, [`note_kinds::VOEBB_MULTIVOLUME`] |
 /// | no table, but a `Link zu …` row | an electronic title; the loan state is in the link text, and [`lending_status`] reads it into the holding | empty, [`note_kinds::VOEBB_ONLINE_ONLY`] or [`note_kinds::VOEBB_ONLINE_STATE_UNSTATED`] |
+/// | no table and no lending link, but `Medienart` says electronic and a `URL` row points somewhere | an electronic title whose access is a plain link, with no loan state anywhere | empty, [`note_kinds::VOEBB_ONLINE_URL_ONLY`] |
 ///
-/// A missing table on a record that has no lending link is a named error: at that
-/// point the page has stopped being the page this parser knows, and an empty copy list
-/// would read as "held nowhere".
+/// A missing table with none of those three explanations is a named error: at that point
+/// the page has stopped being the page this parser knows, and an empty copy list would
+/// read as "held nowhere". [`parse_detail`] turns that error into
+/// [`note_kinds::VOEBB_PAGE_UNREADABLE`] and keeps the record — so the answer never goes
+/// silent, and one unknown page never costs the other nine hits their result.
 ///
 /// ## Why the electronic title has **two** tags
 ///
@@ -534,10 +616,25 @@ fn items_of(
     let selectors = selectors();
     let Some(table) = document.select(&selectors.item_table).next() else {
         let Some(row) = lending_link(bibliographic) else {
-            return Err(missing_selector("table#resptable-1"));
+            let Some(url) = online_access_url(bibliographic) else {
+                return Err(missing_selector("table#resptable-1"));
+            };
+            notes.push(Note::new(
+                note_kinds::VOEBB_ONLINE_URL_ONLY,
+                format!(
+                    "an electronic title has no copies on a shelf, and this one states no \
+                     lending link either — the access voebb.de names is the URL {url}, \
+                     and it says nothing about whether that access is free"
+                ),
+            ));
+            return Ok(Vec::new());
         };
         let state = row.values.first().map_or("", String::as_str);
         let label = &row.label;
+        // Worded for one record and for many alike, and enumerating none of them: an
+        // identical note about the next record is folded into this one by
+        // `Note::merged`, and the records are then the renderer's own line beneath the
+        // message. "this ... it" in front of four records was both wrong and unreadable.
         notes.push(match lending_status(Some(row)) {
             // No parenthesis (Overdrive), or one worded in a way nobody measured. The
             // raw text travels with the note so a new wording is visible rather than
@@ -545,16 +642,15 @@ fn items_of(
             Status::Unknown => Note::new(
                 note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
                 format!(
-                    "this is an electronic title ({label}): it has no copies on a shelf, \
-                     and its lending link states no loan status this tool can read — \
-                     {state:?}"
+                    "an electronic title has no copies on a shelf, and the {label} row \
+                     states no loan status this tool can read — {state:?}"
                 ),
             ),
             _ => Note::new(
                 note_kinds::VOEBB_ONLINE_ONLY,
                 format!(
-                    "this is an electronic title ({label}): it has no copies on a shelf, \
-                     and its loan status is the one its lending link states — {state:?}"
+                    "an electronic title has no copies on a shelf; the loan status shown \
+                     is the one the {label} row states — {state:?}"
                 ),
             ),
         });
@@ -565,8 +661,8 @@ fn items_of(
     if rows.is_empty() {
         notes.push(Note::new(
             note_kinds::VOEBB_MULTIVOLUME,
-            "voebb.de lists no copies for this record — for a multi-part work the copies \
-             belong to the volumes, which are records of their own; search for the volume",
+            "voebb.de lists no copies for a multi-part work — the copies belong to its \
+             volumes, which are records of their own; search for the volume",
         ));
         return Ok(Vec::new());
     }
@@ -665,7 +761,9 @@ fn status_of(
         notes.push(Note::new(
             note_kinds::AVAILABILITY_STATUS_CONFLICT,
             format!(
-                "voebb.de marked a copy {class:?} and called it {text:?} at the same time;                  it is reported as unavailable rather than as a loan that may not exist"
+                "voebb.de marked a copy {class:?} and called it {text:?} at the same \
+                 time; it is reported as unavailable rather than as a loan that may not \
+                 exist"
             ),
         ));
         return Status::Unavailable;
@@ -1018,6 +1116,8 @@ mod tests {
         include_str!("../../../../tests/fixtures/voebb/detail_multivolume.html");
     const UNKNOWN: &str = include_str!("../../../../tests/fixtures/voebb/detail_unknown.html");
     const OVERDRIVE: &str = include_str!("../../../../tests/fixtures/voebb/detail_overdrive.html");
+    const ONLINE_URL: &str =
+        include_str!("../../../../tests/fixtures/voebb/detail_online_url.html");
 
     /// Parse a fixture under the id it was fetched with.
     fn parsed(html: &str, local: &str) -> DetailPage {
@@ -1464,15 +1564,36 @@ mod tests {
         assert!(error.to_string().contains("Titel"), "{error}");
     }
 
-    /// An item table whose header this parser does not recognise is an error, not a table
-    /// read with shifted columns — that is how a four-column parser mangles a five-column
+    /// An item table whose header this parser does not recognise never yields a table read
+    /// with shifted columns — that is how a four-column parser mangles a five-column
     /// table without anyone noticing.
+    ///
+    /// This used to assert an `Err`, and the assertion was right about everything but its
+    /// blast radius: [`crate::http::scope_map`] fetches one record page per displayed
+    /// record and is all-or-nothing, so the one unreadable page took the other nine hits'
+    /// result with it (measured 2026-09-08). The record now stands with no copies and the
+    /// selector travels in [`note_kinds::VOEBB_PAGE_UNREADABLE`] — the same string, in a
+    /// place that costs one record instead of the answer.
     #[test]
     fn an_unrecognised_item_header_names_the_selector() {
         let broken = AVAILABLE.replace(">Verfügbarkeit</th>", ">Status</th>");
-        let error = parse_detail(&broken, &RecordId::voebb("SAK13776205"))
-            .expect_err("a copy without a status column says nothing");
-        assert!(error.to_string().contains("Verfügbarkeit"), "{error}");
+        let page = parsed(&broken, "SAK13776205");
+        assert!(
+            items(&page).is_empty(),
+            "a header nobody understands yields no copies, never shifted ones"
+        );
+        assert_eq!(page.record.holdings[0].summary, Status::Unknown);
+        let note = page
+            .notes
+            .iter()
+            .find(|note| note.kind == note_kinds::VOEBB_PAGE_UNREADABLE)
+            .expect("an empty copy list is never silent");
+        assert!(note.message.contains("Verfügbarkeit"), "{note:?}");
+        assert!(
+            note.message.contains(REPORT_URL),
+            "the selector is worth nothing without somewhere to report it: {note:?}"
+        );
+        assert_eq!(note.records, vec![RecordId::voebb("SAK13776205")]);
     }
 
     /// The second lending platform, found live on 2026-09-06: `Link zu Overdrive` where
@@ -1512,14 +1633,106 @@ mod tests {
         );
     }
 
-    /// A missing item table on a record with no lending link at all is a named error:
-    /// an empty copy list would read as "held nowhere".
+    /// A missing item table on a printed record with no lending link and no access URL is
+    /// never a silently empty copy list — it is the loud note that names the selector.
+    ///
+    /// It used to be an error, and the sentence it was written for still holds: an empty
+    /// copy list on its own reads as "held nowhere". What changed is only *where* the
+    /// noise goes. `CLAUDE.md`'s rule is that a missing selector must never become an
+    /// empty result; a note carrying the selector, tagged for agents and printed for
+    /// humans, keeps that promise while leaving the other records of the window alone.
     #[test]
-    fn a_missing_item_table_without_a_lending_link_is_an_error() {
+    fn a_missing_item_table_without_a_lending_link_is_a_loud_note() {
         let broken = AVAILABLE.replace("id=\"resptable-1\"", "id=\"resptable-2\"");
-        let error = parse_detail(&broken, &RecordId::voebb("SAK13776205"))
-            .expect_err("a record with neither copies nor a lending link is broken");
-        assert!(error.to_string().contains("resptable-1"), "{error}");
+        let page = parsed(&broken, "SAK13776205");
+        assert!(items(&page).is_empty());
+        assert_eq!(
+            page.record.holdings[0].summary,
+            Status::Unknown,
+            "no copies were read, so nothing may be claimed about them"
+        );
+        let note = page
+            .notes
+            .iter()
+            .find(|note| note.kind == note_kinds::VOEBB_PAGE_UNREADABLE)
+            .expect("a missing selector is never a silent empty result");
+        assert!(note.message.contains("resptable-1"), "{note:?}");
+    }
+
+    /// The fourth state of the item table, live on 2026-09-08 (`voebb_SAK34364366`): an
+    /// electronic title with **no** item table, **no** `Link zu …` row, and its access in
+    /// a plain `URL` row. Nine sound hits of `--author "von Schirach" --at AGB` were
+    /// thrown away over this one page before it had a name.
+    #[test]
+    fn an_electronic_title_may_state_its_access_as_a_bare_url() {
+        let page = parsed(ONLINE_URL, "SAK34364366");
+        assert!(items(&page).is_empty(), "an e-resource has no copies");
+        assert_eq!(page.record.format, Format::Ebook);
+        assert!(page.record.online);
+        assert_eq!(
+            page.record.holdings[0].summary,
+            Status::Unknown,
+            "voebb.de says nothing about whether this access is free, so neither do we"
+        );
+
+        let kinds: Vec<&str> = page.notes.iter().map(|note| note.kind).collect();
+        assert_eq!(kinds, vec![note_kinds::VOEBB_ONLINE_URL_ONLY], "{kinds:?}");
+        let note = &page.notes[0];
+        assert!(
+            note.message
+                .contains("http://nbn-resolving.de/urn:nbn:de:kobv:109-1-15402775"),
+            "the note says where the access points: {note:?}"
+        );
+        assert_eq!(note.records, vec![RecordId::voebb("SAK34364366")]);
+    }
+
+    /// The trap this page carries: its hint block reads "Bitte klicken Sie auf den Link
+    /// zum Anbieter", which begins with the very prefix [`LENDING_LINK`] matches. It is
+    /// prose in a `p.info` and not a row of `table.gi`, so a parser that searched the
+    /// page's *text* would read a lending link that is not there — and then report a loan
+    /// status nobody stated.
+    #[test]
+    fn the_hint_prose_is_not_mistaken_for_a_lending_link() {
+        let page = parsed(ONLINE_URL, "SAK34364366");
+        assert!(
+            ONLINE_URL.contains("Link zum Anbieter"),
+            "the fixture has to keep the trap it exists for"
+        );
+        assert!(
+            page.notes
+                .iter()
+                .all(|note| note.kind != note_kinds::VOEBB_ONLINE_ONLY
+                    && note.kind != note_kinds::VOEBB_ONLINE_STATE_UNSTATED),
+            "prose in a p.info is not a lending link: {:?}",
+            page.notes
+        );
+        assert!(
+            page.record
+                .urls
+                .iter()
+                .all(|url| url.kind != UrlKind::Fulltext),
+            "no row is labelled with a lending link, so nothing is one: {:?}",
+            page.record.urls
+        );
+    }
+
+    /// The two markers of the fourth state are both required. A printed book whose item
+    /// table stopped matching also carries a `URL` row — for its table of contents — and
+    /// reading that as "an electronic title without copies" would turn a page this parser
+    /// no longer understands into a confident answer.
+    #[test]
+    fn a_bare_url_alone_does_not_make_a_record_electronic() {
+        let broken = ON_LOAN
+            .replace("id=\"resptable-1\"", "id=\"resptable-2\"")
+            .replace(">Inhaltsverzeichnis</th>", ">URL</th>");
+        let page = parsed(&broken, "SAK00177143");
+        assert_eq!(page.record.format, Format::Book, "Medienart says [Band]");
+        let kinds: Vec<&str> = page.notes.iter().map(|note| note.kind).collect();
+        assert_eq!(
+            kinds,
+            vec![note_kinds::VOEBB_PAGE_UNREADABLE],
+            "a book with a URL row is a page we cannot read, not an e-resource: {kinds:?}"
+        );
     }
 
     /// A status word this tool does not know degrades one copy to

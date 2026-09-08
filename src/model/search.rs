@@ -405,6 +405,51 @@ impl Note {
             records: records.into_iter().collect(),
         }
     }
+
+    /// Fold notes that say **the same thing** into one, uniting their records.
+    ///
+    /// One note per record is how the engines produce them — the note is about a record,
+    /// so it names one — and four identical paragraphs under a ten-line result is how
+    /// that reads at a terminal: the reader cannot tell which four of the ten lines are
+    /// meant, although `records[]` has said so all along. Folding turns those four into
+    /// one note with four records, which is the same information in the shape both
+    /// audiences can use.
+    ///
+    /// **`kind` *and* `message` have to match.** Two notes of one kind whose messages
+    /// differ say different things — another platform's name, another quoted wording,
+    /// another selector — and merging them would keep one sentence and silently drop the
+    /// other. That is also why the messages this crate writes for a per-record note are
+    /// worded for one record and for many alike: nothing in them enumerates the records,
+    /// which is the renderer's line beneath the message.
+    ///
+    /// Order is first appearance, for the notes and for the records inside them, so a
+    /// document does not reshuffle when one record more or less matched. A record named
+    /// twice by two folded notes appears once.
+    ///
+    /// It lives here, on [`Note`], and not in either engine: `notes[]` from `kobv` and
+    /// from `voebb` arrive in the same list, a fold in one client would leave the other
+    /// engine repeating itself, and the two documents that carry notes —
+    /// [`SearchResult`] and [`ShowResult`] — must not grow two ideas of what a duplicate
+    /// note is.
+    pub fn merged(notes: Vec<Note>) -> Vec<Note> {
+        let mut merged: Vec<Note> = Vec::with_capacity(notes.len());
+        for note in notes {
+            match merged
+                .iter_mut()
+                .find(|kept| kept.kind == note.kind && kept.message == note.message)
+            {
+                Some(kept) => {
+                    for id in note.records {
+                        if !kept.records.contains(&id) {
+                            kept.records.push(id);
+                        }
+                    }
+                }
+                None => merged.push(note),
+            }
+        }
+        merged
+    }
 }
 
 /// Every value [`Note::kind`] can take.
@@ -499,6 +544,36 @@ pub mod note_kinds {
     /// a guess. The note carries the link's raw text so that a new wording shows up
     /// instead of being swallowed, and the holding stays [`Status::Unknown`].
     pub const VOEBB_ONLINE_STATE_UNSTATED: &str = "voebb_online_state_unstated";
+
+    /// The third shape of an electronic title, and a completely regular one: no copies,
+    /// **no lending link either**, and the access stated as a plain `URL` row.
+    ///
+    /// Measured 2026-09-08 on `voebb_SAK34364366` (`detail_online_url.html`): `Medienart`
+    /// `[E-Ressource]`, no `table#resptable-1`, no `Link zu …` row, and one `URL` row
+    /// pointing at a URN resolver. The parser used to know only the two lending-link
+    /// shapes and called this page broken, which took a whole search down with it.
+    ///
+    /// Its own tag rather than [`VOEBB_ONLINE_ONLY`]'s, because the two answer different
+    /// questions: a lending link states a loan state and this states none at all. The
+    /// holding is [`Status::Unknown`] — whether the resolver's target is free to read is
+    /// something voebb.de does not say, and a guess here would be a promise the tool
+    /// cannot keep.
+    pub const VOEBB_ONLINE_URL_ONLY: &str = "voebb_online_url_only";
+
+    /// A voebb.de record page arrived and is not a page this parser recognises, so that
+    /// **one record** lost its copies while the rest of the answer stood.
+    ///
+    /// The granularity is the point. A single unknown page used to abort the whole
+    /// invocation with `selector "table#resptable-1" matched nothing`, so nine sound hits
+    /// were thrown away for the tenth (measured 2026-09-08, `--author "von Schirach"
+    /// --at AGB`). Now the record keeps its place with [`Status::Unknown`], and this note
+    /// carries the selector that stopped matching plus where to report it — the two
+    /// things the old error message was right to say.
+    ///
+    /// It is **never** set for a network failure, a 429/503 or a lost voebb.de session:
+    /// [`crate::error::Error::is_unreadable_document`] draws that line, and those still
+    /// stop the invocation rather than come back as "status unknown".
+    pub const VOEBB_PAGE_UNREADABLE: &str = "voebb_page_unreadable";
 
     /// voebb.de's advanced search has no free-text index, so free terms next to a field
     /// flag were searched as a title — the closest index the form offers.
@@ -720,8 +795,25 @@ impl ShowResult {
             record,
             at: Vec::new(),
             availability,
-            notes,
+            notes: Note::merged(notes),
         }
+    }
+
+    /// Put the engine's notes in front of the derived ones, folding duplicates.
+    ///
+    /// In front because the engine's notes say what the *page* could not state — an
+    /// e-lending title has no item table at all — and that has to be read before the
+    /// sentences about a serial's volumes or a copy's due date, which assume a list of
+    /// copies exists.
+    ///
+    /// A method rather than a splice at the call site so that [`Self::notes`] is folded
+    /// after every way it can be filled: [`Self::new`] folds what it derives, this folds
+    /// what the engine adds, and `search` folds its own list through the same
+    /// [`Note::merged`]. One idea of what a duplicate note is, for both documents.
+    pub fn prepend_notes(&mut self, notes: Vec<Note>) {
+        let mut all = notes;
+        all.append(&mut self.notes);
+        self.notes = Note::merged(all);
     }
 }
 
@@ -932,6 +1024,8 @@ mod tests {
             note_kinds::VOEBB_MULTIVOLUME,
             note_kinds::VOEBB_ONLINE_ONLY,
             note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
+            note_kinds::VOEBB_ONLINE_URL_ONLY,
+            note_kinds::VOEBB_PAGE_UNREADABLE,
             note_kinds::VOEBB_FREE_TERMS_AS_TITLE,
             note_kinds::VOEBB_QUERY_TRUNCATED,
             note_kinds::VOEBB_BRANCH_NOT_LISTED,
@@ -1420,6 +1514,77 @@ mod tests {
             unnamed,
             Note::new(note_kinds::VOEBB_ONLINE_ONLY, "an Onleihe title")
         );
+    }
+
+    /// Four records that hit one limitation are **one** note naming four records.
+    ///
+    /// Measured 2026-09-08: `search --author Kafka --at AGB` printed the same
+    /// `voebb_online_state_unstated` paragraph four times, and nothing beside it told a
+    /// reader which four of the ten displayed lines were meant — although `records[]` had
+    /// said so all along.
+    #[test]
+    fn notes_that_say_the_same_thing_become_one_naming_every_record() {
+        let same = |local: &str| {
+            Note::about(
+                note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
+                "an electronic title has no copies on a shelf",
+                [RecordId::voebb(local)],
+            )
+        };
+        let merged = Note::merged(vec![
+            same("SAK1"),
+            same("SAK2"),
+            same("SAK3"),
+            // The same record twice — two locations can return one edition — is named
+            // once, because `records[]` is a set of records and not a tally of notes.
+            same("SAK2"),
+        ]);
+        assert_eq!(merged.len(), 1, "{merged:?}");
+        assert_eq!(
+            merged[0].records,
+            vec![
+                RecordId::voebb("SAK1"),
+                RecordId::voebb("SAK2"),
+                RecordId::voebb("SAK3")
+            ],
+            "first appearance decides the order: {merged:?}"
+        );
+    }
+
+    /// One kind is not one statement. Two notes of a kind whose messages differ name
+    /// another platform, another quoted wording or another selector, and folding them
+    /// would keep one sentence and silently drop the other.
+    #[test]
+    fn notes_of_one_kind_that_say_different_things_stay_apart() {
+        let onleihe = Note::about(
+            note_kinds::VOEBB_ONLINE_ONLY,
+            "the Link zur Onleihe row states: ausgeliehen",
+            [RecordId::voebb("SAK1")],
+        );
+        let overdrive = Note::about(
+            note_kinds::VOEBB_ONLINE_ONLY,
+            "the Link zu Overdrive row states: verfügbar",
+            [RecordId::voebb("SAK2")],
+        );
+        let merged = Note::merged(vec![onleihe.clone(), overdrive.clone(), onleihe.clone()]);
+        assert_eq!(merged, vec![onleihe, overdrive], "{merged:?}");
+    }
+
+    /// The fold reaches both documents, and `show` folds again after the engine's notes
+    /// are put in front of the derived ones — otherwise the one place a note can be added
+    /// after assembly would be the one place duplicates survive.
+    #[test]
+    fn a_show_document_folds_the_engines_notes_too() {
+        let same = || {
+            Note::about(
+                note_kinds::VOEBB_ONLINE_ONLY,
+                "an electronic title has no copies on a shelf",
+                [RecordId::voebb("SAK1")],
+            )
+        };
+        let mut result = ShowResult::new(None, Engine::Voebb, &[], AvailabilityMode::Fetched);
+        result.prepend_notes(vec![same(), same()]);
+        assert_eq!(result.notes, vec![same()], "{:?}", result.notes);
     }
 
     /// Empty notes vanish from the document; a non-empty one must never be swallowed.

@@ -42,7 +42,7 @@ use crate::model::{
 };
 
 use client::{ResultView, VoebbClient};
-use parse::detail::format_of;
+use parse::detail::{self, DetailPage, format_of};
 use parse::results::Hit;
 use session::Session;
 
@@ -70,6 +70,29 @@ pub const MAX_POSITION: u32 = ROWS_PER_PAGE * MAX_PAGES;
 /// The voebb.de engine.
 pub struct Voebb<'f> {
     client: VoebbClient<'f>,
+}
+
+/// What asking voebb.de for one record page produced.
+///
+/// Three outcomes and not two, because "there is no such record" and "this page carries
+/// no record blibs can read" are opposite statements: the first is an empty result
+/// (exit 1 in `show`), the second is a failure to read something that may well be there.
+/// Collapsing them makes the tool say a record does not exist when all it did was fail to
+/// parse the page — the silent wrong answer `CLAUDE.md` forbids above all others.
+enum Detail {
+    /// The page, parsed. Boxed because it is much the largest of the three and clippy is
+    /// right that a `Result` should not pay for it on every call.
+    Page(Box<DetailPage>),
+    /// voebb.de has no record page under this number — its search entry page came back.
+    Missing,
+    /// The page arrived and carries no record this parser can read. **The error travels,
+    /// not a finished note**, because the two callers owe the user different things: the
+    /// search path already has the record from its result row and turns this into
+    /// [`detail::page_unreadable`], while `show` has nothing to show and must let the
+    /// error through. Handing both a ready-made note would have made `show` answer
+    /// `record: null`, which `cli::run` reports as "no such record" — exit 1 for a page
+    /// it merely could not read.
+    Unreadable(Error),
 }
 
 /// What one location's search produced.
@@ -148,6 +171,34 @@ impl<'f> Voebb<'f> {
             hits,
             notes,
         })
+    }
+
+    /// One record page, with a page-shaped failure separated out rather than raised.
+    ///
+    /// **The one place both paths get a record page from**, and the reason it exists:
+    /// [`Self::fill_availability`] runs one of these per displayed record through
+    /// [`scope_map`], whose contract is all-or-nothing, so a single unreadable page used
+    /// to throw the entire result away. Measured 2026-09-08: `--author "von Schirach"
+    /// --at AGB` has 146 hits, ten in the window, nine of them flawless — and printed
+    /// `selector "table#resptable-1" matched nothing` and nothing else. The granularity
+    /// of that failure is now the record.
+    ///
+    /// The line between the two kinds of failure is
+    /// [`crate::error::Error::is_unreadable_document`], on the error type where it can be
+    /// stated once and tested: a page that arrived and changed shape is separable, while
+    /// a timeout, a 429/503, a lost session or a missing cookie is raised here and stops
+    /// the invocation. Degrading those would report an outage as "status unknown", which
+    /// is worse than any error message.
+    ///
+    /// What *separable* then costs is the caller's decision and not this function's,
+    /// because the two callers hold different things: see [`Detail::Unreadable`].
+    fn detail(&self, id: &RecordId) -> Result<Detail, Error> {
+        match self.client.detail(id) {
+            Ok(Some(page)) => Ok(Detail::Page(Box::new(page))),
+            Ok(None) => Ok(Detail::Missing),
+            Err(error) if error.is_unreadable_document() => Ok(Detail::Unreadable(error)),
+            Err(error) => Err(error),
+        }
     }
 
     /// Page forward until the requested window is covered.
@@ -283,7 +334,7 @@ impl Catalog for Voebb<'_> {
             .enumerate()
             .map(|(index, record)| (index, record.id.clone()))
             .collect();
-        let answers = scope_map(wanted, |(index, id)| Ok((index, self.client.detail(&id)?)))?;
+        let answers = scope_map(wanted, |(index, id)| Ok((index, self.detail(&id)?)))?;
 
         let mut notes = Vec::new();
         for (index, answer) in answers {
@@ -293,20 +344,26 @@ impl Catalog for Voebb<'_> {
                 continue;
             };
             match answer {
-                Some(page) => {
+                Detail::Page(page) => {
                     merge_detail(record, page.record);
                     notes.extend(page.notes);
                 }
                 // The row named a record the record page no longer knows. Saying nothing
                 // would leave an empty copy list that reads as "held nowhere".
-                None => notes.push(Note::about(
+                Detail::Missing => notes.push(Note::about(
                     note_kinds::AVAILABILITY_NOT_STATED,
-                    format!(
-                        "voebb.de listed {} in its results but has no record page for it",
-                        record.id
-                    ),
+                    "voebb.de listed a record in its results and then had no record page \
+                     for it, so its copies could not be fetched",
                     [record.id.clone()],
                 )),
+                // The row is all this record has, and it keeps it. Its copies are
+                // unknown, which is what the row already said — and the note that says so
+                // is worded by the same function the parser uses when only the item table
+                // is unreadable, so one limitation has one wording.
+                Detail::Unreadable(error) => {
+                    let note = detail::page_unreadable(&error);
+                    notes.push(Note::about(note.kind, note.message, [record.id.clone()]));
+                }
             }
         }
         Ok(notes)
@@ -324,15 +381,31 @@ impl Catalog for Voebb<'_> {
     /// why. The search path carried the same notes through all along
     /// ([`Self::fill_availability`]), which is what made the two forms answer differently
     /// about one record.
+    ///
+    /// ## Where this path parts from the search path, and why
+    ///
+    /// Both go through [`Self::detail`], so an unreadable **item table** costs the record
+    /// its copies in either form: [`parse_detail`](detail::parse_detail) keeps the record
+    /// and attaches the note, `show` prints both and exits 0. That is the shape both
+    /// measured failures had, and it is one rule in one function.
+    ///
+    /// A page carrying **no readable record at all** is where the two must differ, and
+    /// the difference is not a matter of taste. The search path still holds the result
+    /// row, so degrading costs one record its copies. Here there is nothing left, and
+    /// `EngineShow { record: None }` is not a free choice: `cli::run` renders that as
+    /// [`crate::error::EmptyReason::NoSuchRecord`] — exit 1, "there is no such record",
+    /// with the note dropped entirely on the human path. That is the tool asserting a
+    /// record does not exist when all it did was fail to read the page, which is a worse
+    /// answer than the error. So the error goes through.
     fn show(&self, id: &RecordId, _mode: AvailabilityMode) -> Result<EngineShow, Error> {
-        Ok(self
-            .client
-            .detail(id)?
-            .map(|page| EngineShow {
+        match self.detail(id)? {
+            Detail::Page(page) => Ok(EngineShow {
                 record: Some(page.record),
                 notes: page.notes,
-            })
-            .unwrap_or_default())
+            }),
+            Detail::Missing => Ok(EngineShow::default()),
+            Detail::Unreadable(error) => Err(error),
+        }
     }
 }
 

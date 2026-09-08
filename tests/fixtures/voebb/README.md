@@ -115,6 +115,49 @@ Dazu eine Falle ohne eigene Fixture, belegt an `advanced_form.html`: die Seite t
 ausgefüllten Zeilen weg. Die Engine nimmt darum bei der erweiterten Suche die **letzte**
 Schaltfläche dieser Beschriftung.
 
+### Nachtrag 2026-09-08 (Runde 3, Fund 1) — der **vierte** Zustand der Exemplartabelle
+
+`detail_online_url.html` ist wieder eine echte Serverantwort, gezogen am **2026-09-08** mit
+demselben Rezept wie die übrigen Detailseiten:
+
+```bash
+curl -s -L -c jar -b jar -A 'blibs/0.1 (+https://github.com/EiSiMo/blibs)' \
+     -o detail_online_url.html \
+     'https://www.voebb.de/aDISWeb/app/prod00?sp=SPROD00&sp=SAK34364366'
+python3 slim.py detail_online_url.html      # 59 037 -> 17 521 Byte
+```
+
+| Datei | Satz | Was sie belegt |
+| --- | --- | --- |
+| `detail_online_url.html` | `SAK34364366` (Herkunft: `…/prod00?sp=SPROD00&sp=SAK34364366`) | **E-Ressource ohne Leihlink.** `Medienart` = `[E-Ressource]`, **kein `table#resptable-1`**, **keine `Besitzende Bibliotheken`**, und **keine `Link zu …`-Zeile** — der Zugang steht in einer schlichten `URL`-Zeile (`http://nbn-resolving.de/urn:nbn:de:kobv:109-1-15402775`). Der vierte Zustand neben „gefüllt“, „leer (mehrbändig)“ und „fehlt, aber Leihlink“ |
+
+Warum die Datei existiert: dieser eine Satz hat am 2026-09-08 die ganze Suche
+`blibs search --author "von Schirach" --at AGB` mit
+`error: voebb detail page: selector "table#resptable-1" matched nothing` beendet — 146
+Treffer, zehn im Fenster, neun davon einwandfrei, Ausgabe leer. Der Parser kannte nur die
+beiden Leihlink-Formen.
+
+**Die Falle, die die Datei mitbringt** — und der Grund, warum an ihr `div#R21` nicht
+gekürzt werden darf: der Hinweisblock *Weg zum Medium* enthält den Fließtext
+
+```html
+<p class="info">Bitte klicken Sie auf den Link zum Anbieter</p>
+```
+
+„Link zum Anbieter“ beginnt mit demselben Präfix `Link zu`, auf das die Leihlink-Erkennung
+prüft. Es ist aber **Prosa in einem `p.info`**, keine `<th scope="row">`-Zeile von
+`table.gi`. Ein Parser, der den Seitentext durchsucht statt der Zeilenetiketten, liest hier
+einen Leihlink, den es nicht gibt, und meldet dann einen Leihstand, den niemand gesagt hat.
+Zwei Tests halten das fest (`the_hint_prose_is_not_mistaken_for_a_lending_link`,
+`a_bare_url_alone_does_not_make_a_record_electronic`).
+
+Erkannt wird der Zustand über **zwei positive Merkmale**, nie über eines: `Medienart` muss
+elektronisch sein *und* eine `URL`-Zeile muss auf etwas zeigen. Die `URL`-Zeile allein
+genügt nicht — `detail_on_loan.html` ist ein gedrucktes Buch mit einer
+`Inhaltsverzeichnis`-Zeile, und eine kaputte Exemplartabelle daneben würde sonst als
+„E-Ressource ohne Exemplare“ durchgehen. `detail_overdrive.html` trägt **beides**, `URL`
+und `Link zu Overdrive`; deshalb wird der Leihlink zuerst geprüft.
+
 ## Was gekürzt wurde
 
 Zusammen waren es 1,1 MB, davon der Löwenanteil Rahmenwerk. `slim.py` entfernt daraus
@@ -151,4 +194,5 @@ Nicht angefasst: `noaccess.html` (die Datei ist der Beweis, dass dort weder `<ti
 | `advanced_form.html` | 111 KiB | 27 KiB |
 | `noaccess.html` | 8 KiB | 8 KiB |
 | `detail_*.html` (5) | 314 KiB | 91 KiB |
+| `detail_online_url.html` | 58 KiB | 17 KiB |
 | **gesamt** | **1,1 MB** | **384 KiB** |

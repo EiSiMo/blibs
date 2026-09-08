@@ -13,8 +13,8 @@
 mod common;
 
 use blibs::cli::{Cli, run};
-use blibs::error::{Error, ExitCode, Outcome};
-use blibs::http::Request;
+use blibs::error::{Error, ExitCode, NetworkError, Outcome};
+use blibs::http::{Fetch, Request};
 use blibs::render::Style;
 use clap::Parser;
 
@@ -50,7 +50,7 @@ impl Ran {
     }
 }
 
-fn invoke(args: &[&str], fetch: &FixtureFetch) -> Ran {
+fn invoke(args: &[&str], fetch: &dyn Fetch) -> Ran {
     let mut out = Vec::new();
     let mut err = Vec::new();
     let outcome = run(&cli(args), fetch, &mut out, &mut err, Style::plain(WIDE));
@@ -1399,8 +1399,11 @@ fn show_of_an_online_title_states_why_it_lists_no_copies() {
     let ran = invoke(&["show", "voebb_SAK16112988"], &fetch);
 
     assert_eq!(ran.exit(), ExitCode::Success);
+    // The wording lost its "this … it" when the per-record notes were made to read
+    // correctly for one record and for four folded into one (round 3, Fund 2); what the
+    // assertion is about — that the empty copy list is never silent — is unchanged.
     assert!(
-        ran.out.contains("it has no copies on a shelf"),
+        ran.out.contains("has no copies on a shelf"),
         "the missing copy list needs its reason: {}",
         ran.out
     );
@@ -1466,5 +1469,360 @@ fn show_at_a_branch_reports_that_branchs_copy() {
     assert_eq!(
         json["at"][0]["status"], "unavailable",
         "the pipeline an agent writes must not read the house's light: {json}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Round 3: one unreadable record page costs one record, never the answer
+// ---------------------------------------------------------------------------
+
+/// A record page that arrived and is **not** a detail page: the bibliographic tables are
+/// gone, but `div#R03` is still there, so this is not voebb.de's "no such record" answer
+/// either. It is the shape the parser cannot recover a record from at all.
+fn page_without_bibliographic_tables() -> String {
+    read_fixture("voebb/detail_available.html")
+        .replace("<table class=\"gi\"", "<table class=\"gx\"")
+}
+
+/// The session of [`voebb_fetch`], with one record's page replaced by an unreadable one.
+fn one_unreadable_page_fetch() -> FixtureFetch {
+    FixtureFetch::new()
+        .route(
+            |request| has_field(request, "$CbTree_text"),
+            read_fixture("voebb/results_filtered.html"),
+        )
+        .route(
+            |request| record_of(request) == "SAK01164255",
+            page_without_bibliographic_tables(),
+        )
+        .route(is_record_page, read_fixture("voebb/detail_available.html"))
+        .route(
+            |request| has_field(request, "$Autosuggest"),
+            read_fixture("voebb/results.html"),
+        )
+        .fallback("voebb/start.html")
+}
+
+/// One page blibs cannot read costs **that record** its copies and nothing else.
+///
+/// Measured live 2026-09-08: `search --author "von Schirach" --at AGB` has 146 hits, ten
+/// in the window, nine of them flawless — and printed
+/// `error: voebb detail page: selector "table#resptable-1" matched nothing` and not one
+/// of them. `fill_availability` fetches those ten pages through `scope_map`, whose
+/// contract is all-or-nothing, so the first parse failure threw the whole result away.
+#[test]
+fn one_unreadable_record_page_never_empties_the_result() {
+    let fetch = one_unreadable_page_fetch();
+    let ran = invoke(
+        &[
+            "--json", "search", "Vorleser", "--at", "AGB", "--limit", "3",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let ids: Vec<&str> = document["records"]
+        .as_array()
+        .expect("records is an array")
+        .iter()
+        .filter_map(|record| record["id"].as_str())
+        .collect();
+    assert_eq!(ids.len(), 3, "every hit of the window arrives: {ids:?}");
+    assert!(ids.contains(&"voebb_SAK01164255"), "{ids:?}");
+
+    let notes = document["notes"].as_array().expect("notes is an array");
+    let unreadable: Vec<&serde_json::Value> = notes
+        .iter()
+        .filter(|note| note["kind"] == "voebb_page_unreadable")
+        .collect();
+    assert_eq!(
+        unreadable.len(),
+        1,
+        "exactly one record failed, so exactly one note: {notes:?}"
+    );
+    assert_eq!(
+        unreadable[0]["records"],
+        serde_json::json!(["voebb_SAK01164255"]),
+        "the note names the record it cost: {:?}",
+        unreadable[0]
+    );
+    assert!(
+        unreadable[0]["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("table.gi")
+                && message.contains("github.com/EiSiMo/blibs/issues")),
+        "the selector and where to report it are the whole point: {:?}",
+        unreadable[0]
+    );
+
+    // And the other two records still carry the copies their pages stated.
+    let items = document["records"][0]["holdings"][0]["items"]
+        .as_array()
+        .expect("items is an array");
+    assert!(!items.is_empty(), "{document}");
+}
+
+/// The other half of the line: a **transport** failure still stops the invocation.
+///
+/// Degrading a timeout, a 429/503 or a lost voebb.de session into "status unknown" would
+/// sell an outage as an answer, which is worse than any error message. The predicate that
+/// decides this is `Error::is_unreadable_document`, on the error type where it is stated
+/// once — never a string comparison at a call site.
+#[test]
+fn a_transport_failure_is_still_an_error_and_not_a_note() {
+    let stub = one_unreadable_page_fetch();
+    let failing = move |request: &Request| {
+        if record_of(request) == "SAK01164255" {
+            return Err(Error::Network(NetworkError::Timeout {
+                host: "www.voebb.de".to_owned(),
+                seconds: 10,
+            }));
+        }
+        stub.fetch(request)
+    };
+    let ran = invoke(
+        &[
+            "--json", "search", "Vorleser", "--at", "AGB", "--limit", "3",
+        ],
+        &failing,
+    );
+
+    assert_eq!(
+        ran.exit(),
+        ExitCode::Network,
+        "a host that did not answer is not a record whose copies are unknown: {}",
+        ran.out
+    );
+}
+
+/// `show` of a record whose page cannot be read in full states why and still exits 0.
+///
+/// The rule is one function ([`Voebb::detail`]) for both paths, and the parser keeps the
+/// record whenever the *item table* alone is unreadable — which is the shape both
+/// measured failures had. So `show` prints the record, prints the note, and does not
+/// abort. `CLAUDE.md` has a whole trap line about one rule with two spellings.
+#[test]
+fn show_of_a_page_with_an_unreadable_item_table_still_shows_the_record() {
+    let broken =
+        read_fixture("voebb/detail_available.html").replace("id=\"resptable-1\"", "id=\"resp-x\"");
+    let fetch = FixtureFetch::new().route(is_record_page, broken);
+    let ran = invoke(&["show", "voebb_SAK13776205"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    assert!(
+        ran.out.contains("Bernhard Schlink, Der Vorleser"),
+        "the record is right there on the page: {}",
+        ran.out
+    );
+    assert!(
+        ran.out.contains("resptable-1"),
+        "a missing selector is never a silently empty copy list: {}",
+        ran.out
+    );
+
+    let json = invoke(&["show", "voebb_SAK13776205", "--json"], &fetch).json();
+    let kinds: Vec<&str> = json["notes"]
+        .as_array()
+        .map(|notes| {
+            notes
+                .iter()
+                .filter_map(|note| note["kind"].as_str())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(
+        kinds.contains(&"voebb_page_unreadable"),
+        "an agent branches on the kind, not on the wording: {json}"
+    );
+}
+
+/// The other half of the same rule: a page carrying **no readable record at all** is an
+/// error in `show`, and specifically **not** "there is no such record".
+///
+/// Where the search path still holds the result row and can degrade to a note, `show` has
+/// nothing left. Answering `record: null` there is not a neutral choice: `cli::run` turns
+/// it into [`EmptyReason::NoSuchRecord`] — exit 1, "no such record", with the note dropped
+/// on the human path — so the tool would assert that a record does not exist when all it
+/// did was fail to read the page. Exit 6 says what actually happened, and names the
+/// selector.
+#[test]
+fn show_of_a_page_with_no_readable_record_is_exit_six_and_not_exit_one() {
+    let fetch = FixtureFetch::new().route(is_record_page, page_without_bibliographic_tables());
+    let ran = invoke(&["show", "voebb_SAK13776205"], &fetch);
+
+    assert_eq!(
+        ran.exit(),
+        ExitCode::Unexpected,
+        "\"could not read\" is not \"does not exist\": {} {}",
+        ran.out,
+        ran.err
+    );
+    assert_ne!(
+        ran.exit(),
+        ExitCode::NoResults,
+        "exit 1 would claim voebb.de has no such record"
+    );
+    // `run` hands the error back rather than rendering it, so the message is read off the
+    // outcome — the same object the binary turns into its error document.
+    let error = ran.outcome.expect_err("an unreadable page is not a result");
+    assert_eq!(
+        error.kind(),
+        "missing_selector",
+        "an agent branches on the kind, not on the wording: {error}"
+    );
+    assert!(
+        error.to_string().contains("table.gi"),
+        "the selector is the only thing that tells a maintainer what moved: {error}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Round 3: the fourth state of the item table
+// ---------------------------------------------------------------------------
+
+/// Every displayed record answered by `voebb_SAK34364366`'s page — an electronic title
+/// whose access is a bare `URL` row and which has no item table and no lending link.
+fn url_only_fetch() -> FixtureFetch {
+    FixtureFetch::new()
+        .route(
+            |request| has_field(request, "$CbTree_text"),
+            read_fixture("voebb/results_filtered.html"),
+        )
+        .route(is_record_page, read_fixture("voebb/detail_online_url.html"))
+        .route(
+            |request| has_field(request, "$Autosuggest"),
+            read_fixture("voebb/results.html"),
+        )
+        .fallback("voebb/start.html")
+}
+
+/// The fourth state end to end: a regular record, not a broken page.
+///
+/// `--at AGB` puts it in the AGB's block because voebb.de's own branch facet returned it
+/// there; the page names no owning library, so the holding stays the network's, with no
+/// copies and no traffic light. Nothing here claims the AGB holds it, and nothing claims
+/// it is held nowhere — the note says what the page actually states.
+#[test]
+fn an_electronic_title_with_only_a_url_is_a_state_and_not_a_failure() {
+    let fetch = url_only_fetch();
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Kinderrechte",
+            "--at",
+            "AGB",
+            "--limit",
+            "1",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let holding = &document["records"][0]["holdings"][0];
+    assert_eq!(
+        holding["isil"], "DE-609",
+        "the page names no owning library, so the holding stays the network's: {holding}"
+    );
+    assert_eq!(
+        holding["summary"], "unknown",
+        "voebb.de says nothing about this access, so neither do we: {holding}"
+    );
+    assert_eq!(holding["items"], serde_json::json!([]), "{holding}");
+    assert_eq!(
+        document["at"][0]["total"], 35,
+        "the block is the facet's own count, untouched by any of this: {document}"
+    );
+
+    let notes = document["notes"].as_array().expect("notes is an array");
+    assert!(
+        notes
+            .iter()
+            .any(|note| note["kind"] == "voebb_online_url_only"),
+        "the fourth state has its own tag: {notes:?}"
+    );
+    assert!(
+        notes
+            .iter()
+            .all(|note| note["kind"] != "voebb_page_unreadable"),
+        "it is a regular record and not a page blibs failed on: {notes:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Round 3: one limitation, one note, every record it is about
+// ---------------------------------------------------------------------------
+
+/// Every displayed record is the same Onleihe title, so all three notes say the same
+/// thing about three different records.
+fn three_online_records_fetch() -> FixtureFetch {
+    FixtureFetch::new()
+        .route(
+            |request| has_field(request, "$CbTree_text"),
+            read_fixture("voebb/results_filtered.html"),
+        )
+        .route(is_record_page, read_fixture("voebb/detail_online.html"))
+        .route(
+            |request| has_field(request, "$Autosuggest"),
+            read_fixture("voebb/results.html"),
+        )
+        .fallback("voebb/start.html")
+}
+
+/// Notes that say the same thing are one note naming every record.
+///
+/// Measured 2026-09-08: `search --author Kafka --at AGB` printed the same
+/// `voebb_online_state_unstated` paragraph four times, with nothing beside it to say
+/// which four of the ten displayed lines were meant.
+#[test]
+fn one_limitation_over_three_records_is_one_note_naming_all_three() {
+    let fetch = three_online_records_fetch();
+    let ran = invoke(
+        &[
+            "--json", "search", "Vorleser", "--at", "AGB", "--limit", "3",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let online: Vec<&serde_json::Value> = document["notes"]
+        .as_array()
+        .expect("notes is an array")
+        .iter()
+        .filter(|note| note["kind"] == "voebb_online_only")
+        .collect();
+    assert_eq!(
+        online.len(),
+        1,
+        "three records, one statement, one note: {online:?}"
+    );
+    assert_eq!(
+        online[0]["records"].as_array().map(Vec::len),
+        Some(3),
+        "and it names all three: {:?}",
+        online[0]
+    );
+    let message = online[0]["message"].as_str().unwrap_or_default();
+    assert!(
+        !message.contains("this is") && !message.contains("voebb_SAK"),
+        "the message has to read correctly for one record and for three, and the records \
+         are the renderer's own line: {message:?}"
+    );
+
+    // The human output prints the paragraph once, not three times.
+    let human = invoke(
+        &["search", "Vorleser", "--at", "AGB", "--limit", "3"],
+        &fetch,
+    );
+    assert_eq!(
+        human.out.matches("has no copies on a shelf").count()
+            + human.err.matches("has no copies on a shelf").count(),
+        1,
+        "out:\n{}\nerr:\n{}",
+        human.out,
+        human.err
     );
 }

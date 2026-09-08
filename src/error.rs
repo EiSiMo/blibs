@@ -21,8 +21,9 @@ use crate::counts;
 use crate::model::{Engine, RecordId};
 
 /// Where a bug in this tool is reported. Named once so that every "this should not
-/// happen" hint points at the same place.
-const REPORT_URL: &str = "https://github.com/EiSiMo/blibs/issues";
+/// happen" hint points at the same place — the notes that stand in for an error one
+/// included, which is why it is not private to this module.
+pub(crate) const REPORT_URL: &str = "https://github.com/EiSiMo/blibs/issues";
 
 /// Process exit codes. Part of the public interface: once published, a code's meaning
 /// does not change.
@@ -408,6 +409,40 @@ impl Error {
             Error::Rejected(e) => e.hint(),
             Error::Unexpected(e) => e.hint(),
         }
+    }
+
+    /// Whether the document **arrived** and only its *shape* was wrong.
+    ///
+    /// The line a caller draws with this is the line between "one page of many was not
+    /// the page this parser knows" and "the service is not talking to us". Only the
+    /// former may ever be degraded into a [`crate::model::Note`] beside a result: a
+    /// record whose detail page changed shape can lose its copies and keep its place in
+    /// the list, while a timeout, a 429, a lost voebb.de session or a 500 must keep
+    /// stopping the invocation. Degrading those would sell an outage as "status
+    /// unknown", which is the one answer worse than an error.
+    ///
+    /// **True** for the three variants that say a delivered document lacked a structure
+    /// this crate reads: [`UnexpectedError::MissingSelector`],
+    /// [`UnexpectedError::MissingElement`] and [`UnexpectedError::CountMismatch`]. Each
+    /// of them names what stopped matching, which is exactly what a note has to carry to
+    /// be worth anything in a bug report.
+    ///
+    /// **False** for everything else, including two that look close and are not:
+    /// [`UnexpectedError::NotXml`] and [`UnexpectedError::MalformedJson`] arrive when a
+    /// proxy error page or an unreadable service answer comes back with status 200 —
+    /// their own hints say "try again in a minute", so they are a disturbance in
+    /// disguise, not a site that was redesigned. [`UnexpectedError::HttpStatus`],
+    /// [`UnexpectedError::VoebbNoAccess`] and [`UnexpectedError::Output`] are transport
+    /// and process failures outright.
+    pub fn is_unreadable_document(&self) -> bool {
+        matches!(
+            self,
+            Error::Unexpected(
+                UnexpectedError::MissingSelector { .. }
+                    | UnexpectedError::MissingElement { .. }
+                    | UnexpectedError::CountMismatch { .. }
+            )
+        )
     }
 }
 
@@ -1646,6 +1681,25 @@ mod tests {
             let hint = error.hint().unwrap_or_default();
             assert!(!hint.trim().is_empty(), "no hint for {error:?}");
         }
+    }
+
+    /// The line [`Error::is_unreadable_document`] draws, checked over **every** variant:
+    /// exactly three of them may ever become a note beside a result, and every other one
+    /// — a timeout, a 429, a lost voebb.de session — has to keep stopping the
+    /// invocation. A new variant lands in the `false` half by default, which is the safe
+    /// half.
+    #[test]
+    fn only_a_document_that_changed_shape_may_degrade_to_a_note() {
+        let degrades: BTreeSet<&str> = all_variants()
+            .iter()
+            .filter(|error| error.is_unreadable_document())
+            .map(Error::kind)
+            .collect();
+        assert_eq!(
+            degrades,
+            BTreeSet::from(["missing_selector", "missing_structure", "count_mismatch"]),
+            "a transport failure must never be sold as \"status unknown\""
+        );
     }
 
     #[test]

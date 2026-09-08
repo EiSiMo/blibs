@@ -409,7 +409,11 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>, unstated: usize) -
         engines,
         at,
         availability: plan.availability,
-        notes,
+        // Folded here, where the two engines' notes have just met and nothing else will
+        // be added: four records that hit the same limitation are one note naming four
+        // records, not four paragraphs a reader cannot tell apart. The rule and the
+        // reason are [`Note::merged`]'s; `ShowResult` folds through the same function.
+        notes: Note::merged(notes),
         records,
     }
 }
@@ -462,11 +466,17 @@ fn window_filter_note(plan: &Plan, window: &WindowInfo) -> Option<Note> {
 /// `--available` as a judged record, and saying of it that it is "not known to be on
 /// loan" would contradict the note printed two lines below. Overdrive states nothing, and
 /// that is the whole set this count may speak for.
+///
+/// Counted over the notes' **records**, not over the notes: since [`Note::merged`] folds
+/// four identical notes into one naming four records, counting notes would have said
+/// "1 of them" about four titles the moment the fold was introduced. A note that names no
+/// record counts as one, which is what a note about the answer as a whole is worth here.
 fn unstated_online(notes: &[Note]) -> usize {
     notes
         .iter()
         .filter(|note| note.kind == note_kinds::VOEBB_ONLINE_STATE_UNSTATED)
-        .count()
+        .map(|note| note.records.len().max(1))
+        .sum()
 }
 
 /// The note that keeps "nothing was said" from reading as "it is out".
@@ -725,12 +735,12 @@ fn run_show(
         &plan.locations,
         plan.availability,
     );
-    // In front of the derived ones: the engine's notes say what the *page* could not
-    // state — an e-lending title has no item table at all — and that has to be read
-    // before the sentences about a serial's volumes or a copy's due date, which assume a
-    // list of copies exists. Dropping them left `show` with a silently empty copy list
-    // and no reason for it.
-    result.notes.splice(0..0, found.notes);
+    // The engine's notes go in front of the derived ones, and the document folds
+    // duplicates as it takes them — the ordering reason and the folding reason both live
+    // on `ShowResult::prepend_notes`, so that a splice here could not grow a second idea
+    // of either. Dropping them left `show` with a silently empty copy list and no reason
+    // for it.
+    result.prepend_notes(found.notes);
     if let Some(record) = &mut result.record {
         select::mark_mine(std::slice::from_mut(record), &plan.locations);
     }

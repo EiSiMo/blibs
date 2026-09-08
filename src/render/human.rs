@@ -14,6 +14,9 @@
 //!   otherwise read as a statement about the year the user wants.
 //! - When a client-side filter was in play, a line saying how large the window was — so
 //!   that "nothing found" is never mistaken for "nothing exists".
+//! - **A footnote about particular records names them**, under its own sentence: four
+//!   identical paragraphs saying nothing about which of ten lines they meant is what the
+//!   ids in [`Note::records`] exist to prevent ([`note_records_line`]).
 //!
 //! The columns of the examples are reproduced with **[`Column::Flex`] rather than
 //! [`Column::Fixed`]** wherever the content is truncatable: the example's width is the
@@ -50,8 +53,8 @@ use crate::counts::{records, results};
 use crate::error::{EmptyReason, Error};
 use crate::model::note_kinds;
 use crate::model::{
-    AvailabilityMode, Engine, Format, Holding, Item, Location, Note, Record, SearchResult, SortKey,
-    Status, UrlKind,
+    AvailabilityMode, Engine, Format, Holding, Item, Location, Note, Record, RecordId,
+    SearchResult, SortKey, Status, UrlKind,
 };
 use crate::render::Style;
 use crate::render::style::{Voice, label};
@@ -200,6 +203,21 @@ const ERROR_INDENT: usize = 7;
 /// What a footnote is introduced with. Its width is also the hanging indent of a footnote
 /// that has to be wrapped, so the two cannot drift apart.
 const NOTE_LABEL: &str = "note: ";
+
+/// How far in from its own note the list of affected records stands.
+///
+/// The width of [`NOTE_LABEL`], so that under `note: ` the ids start where the sentence
+/// starts. In `show`, where a note carries no label, it is the same offset from the note's
+/// indent — the list is subordinate to one sentence in both places, and one offset is what
+/// keeps it looking that way.
+const NOTE_RECORDS_INDENT: usize = NOTE_LABEL.len();
+
+/// How many record ids a footnote names before it counts the rest.
+///
+/// A footnote about thirty records that lists all thirty is as unreadable as the thirty
+/// separate footnotes it replaced, only in one paragraph instead of thirty. The rest is
+/// **counted, never dropped**: `and 24 more` says that the note speaks about them too.
+const MAX_NOTE_RECORDS: usize = 6;
 
 /// What `show` says instead of a holdings list for a record without `924` fields.
 ///
@@ -422,21 +440,120 @@ fn write_footer(
     }
     let notes = footer_notes(result);
     if !notes.is_empty() {
+        // Which records the answer is made of, for the footnotes that speak about some of
+        // them. `SearchResult::shown` is this list's length by construction (`cli::run`),
+        // so a footnote naming every one of them can say so instead of listing them.
+        let universe: Vec<&RecordId> = result.records.iter().map(|record| &record.id).collect();
         writeln!(out)?;
         for note in notes {
             // The continuation lines start under the sentence, not under the label: a
             // second line flush with `note:` reads as a second note.
             write_paragraph(
                 out,
-                &format!("{NOTE_LABEL}{note}"),
+                &format!("{NOTE_LABEL}{}", note.message),
                 0,
                 NOTE_LABEL.len(),
                 style.dim(),
                 style,
             )?;
+            write_note_records(out, note.records, &universe, 0, style)?;
         }
     }
     Ok(())
+}
+
+/// A footnote as the terminal prints it: one sentence, and the records it is about.
+///
+/// The records are [`Note::records`] and are **not** re-derived here: which records a
+/// limitation applies to is the engine's statement, and the JSON carries the same list
+/// under the same note. The synthesised footnotes below — the window, the sort, the
+/// availability filter — are about the answer as a whole and name none.
+struct Footnote<'a> {
+    message: String,
+    records: &'a [RecordId],
+}
+
+impl Footnote<'_> {
+    /// A sentence about the whole answer, which names no records because none of them is
+    /// more affected than the rest.
+    fn whole(message: String) -> Self {
+        Self {
+            message,
+            records: &[],
+        }
+    }
+}
+
+/// Print which records a footnote is about, under the sentence itself.
+///
+/// The one place both `search` and `show` say this: a footnote that names records was
+/// printed identically in both paths and would otherwise be the second spelling of one
+/// rule (CLAUDE.md, *The traps*). `indent` is the note's own, and the list stands
+/// [`NOTE_RECORDS_INDENT`] columns further in.
+fn write_note_records(
+    out: &mut dyn Write,
+    records: &[RecordId],
+    universe: &[&RecordId],
+    indent: usize,
+    style: Style,
+) -> io::Result<()> {
+    let Some(line) = note_records_line(records, universe) else {
+        return Ok(());
+    };
+    write_line(out, &line, indent + NOTE_RECORDS_INDENT, style.dim(), style)
+}
+
+/// `record: voebb_SAK35527269` / `4 records: …, …` / `all 10 records`, or nothing.
+///
+/// Nothing at all for a note about the whole answer — a window that was truncated, a
+/// location the other catalogue answers for — because there is no subset to point at.
+///
+/// **When the note names every record of the answer, the ids are the noise, not the
+/// signal**: `all 10 records` is shorter than ten ids and says the same thing, and with a
+/// single record — every `show`, and a search with one hit — even that says nothing the
+/// reader cannot see, so the line is dropped. Anything shorter than the whole is listed,
+/// because "which of these lines does this apply to" is the question the note leaves open.
+///
+/// The singular is not `1 record: …`: a count in front of one id is a count of nothing.
+///
+/// Above [`MAX_NOTE_RECORDS`] the list is cut and the remainder counted. The head keeps the
+/// **true** number, so the count never states less than the note covers.
+fn note_records_line(about: &[RecordId], universe: &[&RecordId]) -> Option<String> {
+    if about.is_empty() {
+        return None;
+    }
+    if covers_every_record(about, universe) {
+        // The universe's count, not the note's: the two are the same set, and a note that
+        // happens to name one id twice would otherwise count it twice.
+        return (universe.len() > 1).then(|| format!("all {}", records(universe.len())));
+    }
+    let head = if about.len() == 1 {
+        "record".to_owned()
+    } else {
+        records(about.len())
+    };
+    let listed: Vec<&str> = about
+        .iter()
+        .take(MAX_NOTE_RECORDS)
+        .map(RecordId::as_str)
+        .collect();
+    let named = listed.join(", ");
+    let rest = about.len() - listed.len();
+    Some(if rest > 0 {
+        format!("{head}: {named}, and {rest} more")
+    } else {
+        format!("{head}: {named}")
+    })
+}
+
+/// Whether a note's records are exactly the records the output is about.
+///
+/// Set equality in both directions, and never true of an empty answer: a note that names
+/// an id this output does not show has something to say that `all N records` would hide.
+fn covers_every_record(about: &[RecordId], universe: &[&RecordId]) -> bool {
+    !universe.is_empty()
+        && universe.iter().all(|id| about.contains(id))
+        && about.iter().all(|id| universe.contains(&id))
 }
 
 /// What the legend's wording may promise about this output.
@@ -469,11 +586,14 @@ fn legend_voice(result: &SearchResult, scoped: bool) -> Voice {
 /// The window ones exist so that a short answer is never mistaken for a complete one:
 /// a client-side filter and a client-side sort both see only the fetched records, and
 /// `plan/cli.md` forbids output that suggests otherwise.
-fn footer_notes(result: &SearchResult) -> Vec<String> {
-    let mut notes: Vec<String> = result
+fn footer_notes(result: &SearchResult) -> Vec<Footnote<'_>> {
+    let mut notes: Vec<Footnote<'_>> = result
         .notes
         .iter()
-        .map(|note| note.message.clone())
+        .map(|note| Footnote {
+            message: note.message.clone(),
+            records: &note.records,
+        })
         .collect();
     let window = result.window;
     // Not when the filter matched nothing at all: the engine states that case as
@@ -485,7 +605,7 @@ fn footer_notes(result: &SearchResult) -> Vec<String> {
         .iter()
         .any(|note| note.kind == note_kinds::WINDOW_FILTER_EMPTY);
     if window.after_filter < window.fetched && !stated {
-        notes.push(match result.total {
+        notes.push(Footnote::whole(match result.total {
             Some(total) => format!(
                 "the filters saw the {} fetched records, not all {total} results",
                 window.fetched
@@ -494,13 +614,13 @@ fn footer_notes(result: &SearchResult) -> Vec<String> {
                 "the filters saw the {} fetched records only",
                 window.fetched
             ),
-        });
+        }));
     }
     if let Some(note) = sort_note(result) {
-        notes.push(note);
+        notes.push(Footnote::whole(note));
     }
     if let Some(note) = availability_filter_note(result) {
-        notes.push(note);
+        notes.push(Footnote::whole(note));
     }
     notes
 }
@@ -1307,9 +1427,12 @@ fn write_holdings(
     write_line(out, "Holdings", 0, style.heading(), style)?;
     writeln!(out)?;
 
+    // The answer is this one record, so a note that names it names everything there is
+    // and prints no list — see [`note_records_line`].
+    let universe = [&record.id];
     if record.holdings.is_empty() {
         write_line(out, NO_HOLDINGS, SHOW_INDENT, style.dim(), style)?;
-        return write_show_notes(out, notes, style);
+        return write_show_notes(out, notes, &universe, style);
     }
 
     let split = select::show_holdings(record, locations);
@@ -1337,7 +1460,7 @@ fn write_holdings(
         }
         write_narrowed_away(out, entry, style)?;
     }
-    write_show_notes(out, notes, style)?;
+    write_show_notes(out, notes, &universe, style)?;
     write_also_at(out, record, &split.others, style)
 }
 
@@ -1513,13 +1636,19 @@ fn write_also_at(
 /// so that the terminal and the JSON state the same limitations for one record: what is
 /// printed here an agent finds under a `kind` it can branch on. This renderer only decides
 /// where they go.
-fn write_show_notes(out: &mut dyn Write, notes: &[Note], style: Style) -> io::Result<()> {
+fn write_show_notes(
+    out: &mut dyn Write,
+    notes: &[Note],
+    universe: &[&RecordId],
+    style: Style,
+) -> io::Result<()> {
     if notes.is_empty() {
         return Ok(());
     }
     writeln!(out)?;
     for note in notes {
         write_line(out, &note.message, SHOW_INDENT, style.dim(), style)?;
+        write_note_records(out, &note.records, universe, SHOW_INDENT, style)?;
     }
     Ok(())
 }
@@ -2146,6 +2275,187 @@ AGB (VÖBB) · 35 results · showing 2
         )];
         let output = rendered(&result, &locations);
         assert!(output.ends_with("note: the availability service holds nothing for 1 record\n"));
+    }
+
+    /// A note that is about particular records, built here rather than taken from an
+    /// engine: the messages are prose and are being reworded elsewhere, and a test that
+    /// asserted on one of them would be a test of the wording, not of the rendering.
+    fn note_about(kind: &'static str, message: &str, ids: &[&str]) -> Note {
+        Note::about(
+            kind,
+            message,
+            ids.iter()
+                .map(|id| RecordId::parse(id).expect("the example ids carry their source prefix")),
+        )
+    }
+
+    /// The lines a footnote's records are printed on, as they stand in the output.
+    ///
+    /// Looked for as lines of their own rather than with `contains` on the whole output,
+    /// which would pass on an id that merely stood in the record list above. The list runs
+    /// from the line opening with `prefix` to the end of its note — a blank line or the
+    /// next `note:` — because it is wrapped like every other sentence here.
+    fn note_lines<'a>(output: &'a str, prefix: &str) -> Vec<&'a str> {
+        let mut lines = Vec::new();
+        for line in output
+            .lines()
+            .skip_while(|line| !line.trim_start().starts_with(prefix))
+        {
+            let trimmed = line.trim_start();
+            if !lines.is_empty() && (trimmed.is_empty() || trimmed.starts_with("note:")) {
+                break;
+            }
+            lines.push(line);
+        }
+        lines
+    }
+
+    /// The same list as one sentence, so an assertion is about the words and not about
+    /// where the terminal width put the break.
+    fn note_records(output: &str, prefix: &str) -> String {
+        one_line(&note_lines(output, prefix).join(" "))
+    }
+
+    /// The finding of round 3: four identical paragraphs and not a word about which of the
+    /// ten lines above them each was talking about. The ids are in the data; the renderer
+    /// used to drop them.
+    #[test]
+    fn a_note_names_the_records_it_is_about() {
+        let (mut result, locations) = vorleser();
+        result.notes = vec![note_about(
+            note_kinds::VOEBB_ONLINE_ONLY,
+            "an electronic title states no loan status this tool can read",
+            &["voebb_SAK13776205", "voebb_SAK14200311"],
+        )];
+        let output = rendered(&result, &locations);
+        assert_eq!(
+            note_records(&output, "2 records:"),
+            "2 records: voebb_SAK13776205, voebb_SAK14200311",
+            "{output}"
+        );
+    }
+
+    /// One record gets no count in front of it: `1 record: <id>` counts nothing.
+    #[test]
+    fn a_note_about_one_record_names_it_without_a_count() {
+        let (mut result, locations) = vorleser();
+        result.notes = vec![note_about(
+            note_kinds::LOAN_WITHOUT_DUE_DATE,
+            "a copy is on loan and the service states no due date",
+            &["almahu_BV011234567"],
+        )];
+        let output = rendered(&result, &locations);
+        assert_eq!(
+            note_records(&output, "record:"),
+            "record: almahu_BV011234567",
+            "{output}"
+        );
+        assert!(!output.contains("1 record:"), "{output}");
+    }
+
+    /// A note that applies to everything on the page says so. Listing all five ids would
+    /// be the same noise the four repeated paragraphs were, one line further down.
+    #[test]
+    fn a_note_about_every_record_says_all_instead_of_listing_them() {
+        let (mut result, locations) = vorleser();
+        let all: Vec<&str> = result
+            .records
+            .iter()
+            .map(|record| record.id.as_str())
+            .collect();
+        let note = note_about(
+            note_kinds::AVAILABILITY_NOT_STATED,
+            "the availability service holds nothing for these records",
+            &all,
+        );
+        drop(all);
+        result.notes = vec![note];
+        let output = rendered(&result, &locations);
+        assert_eq!(note_records(&output, "all "), "all 5 records", "{output}");
+        assert!(note_lines(&output, "5 records:").is_empty(), "{output}");
+    }
+
+    /// A single-record answer states nothing at all: the one id is the line the reader is
+    /// already looking at. Every `show` is this case.
+    #[test]
+    fn a_note_about_the_only_record_names_nothing() {
+        let (mut result, locations) = vorleser();
+        result.records.truncate(1);
+        result.shown = 1;
+        result.notes = vec![note_about(
+            note_kinds::AVAILABILITY_NOT_STATED,
+            "the availability service holds nothing for this record",
+            &["almahu_BV011234567"],
+        )];
+        let output = rendered(&result, &locations);
+        assert!(note_lines(&output, "record:").is_empty(), "{output}");
+        assert!(note_lines(&output, "all ").is_empty(), "{output}");
+    }
+
+    /// Thirty ids over half the screen are no better than thirty paragraphs. The list is
+    /// cut at [`MAX_NOTE_RECORDS`] and the remainder is **counted**, never dropped: the
+    /// head keeps the true number and the tail says how many are not named.
+    #[test]
+    fn a_long_record_list_is_cut_and_the_rest_counted() {
+        let records: Vec<Record> = (0..30)
+            .map(|index| {
+                record(
+                    &format!("almahu_BV{index:09}"),
+                    "Der Prozess",
+                    "Kafka, Franz",
+                    1953,
+                )
+            })
+            .collect();
+        let named: Vec<String> = (0..8).map(|index| format!("almahu_BV{index:09}")).collect();
+        let mut result = result("Kafka", Some(774), records);
+        result.notes = vec![note_about(
+            note_kinds::AVAILABILITY_NOT_STATED,
+            "the availability service holds nothing for these records",
+            &named.iter().map(String::as_str).collect::<Vec<_>>(),
+        )];
+        let output = rendered(&result, &[]);
+        assert_eq!(
+            note_records(&output, "8 records:"),
+            "8 records: almahu_BV000000000, almahu_BV000000001, almahu_BV000000002, \
+             almahu_BV000000003, almahu_BV000000004, almahu_BV000000005, and 2 more",
+            "{output}"
+        );
+    }
+
+    /// The list is wrapped like every other sentence outside a table, at the width the
+    /// terminal actually has.
+    #[test]
+    fn a_record_list_respects_the_terminal_width() {
+        let (mut result, locations) = vorleser();
+        result.notes = vec![note_about(
+            note_kinds::VOEBB_ONLINE_ONLY,
+            "an electronic title states no loan status this tool can read",
+            &[
+                "almahu_BV011234567",
+                "voebb_SAK13776205",
+                "voebb_SAK14200311",
+            ],
+        )];
+        let mut out = Vec::new();
+        search(&result, &locations, &mut out, Style::plain(MIN_WIDTH)).expect("bytes");
+        let output = String::from_utf8(out).expect("UTF-8");
+        let list = note_lines(&output, "3 records:");
+        assert!(
+            list.len() > 1,
+            "three ids do not fit into 40 columns: {output}"
+        );
+        for line in &list {
+            assert!(
+                display_width(line) <= MIN_WIDTH,
+                "{line:?} runs past {MIN_WIDTH} columns: {output}"
+            );
+        }
+        assert_eq!(
+            note_records(&output, "3 records:"),
+            "3 records: almahu_BV011234567, voebb_SAK13776205, voebb_SAK14200311",
+            "the wrap loses nothing: {output}"
+        );
     }
 
     /// A window that a client-side filter thinned out is stated, so that a short answer
@@ -3564,6 +3874,48 @@ almafu_BV008885798
             output,
             "774 results, but none of the 50 fetched records matched --format video\n\
              narrow the search itself (--title, --author) so the filter has more to work on\n"
+        );
+    }
+
+    /// `show` reads a note the same way `search` does — one rule, one function.
+    ///
+    /// Both halves of the rule in one place, because the seam is what is being tested: the
+    /// answer is a single record, so a note about *it* names nothing (the reader is looking
+    /// at the id), and a note that names something else is listed rather than swallowed.
+    /// The notes are built here, not taken from `ShowResult`, so that a reworded message
+    /// upstream cannot turn this into a test of the wording.
+    #[test]
+    fn a_show_note_names_records_only_where_they_add_something() {
+        let record = prozess();
+        let rendered = |notes: &[Note]| {
+            let mut out = Vec::new();
+            show(&record, &[], notes, &mut out, Style::plain(WIDE)).expect("bytes");
+            String::from_utf8(out).expect("UTF-8")
+        };
+
+        let about_itself = rendered(&[note_about(
+            note_kinds::LOAN_WITHOUT_DUE_DATE,
+            "a copy is on loan and the service states no due date",
+            &[record.id.as_str()],
+        )]);
+        assert!(
+            note_lines(&about_itself, "record").is_empty(),
+            "{about_itself}"
+        );
+        assert!(
+            note_lines(&about_itself, "all ").is_empty(),
+            "{about_itself}"
+        );
+
+        let about_another = rendered(&[note_about(
+            note_kinds::AVAILABILITY_NOT_STATED,
+            "the availability service holds nothing for this record",
+            &["almahu_BV011234567"],
+        )]);
+        assert_eq!(
+            note_records(&about_another, "record:"),
+            "record: almahu_BV011234567",
+            "{about_another}"
         );
     }
 
