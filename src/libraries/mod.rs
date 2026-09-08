@@ -22,5 +22,5 @@ pub use resolve::{
     branch_location, branches, by_isil, by_kobvid, by_portal_name, display_name,
     distinguishing_name, entries, entry_location, find_entries, houses_with_branches,
     institution_location, isil_answers_elsewhere, look_up, name_holding, near_entries, resolve,
-    shares_isil, short_name_for, short_name_is_cut, suggest,
+    shadowed_by_key, shares_isil, short_name_for, short_name_is_cut, suggest,
 };

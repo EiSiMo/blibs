@@ -384,6 +384,10 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>, unstated: usize) -
     // The engines' notes are collected first because the `--available` note reads them:
     // what voebb.de said about an electronic title decides how the footnote is worded.
     let mut notes = Vec::new();
+    // First of all: it is the only note about the *question* rather than about the
+    // answer, and a reader who was told about somewhere else entirely has to learn that
+    // before anything the answer says about a window or a filter.
+    notes.extend(crate::model::ambiguous_key_notes(&plan.locations));
     notes.extend(unstated_note(unstated, unstated_online(&engine_notes)));
     notes.extend(window_filter_note(plan, &window));
     notes.extend(engine_notes);

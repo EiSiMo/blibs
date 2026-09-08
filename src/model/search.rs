@@ -558,6 +558,17 @@ pub mod note_kinds {
     /// A copy is on loan and carries no return date: due dates and holds live behind a
     /// patron login, which this tool never passes.
     pub const LOAN_WITHOUT_DUE_DATE: &str = "loan_without_due_date";
+
+    /// A key in `--at` is claimed by more than one entry of the library list, and the
+    /// answer is about the **first** of them — the one the resolution order reaches.
+    ///
+    /// The quietest limitation this tool has. Nothing about such an answer looks wrong:
+    /// the search runs, it succeeds, and it reports about a library the user never named,
+    /// under a key that library's own detail view prints. There is no field that carries
+    /// the discrepancy — `at[].given` holds the typed word and `at[].key` the resolved
+    /// one, and a reader who does not already suspect a collision has no reason to compare
+    /// them — so the tag is the only place an agent can find out.
+    pub const LOCATION_KEY_AMBIGUOUS: &str = "location_key_ambiguous";
 }
 
 /// The query, echoed back so a result can be reproduced without the shell history.
@@ -699,6 +710,7 @@ impl ShowResult {
         availability: AvailabilityMode,
     ) -> Self {
         let mut notes = Vec::new();
+        notes.extend(ambiguous_key_notes(locations));
         notes.extend(other_catalogue_note(record.as_ref(), engine, locations));
         notes.extend(kobv_branch_note(locations, availability));
         if let Some(record) = &record {
@@ -804,6 +816,61 @@ fn other_catalogue_note(
     ))
 }
 
+/// The note for a `--at` key that names more than one library.
+///
+/// **A note on the result, not a reason for an empty one.** The empty explanation was the
+/// obvious home — the case that hurts most is a shared key answering "no results" for a
+/// house the user never named — but it is the wrong one twice over. A search that *finds*
+/// something is exactly as wrong and much quieter, and it would say nothing at all;
+/// and an [`crate::error::EmptyReason`] is a next step for a search that came back empty,
+/// while this is a statement about the *question*, which is true whatever the answer was.
+/// So it rides with the other limitations, in the footer and in `notes[]`, and it fires
+/// for a full page as readily as for an empty one.
+///
+/// Fired off [`Location::given`] — the word the user actually typed — and off nothing
+/// else. `--at ZLB` and `--at AGB` are aliases, `--at SIG00036` is a KOBV id, and none of
+/// the three is claimed twice; only the bare code that two entries of the list carry is,
+/// and only for it does the answer go somewhere the user could not see coming. The
+/// resolution order is not changed by any of this: the first claimant still wins, and this
+/// is the sentence saying so.
+///
+/// One note per ambiguous location, because the message names its key: two of them in one
+/// sentence would be unreadable, and `records[]` cannot carry a location.
+pub fn ambiguous_key_notes(locations: &[Location]) -> Vec<Note> {
+    locations.iter().filter_map(ambiguous_key_note).collect()
+}
+
+/// The note for one location, or `None` when its key names exactly one place.
+fn ambiguous_key_note(location: &Location) -> Option<Note> {
+    let shadowed = crate::libraries::shadowed_by_key(&location.given);
+    if shadowed.is_empty() {
+        return None;
+    }
+    let missed: Vec<String> = shadowed
+        .into_iter()
+        .map(crate::libraries::entry_location)
+        .map(|other| format!("{}, reached by --at {}", other.display, other.key))
+        .collect();
+    // The canonical key of the entry that did answer, but only when it is a different
+    // word: for a library the list gives no alias to it *is* the typed code, and
+    // "whose own key is DE-…" about the code the reader just typed explains nothing.
+    let answered = if location.key.eq_ignore_ascii_case(&location.given) {
+        location.display.clone()
+    } else {
+        format!("{}, whose own key is {}", location.display, location.key)
+    };
+    Some(Note::new(
+        note_kinds::LOCATION_KEY_AMBIGUOUS,
+        format!(
+            "--at {given} answered for {answered} — more than one entry of the library \
+             list carries {given}, and the key reaches the first of them only. Not \
+             searched: {}.",
+            missed.join("; "),
+            given = location.given,
+        ),
+    ))
+}
+
 /// The two limitations a record itself implies: the run of a serial, and the due date of
 /// a copy that is out. Each is stated **once**, not per copy.
 fn record_notes(record: &Record) -> Vec<Note> {
@@ -872,6 +939,7 @@ mod tests {
             note_kinds::LOCATION_OTHER_CATALOGUE,
             note_kinds::SERIAL_VOLUMES_UNKNOWN,
             note_kinds::LOAN_WITHOUT_DUE_DATE,
+            note_kinds::LOCATION_KEY_AMBIGUOUS,
         ];
         for (index, kind) in all.iter().enumerate() {
             assert!(

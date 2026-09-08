@@ -334,6 +334,93 @@ fn has_note(document: &serde_json::Value, kind: &str) -> bool {
         .is_some_and(|notes| notes.iter().any(|note| note["kind"] == kind))
 }
 
+/// A key two entries of the library list claim, found by counting claims rather than by
+/// naming a code, and restricted to the ones a KOBV house answers for — the fixtures here
+/// are SRU answers, and a collision that resolved to a VÖBB branch would need the other
+/// engine's.
+///
+/// Panics when the list carries no such key: this test is about a limitation of the data,
+/// and silently passing when the data no longer has it would leave a green suite proving
+/// nothing.
+fn ambiguous_kobv_key() -> String {
+    blibs::libraries::all()
+        .iter()
+        .flat_map(|library| {
+            std::iter::once(library.isil.clone()).chain(
+                library
+                    .branches
+                    .iter()
+                    .filter_map(|branch| branch.isil.clone()),
+            )
+        })
+        .find(|isil| {
+            !blibs::libraries::shadowed_by_key(isil).is_empty()
+                && blibs::libraries::resolve(isil)
+                    .is_ok_and(|location| location.engine == blibs::model::Engine::Kobv)
+        })
+        .expect("the library list has to carry a key two entries claim, answered by kobv")
+}
+
+/// One code, two libraries, and the search answers for the first of them — which it now
+/// says, in both outputs.
+///
+/// Round 2, §1.4: the user types the ISIL this tool prints in a branch's own detail view,
+/// and gets a confident answer about a house they never named, with nothing anywhere
+/// connecting the two. The key is derived from the list rather than written here, so the
+/// test keeps meaning something if the collision moves.
+#[test]
+fn a_key_two_libraries_claim_says_who_answered_and_what_to_type() {
+    let key = ambiguous_kobv_key();
+    let missed: Vec<String> = blibs::libraries::shadowed_by_key(&key)
+        .into_iter()
+        .map(|entry| blibs::libraries::entry_location(entry).key)
+        .collect();
+    assert!(!missed.is_empty(), "a shared key shadows something");
+
+    let json = invoke(
+        &["--json", "search", "Vorleser", "--at", &key, "--limit", "2"],
+        &search_fetch(),
+    )
+    .json();
+    assert!(
+        has_note(&json, "location_key_ambiguous"),
+        "the shared key has to be stated: {:?}",
+        json["notes"]
+    );
+
+    let ran = invoke(
+        &["search", "Vorleser", "--at", &key, "--limit", "2"],
+        &search_fetch(),
+    );
+    let said = format!("{}{}", ran.out, ran.err);
+    assert!(said.contains(&format!("--at {key}")), "{said}");
+    for other in &missed {
+        assert!(
+            said.contains(&format!("--at {other}")),
+            "the note has to name what to type instead: {said}"
+        );
+    }
+}
+
+/// And a key that names one place says nothing extra — the note fires off the user's own
+/// word, not off the library it landed on. `HU` is the same house `DE-11` names, and the
+/// wholesale proof that no alias and no KOBV id can collide is in `tests/libraries.rs`.
+#[test]
+fn an_unambiguous_key_says_nothing_about_sharing() {
+    for key in ["HU", "DE-11"] {
+        let json = invoke(
+            &["--json", "search", "Vorleser", "--at", key, "--limit", "2"],
+            &search_fetch(),
+        )
+        .json();
+        assert!(
+            !has_note(&json, "location_key_ambiguous"),
+            "--at {key} names one place: {:?}",
+            json["notes"]
+        );
+    }
+}
+
 /// `--available` **thins** the page, it does not refill it: the records that are in stay,
 /// the others go, and the count of records the filter judged is reported so that "three
 /// of ten" can never read as "three hits". A reference copy is not available — taking a

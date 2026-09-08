@@ -6,7 +6,8 @@ use blibs::error::UsageError;
 use blibs::libraries::data::{LIBRARIES_JSON, Library};
 use blibs::libraries::resolve::{
     Found, branch_count, branch_label, branches, distinguishing_name, find_entries,
-    houses_with_branches, isil_answers_elsewhere, near_entries, shares_isil, short_name_is_cut,
+    houses_with_branches, isil_answers_elsewhere, near_entries, shadowed_by_key, shares_isil,
+    short_name_is_cut,
 };
 use blibs::libraries::{
     Entry, alias_for, branch_location, by_isil, by_kobvid, by_portal_name, display_name,
@@ -907,6 +908,97 @@ fn a_shared_isil_is_found_by_comparing_what_entries_claim() {
     assert!(
         collisions > 0,
         "the file has to carry at least one shared branch ISIL for this to prove anything"
+    );
+}
+
+/// A key one entry claims is shadowed by nothing; a key several claim names the rest.
+///
+/// The other half of the shared-ISIL problem, and the direction the user travels: the
+/// tests above start at a branch and ask what else claims its printed key, this one starts
+/// at the typed word and asks what that word fails to reach. Both have to agree, and they
+/// do because both read the same claim list.
+///
+/// **The ambiguous key is derived, never named.** Every ISIL in the file is counted, and
+/// the assertion is over the count — so this keeps meaning something when the list gains a
+/// second collision or loses the one it has. The unambiguous keys are checked wholesale
+/// rather than by example, which is what makes `--at ZLB`, `--at AGB` and `--at SIG00036`
+/// silent by proof.
+#[test]
+fn a_key_several_entries_claim_names_the_ones_it_did_not_reach() {
+    let libraries = parsed();
+
+    // Every key that cannot collide by construction: aliases never look like an ISIL and
+    // KOBV ids are unique across houses and branches alike (both asserted above).
+    for library in &libraries {
+        for alias in all_aliases(library) {
+            assert!(
+                shadowed_by_key(alias).is_empty(),
+                "the alias {alias} names one place"
+            );
+        }
+        for branch in &library.branches {
+            assert!(
+                shadowed_by_key(&branch.kobvid).is_empty(),
+                "the KOBV id {} names one place",
+                branch.kobvid
+            );
+        }
+    }
+
+    let mut claims: Vec<(String, usize)> = Vec::new();
+    let mut claim = |isil: &str| {
+        let folded = isil.to_lowercase();
+        match claims.iter_mut().find(|(seen, _)| *seen == folded) {
+            Some((_, count)) => *count += 1,
+            None => claims.push((folded, 1)),
+        }
+    };
+    for library in &libraries {
+        claim(&library.isil);
+        for branch in &library.branches {
+            if let Some(isil) = branch.isil.as_deref() {
+                claim(isil);
+            }
+        }
+    }
+
+    let mut collisions = 0usize;
+    for (isil, claimed) in &claims {
+        let shadowed = shadowed_by_key(isil);
+        assert_eq!(
+            shadowed.len(),
+            claimed - 1,
+            "{isil} is claimed by {claimed} entries"
+        );
+        if *claimed == 1 {
+            continue;
+        }
+        collisions += 1;
+
+        let answered = look_up(isil).unwrap_or_else(|error| panic!("{isil}: {error}"));
+        assert!(
+            !shadowed.contains(&answered),
+            "{isil} must not shadow the entry it answers with"
+        );
+        // What the caller puts in front of the user: every shadowed entry has a key of
+        // its own, it is not the ambiguous one, and typing it back arrives there.
+        for entry in shadowed {
+            let key = entry_location(entry).key;
+            assert_ne!(
+                &key.to_lowercase(),
+                isil,
+                "a shadowed entry needs another key"
+            );
+            assert_eq!(
+                look_up(&key).ok(),
+                Some(entry),
+                "{key} has to name the entry {isil} did not reach"
+            );
+        }
+    }
+    assert!(
+        collisions > 0,
+        "the file has to carry at least one key two entries claim for this to prove anything"
     );
 }
 

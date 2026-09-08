@@ -550,6 +550,46 @@ pub fn isil_answers_elsewhere(branch: &Branch) -> Option<Entry> {
     (!is_branch(first, branch)).then_some(first)
 }
 
+/// What a key names **besides** the entry it answers with.
+///
+/// The mirror of [`shares_isil`], and the direction the user actually travels: that one
+/// starts at a branch and asks what else claims the key printed beside it, this one starts
+/// at the word in `--at` and asks what that word does not reach. Both read the same
+/// [`claimants`] list, so the two can never disagree about which codes are shared.
+///
+/// Empty for every key that names one place, which is nearly all of them: an alias, a KOBV
+/// id and 136 of the 137 branch ISILs. A non-empty answer is the silent case — [`lookup`]
+/// resolves the key to the first claimant, the search runs, it succeeds, and it says
+/// nothing at all about the entries standing behind it.
+///
+/// The order is [`claimants`]' order, so the caller may name the entries the way the
+/// resolution would have reached them. Nothing here compares against a particular code:
+/// the collision is found by asking what two entries of the list claim, so it appears the
+/// day the data file grows one and disappears the day the file stops.
+pub fn shadowed_by_key(typed: &str) -> Vec<Entry> {
+    let typed = typed.trim();
+    let Some(answered) = lookup(typed) else {
+        return Vec::new();
+    };
+    claimants(typed)
+        .into_iter()
+        .filter(|entry| !same_entry(*entry, answered))
+        .collect()
+}
+
+/// Whether two entries are the same place.
+///
+/// Houses are compared by ISIL and branches by KOBV id — both unique across the list, and
+/// both invariants checked in `tests/libraries.rs` — rather than by address, so this still
+/// answers correctly for an entry that was copied out of the list.
+fn same_entry(left: Entry, right: Entry) -> bool {
+    match (left, right) {
+        (Entry::Institution(one), Entry::Institution(other)) => one.isil == other.isil,
+        (_, Entry::Branch { branch, .. }) => is_branch(left, branch),
+        _ => false,
+    }
+}
+
 /// Whether an entry is this very branch.
 ///
 /// Compared by KOBV id rather than by address: ids are unique across houses and branches
