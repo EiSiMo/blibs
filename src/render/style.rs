@@ -14,7 +14,7 @@ use std::io::IsTerminal;
 use anstyle::{AnsiColor, Color, Effects};
 
 use crate::model::Status;
-use crate::render::table::terminal_columns;
+use crate::render::table::{display_width, terminal_columns};
 
 /// Whether this invocation writes colour.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -138,8 +138,14 @@ impl Style {
     /// [`crate::render::human`].
     ///
     /// `None` when nothing occurred — an empty legend line is noise.
+    ///
+    /// The entries are packed into as many lines as the width needs, and **never broken
+    /// between a symbol and its wording**: `●` on one line and `available` on the next
+    /// would be a legend that has to be decoded rather than read. That is also why this is
+    /// not laid out by [`crate::render::table`] — a generic wrap breaks at any space, and
+    /// the two spaces inside an entry are exactly the ones it must not use.
     pub fn legend(self, present: &[Status], voice: Voice) -> Option<String> {
-        let entries: Vec<String> = LEGEND_ORDER
+        let entries: Vec<(String, String)> = LEGEND_ORDER
             .iter()
             .filter(|status| {
                 present
@@ -147,20 +153,52 @@ impl Style {
                     .any(|shown| shown.symbol() == status.symbol())
             })
             .map(|status| {
-                format!(
-                    "{}  {}",
-                    self.symbol(*status),
-                    self.paint(label(*status, voice), self.dim())
+                let words = label(*status, voice);
+                (
+                    format!("{}  {words}", status.symbol()),
+                    format!(
+                        "{}  {}",
+                        self.symbol(*status),
+                        self.paint(words, self.dim())
+                    ),
                 )
             })
             .collect();
         if entries.is_empty() {
-            None
-        } else {
-            Some(entries.join("      "))
+            return None;
         }
+        Some(self.pack(&entries))
+    }
+
+    /// Put the legend entries on as few lines as the width allows, measuring the
+    /// **uncoloured** halves and writing the painted ones.
+    fn pack(self, entries: &[(String, String)]) -> String {
+        let mut lines: Vec<String> = Vec::new();
+        let mut used = 0;
+        for (plain, painted) in entries {
+            let width = display_width(plain);
+            match lines.last_mut() {
+                Some(line) if used + LEGEND_GAP.len() + width <= self.width => {
+                    line.push_str(LEGEND_GAP);
+                    line.push_str(painted);
+                    used += LEGEND_GAP.len() + width;
+                }
+                // The first entry, and every entry the line has no room for. An entry
+                // wider than the whole terminal still gets its own line rather than being
+                // cut: it is four words, and the legend is what explains the symbols.
+                _ => {
+                    lines.push(painted.clone());
+                    used = width;
+                }
+            }
+        }
+        lines.join("\n")
     }
 }
+
+/// What separates two legend entries. Six spaces, so that the gap between two entries is
+/// unmistakably wider than the two inside one.
+const LEGEND_GAP: &str = "      ";
 
 /// The statuses a legend may list, in the order it lists them. `possibly_available`
 /// stands in for `unknown` as well — they share the `?` symbol and the same wording.
@@ -365,6 +403,45 @@ mod tests {
             .legend(&[Status::Unavailable, Status::Available], Voice::Copy)
             .expect("two statuses occur");
         assert_eq!(legend, "●  available      ○  on loan");
+    }
+
+    /// A legend too wide for the terminal is broken **between** entries, never inside
+    /// one: a `●` alone on a line explains nothing (round 2, §3.4).
+    #[test]
+    fn a_legend_wider_than_the_terminal_breaks_between_entries() {
+        let style = Style::plain(40);
+        let legend = style
+            .legend(
+                &[Status::Available, Status::Reference, Status::Unavailable],
+                Voice::Region,
+            )
+            .expect("three statuses occur");
+        assert_eq!(
+            legend,
+            "●  available somewhere\n◐  reference only\n○  currently unavailable"
+        );
+        // Two entries do share a line where the width allows it.
+        assert_eq!(
+            Style::plain(60)
+                .legend(&[Status::Reference, Status::Unavailable], Voice::Region)
+                .expect("two statuses occur"),
+            "◐  reference only      ○  currently unavailable"
+        );
+        for line in legend.lines() {
+            assert!(!line.trim().is_empty());
+            assert!(line.starts_with('●') || line.starts_with('◐') || line.starts_with('○'));
+        }
+    }
+
+    /// An entry wider than the whole terminal keeps its line rather than being cut: the
+    /// legend is what explains the symbols, and half of it explains nothing.
+    #[test]
+    fn a_legend_entry_is_never_cut() {
+        let style = Style::plain(crate::render::table::MIN_WIDTH);
+        let legend = style
+            .legend(&[Status::PossiblyAvailable], Voice::Copy)
+            .expect("one status occurs");
+        assert_eq!(legend, "?  status not confirmed");
     }
 
     #[test]

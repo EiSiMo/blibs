@@ -23,6 +23,19 @@ use crate::render::Style;
 /// the example layouts print in full, and still finite so the output stays reproducible.
 pub const DEFAULT_WIDTH: usize = 160;
 
+/// The narrowest width this tool lays out for.
+///
+/// Below it nothing can be laid out honestly: a record id runs to 24 columns and is never
+/// shortened, the status column is [`crate::render::human`]'s widest wording at 20, and the
+/// two of them plus an indent already spend more than 40. A width of 20 would therefore not
+/// produce a narrow layout but a column of ellipses.
+///
+/// So a smaller width is **not** made smaller still: the layout stays at 40 and the
+/// terminal wraps what does not fit, which loses nothing — where the width matters, the
+/// text is word-wrapped by [`wrap`] rather than cut. The number is a floor on the layout,
+/// never a claim about the terminal.
+pub const MIN_WIDTH: usize = 40;
+
 /// The environment variable that overrides the width where there is no terminal to ask.
 ///
 /// The name shells already use for this, so `COLUMNS=100 blibs search …` needs no flag of
@@ -51,13 +64,16 @@ pub fn terminal_columns() -> usize {
 ///
 /// A width of zero is treated as "not stated" from either source — some terminals report
 /// zero while resizing, and a `COLUMNS=0` layout would be nothing but ellipses.
+///
+/// A width that *is* stated but is narrower than [`MIN_WIDTH`] is raised to it: see there
+/// for why a narrower layout would destroy text rather than fit it.
 pub fn columns_from(size: Option<usize>, env: Option<&str>) -> usize {
     size.filter(|width| *width > 0)
         .or_else(|| {
             env.and_then(|value| value.trim().parse::<usize>().ok())
                 .filter(|width| *width > 0)
         })
-        .unwrap_or(DEFAULT_WIDTH)
+        .map_or(DEFAULT_WIDTH, |width| width.max(MIN_WIDTH))
 }
 
 /// Display width of text in terminal columns.
@@ -98,6 +114,78 @@ pub fn truncate(text: &str, width: usize) -> String {
     let mut out = out.trim_end().to_owned();
     out.push(ELLIPSIS);
     out
+}
+
+/// The list separator this renderer joins values with, and the one token a wrapped line
+/// may never end on: a line closing with `·` reads like a cut.
+const SEPARATOR: &str = "·";
+
+/// Break text into lines of at most `width` columns, at spaces.
+///
+/// The counterpart of [`truncate`] for text that is a sentence rather than a cell: a note,
+/// a library name, a list of subject headings. Nothing is ever removed — a line that does
+/// not fit is continued, not cut — which is why this and not truncation is what the lines
+/// outside a table use.
+///
+/// **A word wider than `width` is never broken.** A URL and a record id have to survive
+/// being copied out of the terminal, and a break would put a space in the middle of one;
+/// such a word gets its own line and overflows it, visibly.
+///
+/// A lone `·` is carried to the next line together with the value behind it, so a
+/// continuation reads `· Roman` and no line ends on a separator with nothing after it.
+///
+/// Always at least one line, so a caller can write the result unconditionally. A `width`
+/// of zero means "do not wrap".
+pub fn wrap(text: &str, width: usize) -> Vec<String> {
+    wrap_hanging(text, width, width)
+}
+
+/// [`wrap`] where the continuation lines have a width of their own.
+///
+/// For a hanging indent: the continuations start further right and therefore have fewer
+/// columns left, and passing one width for both would make the right margin ragged by
+/// exactly the indent.
+pub fn wrap_hanging(text: &str, first: usize, rest: usize) -> Vec<String> {
+    if first == 0 || rest == 0 || display_width(text) <= first {
+        return vec![text.to_owned()];
+    }
+    let mut lines: Vec<String> = Vec::new();
+    let mut line = String::new();
+    for unit in units(text) {
+        let width = if lines.is_empty() { first } else { rest };
+        if !line.is_empty() && display_width(&line) + 1 + display_width(&unit) > width {
+            lines.push(std::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(&unit);
+    }
+    if !line.is_empty() || lines.is_empty() {
+        lines.push(line);
+    }
+    lines
+}
+
+/// The units [`wrap`] may put a line break between: whitespace-separated words, except
+/// that a lone separator is glued to the word behind it.
+fn units(text: &str) -> Vec<String> {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let mut units: Vec<String> = Vec::new();
+    let mut pending: Option<&str> = None;
+    for word in words {
+        match pending.take() {
+            Some(separator) => units.push(format!("{separator} {word}")),
+            None if word == SEPARATOR => pending = Some(word),
+            None => units.push(word.to_owned()),
+        }
+    }
+    // A separator with nothing behind it is text like any other; dropping it would remove
+    // a character the caller wrote.
+    if let Some(separator) = pending {
+        units.push(separator.to_owned());
+    }
+    units
 }
 
 /// Pad text on the right to `width` columns. Text that is already wider is returned
@@ -739,6 +827,81 @@ mod tests {
     #[test]
     fn no_rows_render_to_nothing() {
         assert_eq!(render(&Layout::auto(2), &[], Style::plain(100)), "");
+    }
+
+    /// A width the caller could not possibly lay out is raised to the floor instead of
+    /// being obeyed: at 20 columns a record id alone overflows the line, and every
+    /// truncatable cell would come out as a bare ellipsis.
+    #[test]
+    fn a_width_below_the_minimum_is_raised_to_it() {
+        assert_eq!(columns_from(None, Some("20")), MIN_WIDTH);
+        assert_eq!(columns_from(Some(20), None), MIN_WIDTH);
+        assert_eq!(columns_from(Some(1), None), MIN_WIDTH);
+        assert_eq!(
+            columns_from(None, Some("40")),
+            40,
+            "the floor itself is a width like any other"
+        );
+        assert_eq!(columns_from(None, Some("90")), 90);
+    }
+
+    #[test]
+    fn text_that_fits_is_one_line() {
+        assert_eq!(wrap("Der Prozess", 20), vec!["Der Prozess"]);
+        assert_eq!(wrap("", 20), vec![""]);
+        assert_eq!(
+            wrap("Der Prozess", 0),
+            vec!["Der Prozess"],
+            "a width of zero means: do not wrap"
+        );
+    }
+
+    /// The point of wrapping rather than truncating: every word is still there.
+    #[test]
+    fn a_wrapped_line_loses_no_word() {
+        let text = "the availability service holds no information for this record";
+        let lines = wrap(text, 24);
+        assert!(
+            lines.iter().all(|line| display_width(line) <= 24),
+            "{lines:?}"
+        );
+        assert_eq!(lines.join(" "), text);
+        assert!(lines.len() > 1);
+    }
+
+    /// A URL and a record id must survive being copied out of the terminal, so a word
+    /// wider than the line overflows it rather than being broken in two.
+    #[test]
+    fn a_word_wider_than_the_line_is_never_broken() {
+        let lines = wrap(
+            "Online https://d-nb.info/1234567890/04 (table of contents)",
+            20,
+        );
+        assert!(
+            lines
+                .iter()
+                .any(|line| line == "https://d-nb.info/1234567890/04"),
+            "{lines:?}"
+        );
+        assert_eq!(
+            lines.join(" "),
+            "Online https://d-nb.info/1234567890/04 (table of contents)"
+        );
+    }
+
+    /// A line ending on `·` reads like a cut, so the separator travels with the value
+    /// behind it.
+    #[test]
+    fn a_wrapped_list_never_ends_a_line_on_its_separator() {
+        let lines = wrap("Deutsche Literatur · Roman · Prag · Gerichtsverfahren", 22);
+        assert!(lines.len() > 1, "{lines:?}");
+        for line in &lines {
+            assert!(!line.ends_with('·'), "{lines:?}");
+        }
+        assert_eq!(
+            lines.join(" "),
+            "Deutsche Literatur · Roman · Prag · Gerichtsverfahren"
+        );
     }
 
     /// A layout that names no columns at all still sizes every column to its content —

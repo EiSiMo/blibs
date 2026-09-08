@@ -27,14 +27,18 @@
 //! are the layout's job there and happen once, at the final width. A cell pre-shortened to
 //! the example's constant capped its column at that constant however wide the terminal
 //! was, and its baked-in padding was counted as content by the second shortening — which
-//! put an ellipsis behind values that were complete. The one place a cell still shortens
-//! itself is a [`Column::Fixed`] one, which by design never shortens anything: there the
-//! cap has nowhere else to live, and the two shortenings cannot disagree because the
-//! column does not move.
+//! put an ellipsis behind values that were complete. **No cell shortens itself** any more:
+//! every column whose content may be shortened is a [`Column::Flex`], so the width is
+//! decided once, by the layout, at the width the terminal actually has.
 //!
 //! The separation between columns is the layout's gap, never the padding of a cell. A
 //! shrunken column spends its padding on its own text, so a title that had to give way
 //! would otherwise end up glued to the author beside it.
+//!
+//! **Everything that is not a table row is word-wrapped** to the same width, with a
+//! hanging indent where the line has a label (`write_paragraph`). A note, a library name
+//! and a heading are sentences, not cells: they are continued rather than cut, and the
+//! terminal never gets to break one wherever the character happens to fall.
 
 use std::io::{self, Write};
 
@@ -48,7 +52,7 @@ use crate::model::{
 };
 use crate::render::Style;
 use crate::render::style::{Voice, label};
-use crate::render::table::{Cell, Column, Layout, display_width, truncate};
+use crate::render::table::{Cell, Column, DEFAULT_GAP, Layout, display_width, wrap, wrap_hanging};
 use crate::select::{self, Block, BlockRecord};
 
 /// Indent of a record line, in both list forms.
@@ -65,12 +69,23 @@ const SHOW_INDENT: usize = 2;
 const GROUPED_TITLE: usize = 34;
 /// Title column without `--at`, which has no copy lines to make room for.
 const FLAT_TITLE: usize = 38;
+/// Author column with `--at`. An `ideal` for the same reason the title is one: `Einem,
+/// Gottfried von` came out as `Einem, Gottfri…` in a 200-column terminal with the space
+/// for it standing unused to the right (round 2, §3.4).
+const GROUPED_AUTHOR: usize = 18;
+/// Author column without `--at`, which spends the columns on the title instead.
+const FLAT_AUTHOR: usize = 15;
+/// The narrowest an author column may become. A name shortened past this says nothing:
+/// `Schlink, Ber…` is still a person, `Schl…` is a prefix.
+const AUTHOR_MIN: usize = 12;
 /// Location column of a copy line in the grouped list.
 const SEARCH_ITEM_LOCATION: usize = 33;
 /// Location column of a copy line in `show`, which is indented one column less.
 const SHOW_ITEM_LOCATION: usize = 39;
 /// Author column of the author block in `show`.
 const SHOW_AUTHOR_NAME: usize = 32;
+/// Role column of the author block in `show`, wide enough for the words in [`ROLE_NAMES`].
+const ROLE_COLUMN: usize = 12;
 /// Label column of every `Label  value` block. Exactly as wide as the longest label.
 const FIELD_LABEL: usize = 11;
 /// Status column. Wide enough for the longest wording in [`label`], so that a following
@@ -120,6 +135,44 @@ const LANGUAGE_NAMES: [(&str, &str); 30] = [
     ("hrv", "Croatian"),
 ];
 
+/// MARC relator codes and the English word `show` prints for them.
+///
+/// Exactly the policy of [`LANGUAGE_NAMES`], for the same reason: a **display table, never
+/// a vocabulary**. The code stays in the JSON (`role_code`), and only the line a human
+/// reads is spelled out. The codes here are the ones that actually occur in this catalogue
+/// in any number (`plan/marc-mapping.md` § `$4`); a code that is not here is **printed as
+/// the code**.
+///
+/// Printing the bare code rather than inventing a word is the whole point: `$4` is an
+/// **open** vocabulary — `kom`, `isb`, `dgg`, `dgs` and `wac` are German extensions that no
+/// `LoC` list contains, and a guessed word beside a name would be a claim about a person's
+/// part in a book. `isb` unexplained is a small puzzle; `isb` glossed as "publisher"
+/// because it looked like one is a falsehood.
+const ROLE_NAMES: [(&str, &str); 22] = [
+    ("aut", "author"),
+    ("edt", "editor"),
+    ("trl", "translator"),
+    ("pbl", "publisher"),
+    ("ill", "illustrator"),
+    ("com", "compiler"),
+    ("ctb", "contributor"),
+    ("cmp", "composer"),
+    ("act", "actor"),
+    ("drt", "director"),
+    ("prf", "performer"),
+    ("nrt", "narrator"),
+    ("lyr", "lyricist"),
+    ("pro", "producer"),
+    ("itr", "instrumentalist"),
+    ("cng", "cinematographer"),
+    ("ctg", "cartographer"),
+    ("hnr", "honouree"),
+    ("pht", "photographer"),
+    ("prt", "printer"),
+    ("art", "artist"),
+    ("oth", "other"),
+];
+
 /// Codes that name no language at all: "undetermined", "no linguistic content" and
 /// "multiple languages". They are dropped rather than printed — `Language und` states
 /// nothing, and a record whose only code is one of these gets no `Language` line.
@@ -136,6 +189,14 @@ const MAX_SUBJECTS: usize = 6;
 /// line states the count alone: it is a pointer, not a listing — the copies it speaks
 /// about are the ones the user did not ask for.
 const MAX_OTHER_BRANCHES: usize = 3;
+
+/// Indent of everything under an error message: the width of `error: `, so that the hint
+/// and a wrapped message stand under the sentence rather than under the label.
+const ERROR_INDENT: usize = 7;
+
+/// What a footnote is introduced with. Its width is also the hanging indent of a footnote
+/// that has to be wrapped, so the two cannot drift apart.
+const NOTE_LABEL: &str = "note: ";
 
 /// What `show` says instead of a holdings list for a record without `924` fields.
 ///
@@ -262,14 +323,7 @@ fn write_grouped_block(
     let item_rows: Vec<Vec<Vec<Cell>>> = block
         .records
         .iter()
-        .map(|entry| {
-            let voice = item_voice(entry.record);
-            entry
-                .items
-                .iter()
-                .map(|item| item_row(item, voice, style))
-                .collect()
-        })
+        .map(|entry| item_rows(&entry.items, item_voice(entry.record), style))
         .collect();
 
     let record_widths = record_layout.widths(&record_rows, available(style, RECORD_INDENT));
@@ -367,7 +421,16 @@ fn write_footer(
     if !notes.is_empty() {
         writeln!(out)?;
         for note in notes {
-            write_line(out, &format!("note: {note}"), 0, style.dim(), style)?;
+            // The continuation lines start under the sentence, not under the label: a
+            // second line flush with `note:` reads as a second note.
+            write_paragraph(
+                out,
+                &format!("{NOTE_LABEL}{note}"),
+                0,
+                NOTE_LABEL.len(),
+                style.dim(),
+                style,
+            )?;
         }
     }
     Ok(())
@@ -630,7 +693,10 @@ fn grouped_record_layout() -> Layout {
             ideal: GROUPED_TITLE,
             min: 12,
         },
-        Column::Fixed(18),
+        Column::Flex {
+            ideal: GROUPED_AUTHOR,
+            min: AUTHOR_MIN,
+        },
         Column::Fixed(5),
         Column::Last,
     ])
@@ -667,7 +733,10 @@ fn flat_record_layout(numbering: Option<Numbering>) -> Layout {
             ideal: FLAT_TITLE,
             min: 12,
         },
-        Column::Fixed(15),
+        Column::Flex {
+            ideal: FLAT_AUTHOR,
+            min: AUTHOR_MIN,
+        },
         Column::Fixed(4),
         Column::Last,
     ])
@@ -708,8 +777,7 @@ fn grouped_record_row(entry: &BlockRecord<'_>, style: Style) -> Vec<Cell> {
     vec![
         Cell::new(entry.status.symbol().to_string()).styled(style.status(entry.status)),
         Cell::new(record.title.clone()),
-        // A `Fixed` column never shortens: the cap belongs to the cell here.
-        Cell::new(truncate(first_author(record), 18)),
+        Cell::new(first_author(record)),
         Cell::new(year(record)),
         Cell::new(record.id.as_str()).whole(),
     ]
@@ -734,11 +802,88 @@ fn flat_record_row(
     vec![
         Cell::new(marker).styled(style.status(entry.status)).whole(),
         Cell::new(record.title.clone()),
-        // A `Fixed` column never shortens: the cap belongs to the cell here.
-        Cell::new(truncate(first_author(record), 15)),
+        Cell::new(first_author(record)),
         Cell::new(year(record)),
         Cell::new(record.id.as_str()).whole(),
     ]
+}
+
+/// The copy lines of one record or one holding.
+///
+/// A copy that states neither where it stands nor what it is called there has nothing to
+/// put in the two left columns, and eight such copies used to render as eight lines of
+/// eighty spaces and a status word — which answers "where is it on the shelf" not at all
+/// and reads like a layout crash (round 2, §3.3). Those copies are counted into **one**
+/// line instead: `8 copies` where the shelf would be.
+///
+/// What is summarised and what is not:
+///
+/// - A copy that says *anything* — a house, a shelfmark, a volume — keeps its own line.
+///   Suppressing an empty cell is forbidden and this does not do it: the collapsed copies
+///   are exactly the ones with no cell to suppress.
+/// - Copies of **different** status, or with different order options, are never counted
+///   together: the summary carries one status word, and merging two would invent a claim
+///   about half of them.
+/// - The summary stands where the first of its copies stood, so the reading order of the
+///   copies that do say something is untouched.
+///
+/// The count is the number of copies, and nothing else about them changes.
+fn item_rows(items: &[&Item], voice: Voice, style: Style) -> Vec<Vec<Cell>> {
+    // Asked once per copy: `item_location` composes a string, and the summarising below
+    // looks at every copy again for every group it opens.
+    let placeless: Vec<bool> = items.iter().map(|item| !states_a_place(item)).collect();
+    let key = |item: &Item| (item.status, item.order_option.clone());
+    let mut rows = Vec::new();
+    let mut summarised = Vec::new();
+    for (index, item) in items.iter().enumerate() {
+        if !placeless[index] {
+            rows.push(item_row(item, voice, style));
+            continue;
+        }
+        let group = key(item);
+        if summarised.contains(&group) {
+            continue;
+        }
+        let count = items
+            .iter()
+            .zip(&placeless)
+            .filter(|(other, placeless)| **placeless && key(other) == group)
+            .count();
+        summarised.push(group);
+        rows.push(placeless_row(item, count, voice, style));
+    }
+    rows
+}
+
+/// Whether a copy says where it is at all — a house, a shelf, a volume, a shelfmark.
+///
+/// The question is asked of the *rendered* cells, not of the fields: [`item_location`]
+/// already decides what a location line says, and a second opinion here would collapse
+/// copies whose line does carry something.
+fn states_a_place(item: &Item) -> bool {
+    !item_location(item).is_empty() || non_blank(item.call_number.as_deref()).is_some()
+}
+
+/// One line for `count` copies that state no place: `8 copies`, then the status they
+/// share. The count stands in the location column, which is the column those copies left
+/// empty — it is a count of copies, not a place, and it is dimmed like every other
+/// secondary value on the line.
+fn placeless_row(item: &Item, count: usize, voice: Voice, style: Style) -> Vec<Cell> {
+    let mut cells = item_row(item, voice, style);
+    if let Some(first) = cells.first_mut() {
+        *first = Cell::new(copies(count)).styled(style.dim());
+    }
+    cells
+}
+
+/// `1 copy` / `8 copies`. Copies, never records: `counts::records` speaks about hits on a
+/// page, and these are shelves of one and the same record.
+fn copies(count: usize) -> String {
+    if count == 1 {
+        "1 copy".to_owned()
+    } else {
+        format!("{count} copies")
+    }
 }
 
 /// One copy: where it stands, what it is called there, and whether it is in.
@@ -749,6 +894,9 @@ fn flat_record_row(
 /// `voice` is the record's, not the copy's ([`item_voice`]): whether `unavailable` may be
 /// read as "on loan" is a question about the *thing*, and an [`Item`] alone cannot answer
 /// it — which is why this takes a second argument rather than deciding on its own.
+///
+/// One row per copy — the summarising of copies that state no place at all is
+/// [`item_rows`]'s, so that this one stays what its name says.
 fn item_row(item: &Item, voice: Voice, style: Style) -> Vec<Cell> {
     let mut cells = vec![
         Cell::new(item_location(item)),
@@ -867,7 +1015,13 @@ fn write_author_block(out: &mut dyn Write, record: &Record, style: Style) -> io:
             ideal: SHOW_AUTHOR_NAME,
             min: 12,
         },
-        Column::Fixed(12),
+        // An `ideal`, not a cap: `$e` is free text (`Herausgebendes Organ`) and a spelled
+        // out relator can be longer than the column, and both used to push the GND of that
+        // one line out of its column.
+        Column::Flex {
+            ideal: ROLE_COLUMN,
+            min: 8,
+        },
         Column::Last,
     ]);
     let rows: Vec<Vec<Cell>> = record
@@ -881,7 +1035,7 @@ fn write_author_block(out: &mut dyn Write, record: &Record, style: Style) -> io:
             };
             vec![
                 Cell::new(name),
-                Cell::new(author.role.clone().unwrap_or_default()),
+                Cell::new(author_role(author)),
                 Cell::new(
                     author
                         .gnd
@@ -898,6 +1052,36 @@ fn write_author_block(out: &mut dyn Write, record: &Record, style: Style) -> io:
         write_row(out, &layout, row, &widths, SHOW_INDENT, style)?;
     }
     write_overflow(out, record.authors.len(), MAX_AUTHORS, style)
+}
+
+/// What one author's part in the book is called, in words where there are any.
+///
+/// `$e` first, because it is what the record itself says in words; `$4` after it, spelled
+/// out through [`ROLE_NAMES`] where the code is known and printed bare where it is not.
+/// Empty only when the record states neither.
+///
+/// The fallback is the whole point: `$4` without `$e` is the normal case in the BVB/B3Kat
+/// records, and printing only `$e` left the column empty for them — three names in a row
+/// with no role, one of which was the **publisher** (round 2, §1.12).
+fn author_role(author: &crate::model::Author) -> String {
+    if let Some(role) = non_blank(author.role.as_deref()) {
+        return role.to_owned();
+    }
+    non_blank(author.role_code.as_deref())
+        .map(role_name)
+        .unwrap_or_default()
+}
+
+/// The English word for a relator code, or the code itself when [`ROLE_NAMES`] does not
+/// know it. Never a guess — see there.
+///
+/// The comparison ignores case: `$4` is lower case throughout the sampled records, but the
+/// subfield is free text and an upper-case `AUT` is not worth losing the word over.
+fn role_name(code: &str) -> String {
+    ROLE_NAMES
+        .iter()
+        .find(|(known, _)| known.eq_ignore_ascii_case(code))
+        .map_or_else(|| code.to_owned(), |(_, name)| (*name).to_owned())
 }
 
 /// `and N more`, for a list the terminal cut short. Nothing when nothing was cut.
@@ -920,15 +1104,33 @@ fn write_field_block(out: &mut dyn Write, record: &Record, style: Style) -> io::
 }
 
 /// Write a `Label   value` block, aligning every value in one column.
+///
+/// A value too wide for the terminal is **wrapped into the value column**, not cut: the
+/// subject headings of a record run past 80 columns routinely, and the terminal's own break
+/// would put the continuation under the label, where it reads as a field of its own. The
+/// continuation rows carry an empty label, which is how the second URL of a record is
+/// already written.
+///
+/// The value column starts at a width the content cannot move — [`FIELD_LABEL`] is
+/// [`Column::Fixed`] — so the wrap width is known before the layout is computed, and the
+/// two cannot disagree.
 fn write_fields(out: &mut dyn Write, fields: &[(String, String)], style: Style) -> io::Result<()> {
     let layout = Layout::new(vec![Column::Fixed(FIELD_LABEL), Column::Last]);
+    let value_width = available(style, SHOW_INDENT + FIELD_LABEL + DEFAULT_GAP);
     let rows: Vec<Vec<Cell>> = fields
         .iter()
-        .map(|(label, value)| {
-            vec![
-                Cell::new(label.clone()).styled(style.dim()).whole(),
-                Cell::new(value.clone()),
-            ]
+        .flat_map(|(label, value)| {
+            wrap(value, value_width)
+                .into_iter()
+                .enumerate()
+                .map(|(index, line)| {
+                    let label = if index == 0 { label.as_str() } else { "" };
+                    vec![
+                        Cell::new(label).styled(style.dim()).whole(),
+                        Cell::new(line),
+                    ]
+                })
+                .collect::<Vec<_>>()
         })
         .collect();
     let widths = layout.widths(&rows, available(style, SHOW_INDENT));
@@ -1111,13 +1313,7 @@ fn write_holdings(
     let rows: Vec<Vec<Vec<Cell>>> = split
         .mine
         .iter()
-        .map(|entry| {
-            entry
-                .items
-                .iter()
-                .map(|item| item_row(item, voice, style))
-                .collect()
-        })
+        .map(|entry| item_rows(&entry.items, voice, style))
         .collect();
     let layout = show_item_layout();
     let all: Vec<Vec<Cell>> = rows.iter().flatten().cloned().collect();
@@ -1155,18 +1351,47 @@ fn write_holding_heading(
     entry: &select::HoldingAt<'_>,
     style: Style,
 ) -> io::Result<()> {
-    let mut line = format!(
-        "{} {}",
-        style.symbol(entry.status),
-        library_name(entry.holding)
-    );
+    // The name of a house runs to about a hundred characters (`Humboldt-Universität zu
+    // Berlin, Universitätsbibliothek`, and longer), so the line is wrapped under itself
+    // rather than under the traffic light: a continuation flush with the symbol would read
+    // as a second library. The symbol keeps its own colour, and the count keeps its dim,
+    // because both are appended here and never handed to the wrap as one painted string.
+    let name = library_name(entry.holding);
+    // The symbol and the space behind it; the name starts one column further in, and so do
+    // its continuations.
+    let indent = SHOW_INDENT + display_width(&entry.status.symbol().to_string()) + 1;
+    let width = available(style, indent);
+    let mut lines = wrap(&name, width);
+    let mut painted: Vec<String> = lines.clone();
     if let Some(count) = select::available_count(entry.items.iter().copied())
         && count.known > 1
     {
         let text = format!(" · {} of {} available", count.available, count.known);
-        line.push_str(&style.paint(&text, style.dim()));
+        // The count belongs behind the name; it moves to a line of its own only when the
+        // last line has no room left for it. `trim_start` because a line does not begin
+        // with the separator's space.
+        let last = lines.len() - 1;
+        if display_width(&lines[last]) + display_width(&text) <= width {
+            painted[last].push_str(&style.paint(&text, style.dim()));
+        } else {
+            let own = text.trim_start().to_owned();
+            painted.push(style.paint(&own, style.dim()));
+            lines.push(own);
+        }
     }
-    writeln!(out, "{}{line}", " ".repeat(SHOW_INDENT))
+    for (index, line) in painted.iter().enumerate() {
+        if index == 0 {
+            writeln!(
+                out,
+                "{}{} {line}",
+                " ".repeat(SHOW_INDENT),
+                style.symbol(entry.status)
+            )?;
+        } else {
+            writeln!(out, "{}{line}", " ".repeat(indent))?;
+        }
+    }
+    Ok(())
 }
 
 /// `2 more copies at this library stand elsewhere: …` — what `--at <branch>` narrowed
@@ -1545,13 +1770,31 @@ pub fn empty(reason: &EmptyReason, out: &mut dyn Write) -> io::Result<()> {
 /// The hint is indented under the message so that the two read as one paragraph, and it
 /// is never omitted when the variant has one — "request failed" without a next step is
 /// exactly what this tool must not print.
+///
+/// Both are wrapped like every other sentence this renderer writes, at the hint's own
+/// indent: an error is the one line the reader has to be able to read in full, and the
+/// remediation text of some variants is three sentences long.
 pub fn error(error: &Error, out: &mut dyn Write, style: Style) -> io::Result<()> {
-    writeln!(out, "{} {error}", style.paint("error:", style.bold()))?;
+    let label = style.paint("error:", style.bold());
+    let message = error.to_string();
+    let mut lines = wrap_hanging(
+        &message,
+        available(style, ERROR_INDENT),
+        available(style, ERROR_INDENT),
+    )
+    .into_iter();
+    // The first line carries the label; the rest stand under it, where the hint stands too.
+    if let Some(first) = lines.next() {
+        writeln!(out, "{label} {first}")?;
+    }
+    for line in lines {
+        writeln!(out, "{}{line}", " ".repeat(ERROR_INDENT))?;
+    }
     let Some(hint) = error.hint() else {
         return Ok(());
     };
     for line in hint.lines() {
-        writeln!(out, "       {}", style.paint(line, style.dim()))?;
+        write_line(out, line, ERROR_INDENT, style.dim(), style)?;
     }
     Ok(())
 }
@@ -1578,7 +1821,12 @@ fn write_row(
     writeln!(out, "{}", line.trim_end())
 }
 
-/// Write one painted line at an indent.
+/// Write one painted line at an indent, wrapped to the terminal.
+///
+/// Everything outside a table goes through here, which is what makes those lines respect
+/// the width at all: a heading, a note and a library name used to run past the edge and be
+/// broken by the terminal wherever the character happened to fall (round 2, §3.4). Nothing
+/// is shortened — [`wrap`] only chooses where the line continues.
 fn write_line(
     out: &mut dyn Write,
     text: &str,
@@ -1586,7 +1834,31 @@ fn write_line(
     paint: anstyle::Style,
     style: Style,
 ) -> io::Result<()> {
-    writeln!(out, "{}{}", " ".repeat(indent), style.paint(text, paint))
+    write_paragraph(out, text, indent, 0, paint, style)
+}
+
+/// The same, with the continuation lines indented `hang` columns further.
+///
+/// The hanging indent is what tells a continuation from a new line of its own: under
+/// `note: ` the second line starts where the sentence does, not under the label.
+fn write_paragraph(
+    out: &mut dyn Write,
+    text: &str,
+    indent: usize,
+    hang: usize,
+    paint: anstyle::Style,
+    style: Style,
+) -> io::Result<()> {
+    let lines = wrap_hanging(
+        text,
+        available(style, indent),
+        available(style, indent + hang),
+    );
+    for (index, line) in lines.iter().enumerate() {
+        let indent = if index == 0 { indent } else { indent + hang };
+        writeln!(out, "{}{}", " ".repeat(indent), style.paint(line, paint))?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1596,7 +1868,7 @@ mod tests {
         AtBlock, Author, AuthorKind, AvailabilityMode, BranchRef, Engine, Isil, Note, Page,
         QueryEcho, RecordId, ResourceUrl, ShowResult, SortScope, SortSpec, WindowInfo,
     };
-    use crate::render::table::{pad_right, strip_ansi};
+    use crate::render::table::{MIN_WIDTH, pad_right, strip_ansi};
 
     /// The width the examples in `plan/cli.md` were written for. Wide enough that no
     /// column has to give way, which is what makes them reproducible at all.
@@ -1747,6 +2019,16 @@ mod tests {
         String::from_utf8(out).expect("the renderer writes UTF-8")
     }
 
+    /// The output with every run of whitespace collapsed to a single space.
+    ///
+    /// For an assertion about a **sentence** rather than about where it was wrapped: every
+    /// line outside a table is laid out for the terminal since round 2 §3.4, so a long note
+    /// is continued on the next line and a plain `contains` would be an assertion about the
+    /// width, not about the words.
+    fn one_line(text: &str) -> String {
+        text.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+
     fn rendered_error(error: &Error) -> String {
         let mut out = Vec::new();
         super::error(error, &mut out, Style::plain(WIDE)).expect("a vector accepts bytes");
@@ -1800,6 +2082,10 @@ mod tests {
 
     /// The shape of the whole thing, message and indented next step, on the variant that
     /// used to have neither a usable kind nor a hint.
+    ///
+    /// Both are **wrapped** since round 2 §3.4 — the message here is 96 columns and
+    /// [`WIDE`] is 100, so the continuation stands at the hint's indent, under the sentence
+    /// rather than under the label.
     #[test]
     fn an_error_prints_its_message_and_its_hint_underneath() {
         let error: Error = crate::error::UsageError::LanguageCode {
@@ -1809,9 +2095,9 @@ mod tests {
         assert_eq!(
             rendered_error(&error),
             "error: --language takes a three-letter ISO-639-2/B code as the records carry it \
-             (ger, eng, fre — not de and not German), got \"de\"\n       the records carry \
-             bibliographic codes, not the everyday ones: --language ger for German, eng for \
-             English, fre for French\n"
+             (ger, eng, fre — not\n       de and not German), got \"de\"\n       the records \
+             carry bibliographic codes, not the everyday ones: --language ger for German, eng\n\
+             \x20      for English, fre for French\n"
         );
     }
 
@@ -2313,11 +2599,18 @@ AGB (VÖBB) · 35 results · showing 2
         );
     }
 
-    /// The author column is [`Column::Fixed`], which never shortens anything — so the
-    /// cell shortens itself. Without that the name overflows and pushes the year and the
-    /// record id of that one line out of their columns.
+    /// A long author widens the column for the whole page rather than being cut in one
+    /// line: the id column has to stay where it is, and at this width there is room.
+    ///
+    /// Changed in round 2 §3.4. The column used to be [`Column::Fixed`] with the cell
+    /// shortening itself, which kept the id column in place but printed `Martínez Salaz…`
+    /// in a terminal with sixty columns to spare. The guarantee this test was written for —
+    /// the id column does not move — is unchanged and still asserted; what changed is that
+    /// the column now grows to hold the name instead of the name being cut to the column.
+    /// The narrow-terminal half of it is
+    /// [`a_long_author_is_cut_when_the_row_has_no_room_for_it`].
     #[test]
-    fn a_long_author_is_cut_rather_than_pushing_the_id_out_of_its_column() {
+    fn a_long_author_is_not_cut_when_the_page_has_room_for_it() {
         let mut result = result(
             "Kafka",
             Some(2),
@@ -2350,7 +2643,261 @@ AGB (VÖBB) · 35 results · showing 2
             id_column(lines[1]),
             "the id column does not move: {output:?}"
         );
-        assert!(lines[1].contains("Martínez Salaz…"), "{output:?}");
+        assert!(lines[1].contains("Martínez Salazar, Elisa"), "{output:?}");
+        assert!(!output.contains('…'), "nothing was cut: {output:?}");
+    }
+
+    /// The other half of §3.4: the column gives way when the row genuinely has no room,
+    /// and says so with an ellipsis rather than by silently losing the end of a name.
+    #[test]
+    fn a_long_author_is_cut_when_the_row_has_no_room_for_it() {
+        let mut result = result(
+            "Kafka",
+            Some(1),
+            vec![record(
+                "gbv_777604810",
+                "Kafka en las dos orillas",
+                "Martínez Salazar, Elisa",
+                2013,
+            )],
+        );
+        result.records[0].holdings = Vec::new();
+        let mut out = Vec::new();
+        search(&result, &[], &mut out, Style::plain(60)).expect("bytes");
+        let output = String::from_utf8(out).expect("UTF-8");
+        assert!(output.contains('…'), "{output:?}");
+        assert!(
+            output.contains("gbv_777604810"),
+            "the id is never cut: {output:?}"
+        );
+    }
+
+    /// §3.3: eight copies that state neither a shelf nor a house are one line, not eight
+    /// lines of eighty spaces behind a status word.
+    #[test]
+    fn copies_that_state_no_place_are_counted_into_one_line() {
+        let (result, locations) = one_record_with(vec![placeless(Status::Available); 8]);
+        let output = rendered(&result, &locations);
+        assert_eq!(
+            output.matches("available").count(),
+            2,
+            "one copy line and one legend entry: {output}"
+        );
+        assert!(output.contains("8 copies"), "{output}");
+    }
+
+    /// The count is a count of copies and says so in the singular too — the line exists to
+    /// give the status something true to stand on, not to look plural.
+    #[test]
+    fn one_placeless_copy_says_one_copy() {
+        let (result, locations) = one_record_with(vec![placeless(Status::Available)]);
+        assert!(
+            rendered(&result, &locations).contains("1 copy "),
+            "{result:?}"
+        );
+    }
+
+    /// A mixture is never flattened: a copy that states a shelf keeps its own line, and
+    /// only the ones with nothing to put in those columns are summarised.
+    #[test]
+    fn a_copy_that_states_a_shelf_is_never_summarised_away() {
+        let (result, locations) = one_record_with(vec![
+            item("Grimm-Zentrum, 7. OG", "GM 5000 S345 V9", Status::Available),
+            placeless(Status::Available),
+            placeless(Status::Available),
+        ]);
+        let output = rendered(&result, &locations);
+        assert!(output.contains("Grimm-Zentrum, 7. OG"), "{output}");
+        assert!(output.contains("GM 5000 S345 V9"), "{output}");
+        assert!(output.contains("2 copies"), "{output}");
+    }
+
+    /// Copies of different status are never counted together: the summary carries one
+    /// status word, and merging two would state something about half of them that the
+    /// service never said.
+    #[test]
+    fn placeless_copies_of_different_status_stay_apart() {
+        let (result, locations) = one_record_with(vec![
+            placeless(Status::Available),
+            placeless(Status::Unavailable),
+            placeless(Status::Available),
+        ]);
+        let output = one_line(&rendered(&result, &locations));
+        assert!(output.contains("2 copies available"), "{output}");
+        assert!(output.contains("1 copy on loan"), "{output}");
+    }
+
+    /// A copy that states only the volume it is — the serial case — carries its line, and
+    /// is never counted away into a copy that states a different one.
+    #[test]
+    fn a_copy_that_states_only_its_volume_keeps_its_line() {
+        let mut first = placeless(Status::Available);
+        first.volume = Some("1.1953".to_owned());
+        let mut second = placeless(Status::Available);
+        second.volume = Some("2.1954".to_owned());
+        let (result, locations) = one_record_with(vec![first, second]);
+        let output = rendered(&result, &locations);
+        assert!(output.contains("1.1953"), "{output}");
+        assert!(output.contains("2.1954"), "{output}");
+        assert!(!output.contains("copies"), "{output}");
+    }
+
+    /// A copy with nothing to say about where it stands: `location: null`,
+    /// `call_number: null`, which is what 885 FU records look like.
+    fn placeless(status: Status) -> Item {
+        Item {
+            location: None,
+            branch: None,
+            branch_name: None,
+            call_number: None,
+            volume: None,
+            status,
+            order_option: None,
+        }
+    }
+
+    /// One record at one location, holding exactly these copies.
+    fn one_record_with(items: Vec<Item>) -> (SearchResult, Vec<Location>) {
+        let status = items.first().map_or(Status::Unknown, |item| item.status);
+        let mut record = record(
+            "almafu_9959168730302883",
+            "Gewaltige Liebe",
+            "Lohner, Eva Maria",
+            2019,
+        );
+        record.holdings = vec![holding(
+            "DE-188",
+            "FU Berlin",
+            "Freie Universität Berlin, Universitätsbibliothek",
+            status,
+            items,
+        )];
+        let mut result = result("Der Prozess", Some(885), vec![record]);
+        result.at = vec![at(
+            "FU",
+            "DE-188",
+            885,
+            Engine::Kobv,
+            &["almafu_9959168730302883"],
+        )];
+        (result, vec![institution("FU", "DE-188", "FU Berlin")])
+    }
+
+    /// §3.4, the wide direction: with two hundred columns nothing is shortened anywhere —
+    /// not the title, not the author, not a copy line.
+    #[test]
+    fn nothing_is_cut_while_two_hundred_columns_stand_free() {
+        let (mut result, locations) = vorleser();
+        result.records[0].title =
+            "Der Vorleser : Roman einer Kindheit und einer Schuld, mit einem Nachwort".to_owned();
+        result.records[0].authors[0].name = "Einem, Gottfried von".to_owned();
+        let mut out = Vec::new();
+        search(&result, &locations, &mut out, Style::plain(200)).expect("bytes");
+        let output = String::from_utf8(out).expect("UTF-8");
+        assert!(!output.contains('…'), "{output}");
+        assert!(output.contains("Einem, Gottfried von"), "{output}");
+        assert!(
+            output.contains(
+                "Der Vorleser : Roman einer Kindheit und einer Schuld, mit einem Nachwort"
+            ),
+            "{output}"
+        );
+    }
+
+    /// §3.4, the narrow direction: a terminal narrower than any layout must not panic, and
+    /// whatever was removed says so with an ellipsis. The record id is still whole, because
+    /// it is what `show` takes.
+    ///
+    /// [`MIN_WIDTH`] is where a real invocation bottoms out — a narrower `COLUMNS` is
+    /// raised to it. The absurd widths are here anyway, because a [`Style`] can be built
+    /// with any number and none of them may reach a subtraction that wraps.
+    #[test]
+    fn a_narrow_terminal_neither_panics_nor_cuts_silently() {
+        let (result, locations) = vorleser();
+        for width in [1, 20, MIN_WIDTH, 64] {
+            let mut out = Vec::new();
+            search(&result, &locations, &mut out, Style::plain(width)).expect("bytes");
+            let output = String::from_utf8(out).expect("UTF-8");
+            assert!(output.contains("almahu_BV011234567"), "{width}: {output}");
+            // Every line that lost text says so; no line ends mid-word without a mark.
+            assert!(
+                output.contains('…'),
+                "at {width} columns something had to give way: {output}"
+            );
+            let mut show = Vec::new();
+            super::show(&prozess(), &locations, &[], &mut show, Style::plain(width))
+                .expect("bytes");
+            assert!(
+                String::from_utf8(show)
+                    .expect("UTF-8")
+                    .contains("almafu_BV008885798"),
+                "the id survives {width} columns"
+            );
+        }
+    }
+
+    /// The library line of `show` runs to about a hundred characters and used to run past
+    /// the edge of every terminal. It is wrapped under itself — not under the traffic
+    /// light, which would read as a second library — and the count stays behind the name.
+    #[test]
+    fn a_long_library_name_is_wrapped_under_itself() {
+        let output = rendered_show_at(&prozess(), &[], 64);
+        let lines: Vec<&str> = output.lines().collect();
+        let heading = lines
+            .iter()
+            .position(|line| line.contains("HU Berlin"))
+            .expect("the HU holding is printed");
+        assert!(
+            lines.iter().all(|line| display_width(line) <= 64),
+            "nothing runs past the width: {output}"
+        );
+        assert!(
+            lines[heading + 1].starts_with("    ") && !lines[heading + 1].starts_with("     "),
+            "the continuation stands under the name, not under the symbol: {output}"
+        );
+        assert!(
+            one_line(&output).contains(
+                "HU Berlin — Humboldt-Universität zu Berlin, Universitätsbibliothek · 2 of 2 available"
+            ),
+            "{output}"
+        );
+    }
+
+    /// A field value too wide for the terminal is continued in its own column, under an
+    /// empty label — and never cut, and never broken on the separator of its list.
+    #[test]
+    fn a_long_field_value_is_wrapped_into_its_column() {
+        let mut record = prozess();
+        record.subjects = vec![
+            "Deutsche Literatur".to_owned(),
+            "Roman".to_owned(),
+            "Prag".to_owned(),
+            "Gerichtsverfahren".to_owned(),
+            "Schuld".to_owned(),
+        ];
+        let output = rendered_show_at(&record, &[], 64);
+        assert!(
+            output.contains("  Subjects     Deutsche Literatur · Roman · Prag\n"),
+            "no line ends on the separator: {output}"
+        );
+        assert!(
+            output.contains("               · Gerichtsverfahren · Schuld\n"),
+            "the continuation stands under the value: {output}"
+        );
+    }
+
+    /// A URL survives every width: it is one word, so it overflows its line rather than
+    /// being broken in two by a wrap that would put a space inside it.
+    #[test]
+    fn a_url_is_never_broken_by_the_wrap() {
+        let mut record = prozess();
+        let url = "https://nbn-resolving.org/urn:nbn:de:kobv:11-100123456-7890".to_owned();
+        record.urls = vec![ResourceUrl {
+            url: url.clone(),
+            kind: UrlKind::Fulltext,
+            label: None,
+        }];
+        assert!(rendered_show_at(&record, &[], 40).contains(&url));
     }
 
     /// The same for a copy line: the location column of `show` is an `ideal`, not a cap.
@@ -2489,7 +3036,9 @@ AGB (VÖBB) · 35 results · showing 2
     /// 2. `· 2 of 2 available` behind the HU name: copies are counted whenever a house
     ///    has more than one, and the example omits it there while demanding it in prose.
     /// 3. The sentence about the copy on loan, which the rules require and the example
-    ///    leaves out.
+    ///    leaves out. It is **wrapped** over two lines, because since round 2 §3.4 every
+    ///    line outside a table is laid out for the width like the tables always were; at
+    ///    [`WIDE`] the sentence is 127 columns long.
     #[test]
     fn the_show_example_is_reproduced() {
         let locations = vec![
@@ -2523,7 +3072,8 @@ Holdings
   ○ ZLB — Zentral- und Landesbibliothek Berlin
       Amerika-Gedenkbibliothek                 Kaf 3             on loan
 
-  a copy on loan carries no due date here — return dates and holds are only in the library's own catalogue, behind a patron login
+  a copy on loan carries no due date here — return dates and holds are only in the library's own
+  catalogue, behind a patron login
 
   also at: Stabi Berlin · TU Berlin · EUV Frankfurt (Oder) · UP Potsdam
 
@@ -2559,6 +3109,88 @@ almafu_BV008885798
                 !UNNAMED_LANGUAGES.contains(code),
                 "{code:?} names no language and must not be given one"
             );
+        }
+    }
+
+    /// §1.12: the role column stays filled when the record states the role only as a MARC
+    /// code, which is the normal case in the BVB/B3Kat records. Three names with an empty
+    /// column read as three equal authors — one of them the publisher.
+    #[test]
+    fn a_role_stated_only_as_a_code_is_still_named() {
+        let mut record = prozess();
+        record.authors = vec![
+            author_with_role("Kafka, Franz", None, Some("aut")),
+            author_with_role("Stach, Reiner", None, Some("edt")),
+            author_with_role("Wallstein-Verlag", None, Some("pbl")),
+        ];
+        let output = rendered_show(&record, &[]);
+        assert!(
+            output.contains("Kafka, Franz                      author"),
+            "{output}"
+        );
+        assert!(
+            output.contains("Stach, Reiner                     editor"),
+            "{output}"
+        );
+        assert!(
+            output.contains("Wallstein-Verlag                  publisher"),
+            "the publisher must not read as an author: {output}"
+        );
+    }
+
+    /// `$4` is an open vocabulary — `isb`, `dgg` and `wac` are German extensions no `LoC`
+    /// list contains. An unknown code is printed **as the code**: a guessed word beside a
+    /// name would be a claim about that person's part in the book.
+    #[test]
+    fn an_unknown_relator_code_is_printed_as_the_code() {
+        assert_eq!(role_name("aut"), "author");
+        assert_eq!(role_name("pbl"), "publisher");
+        assert_eq!(role_name("isb"), "isb");
+        assert_eq!(role_name("wac"), "wac");
+        assert_eq!(role_name("AUT"), "author", "the case is not worth the word");
+        let mut record = prozess();
+        record.authors = vec![author_with_role("Beispiel, Ada", None, Some("dgg"))];
+        assert!(rendered_show(&record, &[]).contains("dgg"));
+    }
+
+    /// `$e` is what the record says in words and wins over the code; a record with neither
+    /// leaves the column empty rather than inventing a role.
+    #[test]
+    fn the_free_text_role_wins_over_the_code_and_neither_is_invented() {
+        let author = author_with_role("Kafka, Franz", Some("Verfasser/in"), Some("aut"));
+        assert_eq!(author_role(&author), "Verfasser/in");
+        assert_eq!(
+            author_role(&author_with_role("Kafka, Franz", None, None)),
+            ""
+        );
+        assert_eq!(
+            author_role(&author_with_role("Kafka, Franz", Some("  "), Some("edt"))),
+            "editor",
+            "an empty $e is not a role"
+        );
+    }
+
+    /// Every code is a three-letter code, spelled out once.
+    #[test]
+    fn the_role_table_holds_no_duplicate_codes() {
+        for (index, (code, name)) in ROLE_NAMES.iter().enumerate() {
+            assert_eq!(code.len(), 3, "{code:?} is not a three-letter code");
+            assert!(!name.is_empty());
+            assert!(
+                !ROLE_NAMES[..index].iter().any(|(seen, _)| seen == code),
+                "{code:?} occurs twice"
+            );
+        }
+    }
+
+    fn author_with_role(name: &str, role: Option<&str>, code: Option<&str>) -> Author {
+        Author {
+            name: name.to_owned(),
+            kind: AuthorKind::Person,
+            dates: None,
+            gnd: None,
+            role: role.map(str::to_owned),
+            role_code: code.map(str::to_owned),
         }
     }
 
@@ -2705,12 +3337,15 @@ almafu_BV008885798
                 "Amerika-Gedenkbibliothek",
             )],
         );
+        // Unwrapped: the note is longer than the terminal and is continued rather than cut
+        // (round 2, §3.4), so the assertion is about the words and not about the width.
+        let said = one_line(&output);
         assert!(
-            output.contains("--at AGB is answered by the voebb"),
+            said.contains("--at AGB is answered by the voebb"),
             "{output}"
         );
         assert!(
-            output.contains("says nothing about whether the copy stands there"),
+            said.contains("says nothing about whether the copy stands there"),
             "{output}"
         );
     }
@@ -2809,8 +3444,11 @@ almafu_BV008885798
     fn the_copies_a_branch_narrowed_away_are_stated() {
         let agb = branch("AGB", "DE-609", "SIG00036", "Amerika-Gedenkbibliothek");
         let output = rendered_show(&vorleser_voebb(), std::slice::from_ref(&agb));
+        // Asserted on the unwrapped text: the sentence is longer than the terminal and is
+        // now continued on a second line (round 2, §3.4). What this test is about is that
+        // it is *said*, not where it breaks.
         assert!(
-            output.contains(
+            one_line(&output).contains(
                 "3 more copies of this library stand at other branches: \
                  Marzahn-Hellersdorf: Bezirkszentralbibliothek · Mitte: Hansabibliothek · \
                  Reinickendorf: Bibliothek Frohnau"
@@ -2835,7 +3473,12 @@ almafu_BV008885798
         let agb = branch("AGB", "DE-609", "SIG00036", "Amerika-Gedenkbibliothek");
         let narrow = rendered_show_at(&vorleser_voebb(), std::slice::from_ref(&agb), 20);
         assert!(narrow.contains("L 248 Schlin 50 p"), "{narrow}");
-        assert!(narrow.contains("more copies of this library"), "{narrow}");
+        // Unwrapped: at twenty columns the sentence is broken after nearly every word,
+        // which is the correct answer and not a claim this test is making.
+        assert!(
+            one_line(&narrow).contains("more copies of this library"),
+            "{narrow}"
+        );
     }
 
     /// §1.8: `0 of 2 available` next to two lines reading "status not confirmed" is a
