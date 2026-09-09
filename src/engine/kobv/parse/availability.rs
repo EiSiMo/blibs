@@ -15,7 +15,7 @@
 //! other, and `data-more` is read as a counter-check: a mismatch is
 //! [`crate::error::UnexpectedError::CountMismatch`], not a shortened list.
 //!
-//! Two smaller ones, each with the fixture that proves it:
+//! Three smaller ones, each with the fixture that proves it:
 //!
 //! - **Empty cells are the normal case, not a parser failure.** `no_items.json` has two
 //!   copies with no shelfmark at all and the placeholder `Library` where a branch name
@@ -24,6 +24,10 @@
 //! - **The branch is read from the `bibids=` link, never from the cell text.** The text is
 //!   a placeholder (`Library`, `Bibliothek`, `'`) in almost half of all rows, and matching
 //!   on it hits nothing for 59 of 67 distinct texts (`plan/scraping.md` §B.5.1).
+//! - **A location or branch name can start with a bare join comma.** When the portal has
+//!   no house name to put in front of it, the `, <branch>` join it normally writes between
+//!   two names still comes through with nothing before it — `comma_prefix.json`,
+//!   `plan/feedback_round_3.md` §3.2. [`LEADING_SEPARATORS`] cuts it.
 
 use std::sync::OnceLock;
 
@@ -41,6 +45,24 @@ const DOCUMENT: &str = "availability fragment";
 /// these wherever it has no branch to name; carrying them through would put the word
 /// "Library" on a shelf line.
 const PLACEHOLDERS: &[&str] = &["Library", "Bibliothek", "'"];
+
+/// A leading punctuation mark the portal writes as the join between a house name and what
+/// follows it, even when the house name is empty.
+///
+/// `mixed.json` shows the normal case: the link text is the branch name, and a comma joins
+/// it to a free-text suffix (`ZB Grimm-Zentrum</a>, 3. OG / Bereich B - Freihandbestand`).
+/// For `BIB000000004` the same service writes the join with nothing in front of it, so the
+/// link text itself starts with it: `<a …>, Unter den Linden</a>` — confirmed against the
+/// live portal, `plan/feedback_round_3.md` §3.2, `comma_prefix.json`. Carried through
+/// unstripped, the location and the branch name both start with a comma nobody asked for.
+///
+/// Only the comma is listed. `;`, `·`, `-` and `/` also join parts of these cells
+/// (`1945,Mai-Dez.; 1946,Jan.-Juni`, `Bereich B - Freihandbestand`,
+/// `Selbstausleihe/Nutzung vor Ort`) — checked against every fixture in this directory —
+/// but in every occurrence they sit **between** two parts that are both already there.
+/// None of them has ever been observed dangling in front of an empty one the way the comma
+/// was; adding them here would be a guess this module has no evidence for.
+const LEADING_SEPARATORS: &[char] = &[','];
 
 /// The parsed availability response for one record.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -429,7 +451,7 @@ fn item(row: ElementRef<'_>, columns: &Columns) -> Item {
 
     Item {
         location: location_cell
-            .map(|cell| collapse(&text_of(cell)))
+            .map(|cell| strip_leading_separator(&collapse(&text_of(cell))))
             .filter(|text| !is_placeholder(text)),
         branch,
         branch_name,
@@ -475,7 +497,7 @@ fn branch_of(cell: ElementRef<'_>) -> (Option<String>, Option<String>) {
                 .to_string()
         })
         .filter(|id| !id.is_empty());
-    let name = collapse(&text_of(link));
+    let name = strip_leading_separator(&collapse(&text_of(link)));
     (branch, (!is_placeholder(&name)).then_some(name))
 }
 
@@ -669,6 +691,22 @@ fn is_placeholder(text: &str) -> bool {
     text.is_empty() || PLACEHOLDERS.contains(&text)
 }
 
+/// Cut a leading separator (see [`LEADING_SEPARATORS`]) and the whitespace after it.
+///
+/// Only ever the first one: a cell that starts with a separator has exactly one — the
+/// house name in front of it was empty — and a second occurrence belongs to the branch
+/// name itself, not to this join. A text with nothing left after the cut is returned
+/// empty, same as a cell that was never anything but the separator; [`is_placeholder`]
+/// turns that into `None` exactly as it already does for an empty cell, so this never
+/// invents a new way for "nothing here" to look different from what the parser already
+/// says for it.
+fn strip_leading_separator(text: &str) -> String {
+    match text.strip_prefix(LEADING_SEPARATORS) {
+        Some(rest) => rest.trim_start().to_string(),
+        None => text.to_string(),
+    }
+}
+
 /// A traffic-light colour, or [`Status::Unknown`] plus a note saying why.
 fn colour_status(colour: Option<&str>, field: &str, notes: &mut Vec<Note>) -> Status {
     let Some(colour) = colour else {
@@ -721,6 +759,8 @@ mod tests {
         include_str!("../../../../tests/fixtures/kobv/availability/reference.json");
     const PUBLIC: &str = include_str!("../../../../tests/fixtures/kobv/availability/public.json");
     const JOURNAL: &str = include_str!("../../../../tests/fixtures/kobv/availability/journal.json");
+    const COMMA_PREFIX: &str =
+        include_str!("../../../../tests/fixtures/kobv/availability/comma_prefix.json");
 
     fn parsed(json: &str) -> AvailabilityResponse {
         match parse(json) {
@@ -812,7 +852,15 @@ mod tests {
     /// stage 1 is gone.
     #[test]
     fn positional_and_name_based_matching_agree_on_every_fixture() {
-        for json in [MIXED, NEWSPAPER, NO_ITEMS, REFERENCE, PUBLIC, JOURNAL] {
+        for json in [
+            MIXED,
+            NEWSPAPER,
+            NO_ITEMS,
+            REFERENCE,
+            PUBLIC,
+            JOURNAL,
+            COMMA_PREFIX,
+        ] {
             let response = parsed(json);
             assert_eq!(
                 response.by_isil.len(),
@@ -965,6 +1013,31 @@ mod tests {
         assert_eq!(response.groups.len(), 3);
         assert_eq!(response.groups[2].items[0].call_number, None);
         assert_eq!(response.by_isil[1].1, Status::PossiblyAvailable);
+    }
+
+    /// `comma_prefix.json` (`plan/feedback_round_3.md` §3.2): the portal's location link
+    /// is `<a …>, Unter den Linden</a>` — the house name in front of the join comma is
+    /// empty, but the comma itself still comes through. Both fields it feeds must lose the
+    /// comma, not just the link text.
+    #[test]
+    fn a_bare_join_comma_is_cut_from_location_and_branch_name() {
+        let response = parsed(COMMA_PREFIX);
+        assert_eq!(response.groups.len(), 1);
+        let item = &response.groups[0].items[0];
+        assert_eq!(item.location.as_deref(), Some("Unter den Linden"));
+        assert_eq!(item.branch_name.as_deref(), Some("Unter den Linden"));
+        assert_eq!(item.branch.as_deref(), Some("BIB000000004"));
+        assert_eq!(item.call_number.as_deref(), Some("2\"@Ztg 5011;Erg-Bd."));
+        assert_eq!(item.status, Status::Reference);
+    }
+
+    /// A cell that is nothing **but** the join comma must end up exactly where an empty
+    /// cell already ends up — `None` — never as an empty string that looks like a new,
+    /// unexplained kind of "nothing here".
+    #[test]
+    fn a_cell_that_is_only_the_comma_is_none_not_an_empty_string() {
+        assert_eq!(strip_leading_separator(","), "");
+        assert!(is_placeholder(&strip_leading_separator(",")));
     }
 
     /// A renamed table is the change that must be loudest of all: without it the parser

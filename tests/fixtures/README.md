@@ -116,6 +116,7 @@ curl -sS -A "$UA" --compressed -G "$S" \
 | `public.json` | `DE-B1533;BV049617543,DE-634;BV049617543,DE-521;BV049617543` | public-library holding, status rendered flat ("black") rather than per-item |
 | `no_items.json` | *not recorded* — response shows `bibids=SIG00057` ("Kammergericht", PPN 518345920) | two `tr.avail-item` rows with an empty Call Number cell and a "Library" location placeholder — no shelfmark stated at all |
 | `reference.json` | *not recorded* — response shows `bibids=BIB000000017` ("Stadtmuseum Berlin") | `availability-status-yellow` → `reference` (non-circulating) status |
+| `comma_prefix.json` | **synthetic**, built by hand from `reference.json`'s shape | the location link text is `, Unter den Linden` — a bare join comma with an empty house name in front of it, reproducing the live response `curl` showed for `Berliner Zeitung` at STABI (`plan/feedback_round_3.md` §3.2: `blibs search --title "Berliner Zeitung" --at STABI`, `availability_id=DE-1;130560987,`, cell text `<a href="…&bibids=BIB000000004">, Unter den Linden</a>`). Not refetched with `curl` because the live response is 4.9 KB and this trap is two attributes of it; every other value (`bibids`, ISIL `DE-1`, portal name `Stabi Berlin`, call number `2"@Ztg 5011;Erg-Bd.`, yellow/`reference` status) is copied from that measurement. |
 
 `no_items.json` and `reference.json` predate this pass and their exact `availability_id` was
 not preserved anywhere in `plan/`; the institution/PPN visible in the saved HTML is the only
