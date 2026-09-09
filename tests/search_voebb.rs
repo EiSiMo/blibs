@@ -1963,3 +1963,210 @@ fn one_limitation_over_three_records_is_one_note_naming_all_three() {
         human.err
     );
 }
+
+/// The same rule one level up. The KOBV engine gives a location that ran out of results
+/// its own empty block; `cli::run` gives an **engine** whose every location ran out the
+/// same treatment, so `--at AGB,HU` still renders the AGB block when HU's result set ends
+/// inside the requested window. Without it, one catalogue's last page would decide the
+/// other catalogue's answer.
+#[test]
+fn an_engine_that_ran_out_of_results_does_not_empty_the_other() {
+    let fetch = FixtureFetch::new()
+        .route(
+            |request| request.base.contains("sru.kobv.de"),
+            read_fixture("kobv/sru/out_of_range.xml"),
+        )
+        .route(
+            |request| has_field(request, "$CbTree_text"),
+            read_fixture("voebb/results_filtered.html"),
+        )
+        .route(is_record_page, read_fixture("voebb/detail_available.html"))
+        .route(
+            |request| has_field(request, "$Autosuggest"),
+            read_fixture("voebb/results.html"),
+        )
+        .fallback("voebb/start.html");
+    let ran = invoke(
+        &[
+            "--json", "search", "Vorleser", "--at", "AGB,HU", "--limit", "2",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    assert!(
+        !document["records"]
+            .as_array()
+            .expect("records is an array")
+            .is_empty(),
+        "the voebb answer stands: {}",
+        ran.out
+    );
+
+    // Both engines are named, because both ran — the refused one has blocks in at[] and
+    // they would otherwise sit under a catalogue the document says was never asked.
+    let engines = document["engines"].as_array().expect("engines is an array");
+    assert_eq!(engines.len(), 2, "{engines:?}");
+
+    let at = document["at"].as_array().expect("at[] is an array");
+    assert_eq!(at[0]["key"], "AGB");
+    assert_eq!(at[0]["total"], 35);
+    assert_eq!(at[1]["key"], "HU");
+    assert!(at[1]["total"].is_null(), "{}", at[1]);
+    assert_eq!(at[1]["records"].as_array().map(Vec::len), Some(0));
+
+    let notes = document["notes"].as_array().expect("notes is an array");
+    let refused: Vec<&serde_json::Value> = notes
+        .iter()
+        .filter(|note| note["kind"] == "location_past_the_last_result")
+        .collect();
+    assert_eq!(refused.len(), 1, "{notes:?}");
+    assert!(
+        refused[0]["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("--at HU"),
+        "{}",
+        refused[0]
+    );
+}
+
+/// The same ownership question one step earlier, before any request. voebb.de is paged one
+/// sequential request at a time and blibs stops at position 220 — but `--at HU,AGB --page
+/// 20 --limit 20` asks for result 400, which HU reaches without effort. Until 2026-09-09
+/// the ceiling of the one location refused the whole invocation: exit 2, not a single
+/// block (`plan/feedback_round_3.md` §1.2).
+///
+/// Now only AGB is refused. It keeps its block, the block says which page it was refused
+/// for, the note says why, and **nothing at all is sent to voebb.de** — the point of
+/// deciding this before opening a session.
+#[test]
+fn a_voebb_branch_too_deep_to_page_does_not_refuse_the_other_locations() {
+    let fetch = FixtureFetch::new()
+        .route(
+            |request| request.base.contains("sru.kobv.de"),
+            read_fixture("kobv/sru/filtered.xml"),
+        )
+        .fallback("voebb/start.html");
+    let recorder = fetch.recorder();
+    let ran = invoke(
+        &[
+            "search",
+            "Vorleser",
+            "--at",
+            "HU,AGB",
+            "--limit",
+            "20",
+            "--page",
+            "20",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    assert_eq!(
+        recorder.count_matching("voebb.de"),
+        0,
+        "a window this deep is refused before the session is opened: {:?}",
+        recorder.log()
+    );
+    assert!(ran.out.contains("HU Berlin · 230 results"), "{}", ran.out);
+    assert!(
+        ran.out
+            .contains("AGB (VÖBB) · page 20 begins past the deepest result this catalogue serves"),
+        "{}",
+        ran.out
+    );
+    assert!(
+        !ran.out.contains("no results"),
+        "nothing was asked, so nothing was found to be missing: {}",
+        ran.out
+    );
+}
+
+/// The document side of the same run, and the sentence an agent switches on.
+#[test]
+fn a_branch_refused_for_its_paging_depth_says_so_in_the_document() {
+    let fetch = FixtureFetch::new()
+        .route(
+            |request| request.base.contains("sru.kobv.de"),
+            read_fixture("kobv/sru/filtered.xml"),
+        )
+        .fallback("voebb/start.html");
+    let ran = invoke(
+        &[
+            "--json",
+            "search",
+            "Vorleser",
+            "--at",
+            "HU,AGB",
+            "--limit",
+            "20",
+            "--page",
+            "20",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success, "{:?}", ran.err);
+    let document = ran.json();
+    let at = document["at"].as_array().expect("at[] is an array");
+    assert_eq!(at[1]["key"], "AGB");
+    assert_eq!(at[1]["refused"], "window_too_deep", "{}", at[1]);
+    assert!(at[1]["total"].is_null(), "{}", at[1]);
+    assert!(at[0]["refused"].is_null(), "{}", at[0]);
+
+    // Both engines are still named: the refused branch has a block, and a block under a
+    // catalogue the document says was never asked would be worse than the ceiling.
+    let engines = document["engines"].as_array().expect("engines is an array");
+    assert_eq!(engines.len(), 2, "{engines:?}");
+
+    let notes = document["notes"].as_array().expect("notes is an array");
+    let deep: Vec<&serde_json::Value> = notes
+        .iter()
+        .filter(|note| note["kind"] == "location_window_too_deep")
+        .collect();
+    assert_eq!(deep.len(), 1, "{notes:?}");
+    let message = deep[0]["message"].as_str().unwrap_or_default();
+    assert!(message.contains("--at AGB"), "{message}");
+    assert!(!message.contains("--at HU"), "{message}");
+    assert!(
+        message.contains("220") && message.contains("400"),
+        "the ceiling and the position it was measured against: {message}"
+    );
+    // And not the sister note: nothing was asked, so nothing ran out.
+    assert!(
+        notes
+            .iter()
+            .all(|note| note["kind"] != "location_past_the_last_result"),
+        "{notes:?}"
+    );
+}
+
+/// A run of nothing but VÖBB locations keeps its exit 2 — there is no other block for an
+/// empty one to stand beside, and the ceiling is known before a byte goes out, which is
+/// exactly what `plan/cli.md` § *Exit-Codes* says makes this a usage error and the KOBV
+/// side's `1/61` an exit 5.
+#[test]
+fn a_run_of_only_voebb_locations_is_still_refused_outright() {
+    let fetch = FixtureFetch::new().fallback("voebb/start.html");
+    let recorder = fetch.recorder();
+    let ran = invoke(
+        &[
+            "search", "Vorleser", "--at", "AGB", "--limit", "20", "--page", "20",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Usage);
+    assert_eq!(recorder.total(), 0, "nothing is sent for a usage error");
+    assert!(ran.out.is_empty(), "{}", ran.out);
+    let Err(error) = ran.outcome else {
+        panic!("a window past the tenth page is a usage error");
+    };
+    assert_eq!(error.kind(), "window_too_deep");
+    assert!(error.to_string().contains("--page 20"), "{error}");
+}

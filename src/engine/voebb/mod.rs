@@ -297,6 +297,10 @@ impl Catalog for Voebb<'_> {
                 engine: Engine::Voebb,
                 total: found.total,
                 records: found.ids(),
+                // The engine searched, so nothing here was refused. A voebb window too
+                // deep to page never reaches this engine at all — `cli::validate` stops
+                // it before the session is opened.
+                refused: None,
             });
             extend_notes(&mut notes, found.notes);
         }

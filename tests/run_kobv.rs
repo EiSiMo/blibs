@@ -15,7 +15,7 @@ use blibs::render::Style;
 use clap::Parser;
 use std::fmt::Write as _;
 
-use common::{FixtureFetch, Recorder, read_fixture};
+use common::{FixtureFetch, Recorder, ok, read_fixture};
 
 /// A terminal wide enough that nothing is truncated, and never coloured: the layout is
 /// identical either way, and a colour code in an assertion proves nothing.
@@ -1346,4 +1346,233 @@ fn a_duplicate_in_the_window_does_not_shorten_the_page() {
         "{:?}",
         recorder.log()
     );
+}
+
+/// Two locations, one of which has run out of results: `--at TU,HU --page 30 --limit 50`
+/// begins at record 1451, which HU's 2005 hits reach and TU's 1106 do not.
+///
+/// Measured 2026-09-07 and reported as §1.2: the catalogue answered TU with diagnostic
+/// `1/61`, that refusal was raised as the whole invocation's, and the user got **neither**
+/// block — not even HU's fifty flawless records. A failure that belongs to one location
+/// may not be the run's.
+fn one_location_out_of_range() -> FixtureFetch {
+    FixtureFetch::new()
+        .on_param("x-pquery", "DE-83", "kobv/sru/out_of_range.xml")
+        .fallback("kobv/sru/filtered.xml")
+}
+
+#[test]
+fn a_location_that_ran_out_of_results_does_not_empty_the_others() {
+    let fetch = one_location_out_of_range();
+    let ran = invoke(
+        &[
+            "search",
+            "Kafka",
+            "--at",
+            "TU,HU",
+            "--no-availability",
+            "--json",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let json = ran.json();
+    assert_eq!(
+        json["records"].as_array().map(Vec::len),
+        Some(3),
+        "HU's records are unaffected by TU running out: {}",
+        ran.out
+    );
+
+    // Both blocks are there. A missing block cannot be told apart from a forgotten one,
+    // and that is exactly what a refused location used to be.
+    let at = json["at"].as_array().expect("at is a list");
+    assert_eq!(at.len(), 2, "{}", ran.out);
+    let tu = &at[0];
+    assert_eq!(tu["key"], "TU");
+    assert!(
+        tu["total"].is_null(),
+        "the count beside a refused window is not to be trusted: {tu}"
+    );
+    assert_eq!(tu["records"].as_array().map(Vec::len), Some(0), "{tu}");
+    let hu = &at[1];
+    assert_eq!(hu["key"], "HU");
+    assert_eq!(hu["total"], 230, "{hu}");
+    assert_eq!(hu["records"].as_array().map(Vec::len), Some(3), "{hu}");
+
+    // And the empty block says why it is empty — under a tag, because the sentence is
+    // prose an agent may not parse.
+    let notes = json["notes"].as_array().expect("notes is a list");
+    let refused: Vec<&serde_json::Value> = notes
+        .iter()
+        .filter(|note| note["kind"] == "location_past_the_last_result")
+        .collect();
+    assert_eq!(refused.len(), 1, "{notes:?}");
+    let message = refused[0]["message"].as_str().unwrap_or_default();
+    assert!(message.contains("--at TU"), "{message}");
+    assert!(!message.contains("--at HU"), "{message}");
+    assert!(
+        message.contains("--page"),
+        "the way out is named: {message}"
+    );
+}
+
+/// The same run without `--json`: the blocks are rendered and the exit code is 0, because
+/// records were shown.
+#[test]
+fn the_good_block_is_still_printed_when_another_location_ran_out() {
+    let fetch = one_location_out_of_range();
+    let ran = invoke(
+        &["search", "Kafka", "--at", "TU,HU", "--no-availability"],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    assert!(!ran.out.is_empty(), "a run with hits renders them");
+    assert!(ran.out.contains("TU"), "{}", ran.out);
+    assert!(ran.out.contains("HU"), "{}", ran.out);
+}
+
+/// The heading of the refused block says which page ran out, and no longer `no results`.
+///
+/// Round 3, §1.2, second half: the empty block was correct and its heading was not. `TU
+/// Berlin · no results` is the very lie `block_heading` guards against at three other
+/// arms, and the note printed two lines under it said the opposite — TU's hits exist, the
+/// page asked for is simply past the end of them.
+#[test]
+fn a_refused_block_names_the_page_instead_of_saying_no_results() {
+    let fetch = one_location_out_of_range();
+    let ran = invoke(
+        &[
+            "search",
+            "Kafka",
+            "--at",
+            "TU,HU",
+            "--limit",
+            "50",
+            "--page",
+            "30",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    assert!(
+        ran.out
+            .contains("TU Berlin · page 30 begins past its last result"),
+        "{}",
+        ran.out
+    );
+    assert!(
+        !ran.out.contains("no results"),
+        "a block nobody could search is not a block without hits: {}",
+        ran.out
+    );
+    assert!(ran.out.contains("HU Berlin · 230 results"), "{}", ran.out);
+}
+
+/// The same fact where an agent reads it: `at[]` carries the reason, because `total: null`
+/// plus `records: []` is also what a location nobody reported on looks like.
+#[test]
+fn a_refused_location_states_its_reason_in_the_document() {
+    let fetch = one_location_out_of_range();
+    let ran = invoke(
+        &[
+            "search",
+            "Kafka",
+            "--at",
+            "TU,HU",
+            "--no-availability",
+            "--json",
+        ],
+        &fetch,
+    );
+
+    let json = ran.json();
+    let at = json["at"].as_array().expect("at is a list");
+    assert_eq!(at[0]["key"], "TU");
+    assert_eq!(at[0]["refused"], "past_the_last_result", "{}", at[0]);
+    assert_eq!(at[1]["key"], "HU");
+    assert!(
+        at[1]["refused"].is_null(),
+        "a location that answered was not refused: {}",
+        at[1]
+    );
+}
+
+/// Two locations that have **both** run out are not a success: nothing is left for the
+/// refusal to be smaller than, so it is the run's after all — the same exit code and the
+/// same sentence as before this distinction existed. A user who only paged too far has to
+/// keep learning that.
+#[test]
+fn every_location_past_its_last_result_is_still_exit_five() {
+    let fetch = FixtureFetch::new().fallback("kobv/sru/out_of_range.xml");
+    let ran = invoke(
+        &[
+            "search",
+            "Kafka",
+            "--at",
+            "TU,HU",
+            "--limit",
+            "50",
+            "--page",
+            "30",
+            "--no-availability",
+        ],
+        &fetch,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Rejected);
+    assert!(ran.out.is_empty(), "{}", ran.out);
+    let Err(error) = ran.outcome else {
+        panic!("every location out of range is a refusal, not an empty result");
+    };
+    assert_eq!(error.kind(), "query_rejected");
+    assert!(
+        error
+            .to_string()
+            .contains("First record position out of range"),
+        "{error}"
+    );
+    assert!(
+        error.hint().unwrap_or_default().contains("lower --page"),
+        "{:?}",
+        error.hint()
+    );
+}
+
+/// A transport that refuses one location's window and never answers the other's.
+struct RefusedAndUnreachable;
+
+impl Fetch for RefusedAndUnreachable {
+    fn fetch(&self, request: &Request) -> Result<Response, Error> {
+        let asked_for_tu = request
+            .query
+            .iter()
+            .any(|(key, value)| key == "x-pquery" && value.contains("DE-83"));
+        if asked_for_tu {
+            return Ok(ok(read_fixture("kobv/sru/out_of_range.xml")));
+        }
+        Err(timeout())
+    }
+}
+
+/// The rule the other half of this distinction protects: a **timeout** at one location
+/// still stops the whole invocation, even beside a location that merely ran out. Selling
+/// an outage as an empty block is the one answer worse than an error.
+#[test]
+fn a_timeout_at_one_location_still_stops_the_whole_run() {
+    let ran = invoke(
+        &["search", "Kafka", "--at", "TU,HU", "--no-availability"],
+        &RefusedAndUnreachable,
+    );
+
+    assert_eq!(ran.exit(), ExitCode::Network);
+    assert!(ran.out.is_empty(), "{}", ran.out);
+    let Err(error) = ran.outcome else {
+        panic!("a timeout is an error, not a block with a note");
+    };
+    assert_eq!(error.kind(), "timeout");
 }

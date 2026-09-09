@@ -352,6 +352,51 @@ fn nothing_available_message(total: Option<u64>, judged: usize, unstated: usize)
     )
 }
 
+/// **Whose** failure an [`Error`] is: the whole invocation's, one location's block, or
+/// one record's line.
+///
+/// The question this answers is not the one [`Error::is_unreadable_document`] used to ask
+/// on its own. That one asks *what kind* of failure arrived — "a document was delivered
+/// and had changed shape" — and it answered exactly one case: a voebb.de record page whose
+/// selectors no longer match may become a note instead of taking nine sound hits down with
+/// it. The next case was not a document at all. `--at TU,HU --page 30` came back as exit 5
+/// with **no block whatsoever**, because TU's 1106 hits end where HU's 2005 are still
+/// running, and TU's refusal was raised as the whole invocation's
+/// (`plan/feedback_round_3.md` §1.2). Nothing about kind could have caught that; the thing
+/// the two cases share is that neither failure owned the run.
+///
+/// So this names the owner, and every level that composes work applies **one** rule to it:
+/// a failure is raised by whatever it owns, and becomes a note inside anything larger.
+/// The KOBV engine runs one search per location, so it catches [`Blast::Location`] and
+/// gives that location an empty block and a note; `cli::run` runs one engine per group of
+/// locations and catches the same thing one level up. Neither invents a policy of its own,
+/// and a level that has *nothing but* refusals raises the refusal again — an engine all of
+/// whose locations ran out has no smaller thing to blame, and neither has a run all of
+/// whose engines did.
+///
+/// [`Blast::Run`] is the default and the safe half: a variant that says nothing about
+/// ownership lands there, so a timeout, a 429/503 or a lost voebb.de session keeps
+/// stopping the invocation rather than being sold as an empty block.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Blast {
+    /// The invocation. Nothing that came back can be trusted to stand without it, so the
+    /// run ends with this error and its exit code.
+    Run,
+    /// One location's search. The other locations answer normally; this one gets its
+    /// block, with no total and no records, and a note saying why.
+    Location,
+    /// One record. The rest of the page stands, the record keeps its place, and a note
+    /// names what stopped being readable.
+    Record,
+}
+
+/// The diagnostic the KOBV catalogue answers a window past the end of a result set with.
+///
+/// Named once because two places read it and they must not drift: [`Error::blast_radius`]
+/// decides that such a refusal belongs to one location, and [`RejectedError::hint`] words
+/// the way out of it.
+const WINDOW_PAST_THE_END: &str = "1/61";
+
 /// The crate's only error type. Five categories, one per exit code.
 ///
 /// Never boxed and never stringified across a module boundary: the JSON renderer needs
@@ -411,6 +456,28 @@ impl Error {
         }
     }
 
+    /// Whose failure this is — see [`Blast`] for the rule every caller applies to it.
+    ///
+    /// Three answers, and the two that are not [`Blast::Run`] are enumerated here rather
+    /// than derived from a category, because a category is the wrong granularity: exit 6
+    /// holds both a redesigned page and a 500, and exit 5 holds both a query the
+    /// catalogue cannot parse — which no location can fix — and a window that begins past
+    /// one location's last result.
+    pub fn blast_radius(&self) -> Blast {
+        match self {
+            // Not a claim about the query at all: the words were fine and this location's
+            // result set is simply shorter than the page asked for. Another location's
+            // may not be.
+            Error::Rejected(rejected) if rejected.is_window_past_the_end() => Blast::Location,
+            Error::Unexpected(
+                UnexpectedError::MissingSelector { .. }
+                | UnexpectedError::MissingElement { .. }
+                | UnexpectedError::CountMismatch { .. },
+            ) => Blast::Record,
+            _ => Blast::Run,
+        }
+    }
+
     /// Whether the document **arrived** and only its *shape* was wrong.
     ///
     /// The line a caller draws with this is the line between "one page of many was not
@@ -420,6 +487,11 @@ impl Error {
     /// the list, while a timeout, a 429, a lost voebb.de session or a 500 must keep
     /// stopping the invocation. Degrading those would sell an outage as "status
     /// unknown", which is the one answer worse than an error.
+    ///
+    /// It is [`Blast::Record`] under another name, and it is defined as exactly that so
+    /// the two can never answer differently. It keeps its own name because that is the
+    /// question its callers ask: `engine/voebb` holds a record page in its hands and wants
+    /// to know whether *this page* may become a note, not who owns the failure in general.
     ///
     /// **True** for the three variants that say a delivered document lacked a structure
     /// this crate reads: [`UnexpectedError::MissingSelector`],
@@ -435,14 +507,7 @@ impl Error {
     /// [`UnexpectedError::VoebbNoAccess`] and [`UnexpectedError::Output`] are transport
     /// and process failures outright.
     pub fn is_unreadable_document(&self) -> bool {
-        matches!(
-            self,
-            Error::Unexpected(
-                UnexpectedError::MissingSelector { .. }
-                    | UnexpectedError::MissingElement { .. }
-                    | UnexpectedError::CountMismatch { .. }
-            )
-        )
+        self.blast_radius() == Blast::Record
     }
 }
 
@@ -1240,6 +1305,25 @@ impl RejectedError {
         }
     }
 
+    /// Whether the refusal is about the **window** rather than about the query.
+    ///
+    /// Diagnostic `1/61`, and only it. Every other diagnostic this catalogue sends is a
+    /// verdict on the query itself — an index it does not have, punctuation it cannot
+    /// parse, a truncation it does not support — and those are true wherever the query is
+    /// sent. This one is true of one result set: the search was understood, it found hits,
+    /// and it has fewer of them than the requested page begins at. That is what makes it
+    /// the one refusal a single location can own ([`Blast::Location`]).
+    ///
+    /// The count next to it is deliberately not rescued: a rejected envelope may state
+    /// `numberOfRecords` *and* have it be wrong (`KobvClient::envelope`), so a location
+    /// refused this way states no total rather than a plausible one.
+    pub fn is_window_past_the_end(&self) -> bool {
+        match self {
+            RejectedError::Diagnostic { uri, .. } => diagnostic_code(uri) == WINDOW_PAST_THE_END,
+            RejectedError::TooLongUpstream { .. } => false,
+        }
+    }
+
     /// The remedy depends on *which* diagnostic came back, so it hangs off the URI. The
     /// codes are the ones measured against `k2` (`plan/scraping.md` §A.5,
     /// `plan/cql-verified.md`); several of them can only mean a bug in blibs, and say so.
@@ -1268,8 +1352,9 @@ impl RejectedError {
                     .to_string(),
                 // Nothing about the *words* is wrong here — the window is. Sending the
                 // user after simpler search words would have them rewrite a query that
-                // was fine.
-                "1/61" => "the window begins past the last result — lower --page, \
+                // was fine. Reached only when *every* location ran out: a single one that
+                // does gets a block and a note instead ([`Blast::Location`]).
+                WINDOW_PAST_THE_END => "the window begins past the last result — lower --page, \
                            or widen the search so there is more to page through"
                     .to_string(),
                 "1/80" => format!(
@@ -1362,6 +1447,15 @@ pub enum UnexpectedError {
     },
     /// voebb.de answered a broken form with 200 and a `/noaccess` page: a lost cookie, a
     /// stale `requestCount` or a missing hidden field. Never "no hits".
+    ///
+    /// **And, since 2026-09-09, never blibs's own doing either.** A form submission there
+    /// is single-use ([`crate::http::Replay::SingleUse`]): a slow answer used to be cut off
+    /// at ten seconds and the identical payload sent again, which spent the session's
+    /// `requestCount` a second time and produced exactly this page — so a search the server
+    /// had answered correctly reached the user as "the site has changed"
+    /// (`plan/feedback_round_3.md` §1.1). A slow host is now a
+    /// [`NetworkError::Timeout`] and says so; what is left here is the site's own state,
+    /// which is what the hint may finally talk about.
     #[error("the voebb.de session was lost during {step}")]
     VoebbNoAccess {
         /// Which step of the session flow hit it.
@@ -1748,6 +1842,78 @@ mod tests {
             degrades,
             BTreeSet::from(["missing_selector", "missing_structure", "count_mismatch"]),
             "a transport failure must never be sold as \"status unknown\""
+        );
+    }
+
+    /// A refused window and a `1/61` diagnostic that stands for it.
+    fn past_the_last_result() -> Error {
+        RejectedError::Diagnostic {
+            uri: "info:srw/diagnostic/1/61".to_string(),
+            message: "First record position out of range".to_string(),
+            details: None,
+        }
+        .into()
+    }
+
+    /// [`Blast::Run`] is the default, and the default is what keeps the rule honest: a
+    /// variant that says nothing about ownership stops the invocation, exactly as before
+    /// this distinction existed. Checked over **every** variant, so a new one lands in the
+    /// safe half unless someone decides otherwise in `blast_radius` and reads this test.
+    #[test]
+    fn a_failure_belongs_to_the_run_unless_it_provably_belongs_to_something_smaller() {
+        for error in all_variants() {
+            let expected = if error.is_unreadable_document() {
+                Blast::Record
+            } else {
+                Blast::Run
+            };
+            assert_eq!(
+                error.blast_radius(),
+                expected,
+                "wrong owner for {error:?} — a run-wide failure degraded to a note would \
+                 hide an outage behind an empty block"
+            );
+        }
+    }
+
+    /// The one refusal a single location owns, told apart from its own siblings: `1/61`
+    /// is about the window, and every other diagnostic is about the query, which no
+    /// second location can answer any differently.
+    #[test]
+    fn only_a_window_past_its_end_belongs_to_one_location() {
+        assert_eq!(past_the_last_result().blast_radius(), Blast::Location);
+        assert!(!past_the_last_result().is_unreadable_document());
+        for uri in [
+            "info:srw/diagnostic/1/1",
+            "info:srw/diagnostic/1/10",
+            "info:srw/diagnostic/1/16",
+            "info:srw/diagnostic/1/48",
+            "info:srw/diagnostic/1/80",
+        ] {
+            let error: Error = RejectedError::Diagnostic {
+                uri: uri.to_string(),
+                message: "…".to_string(),
+                details: None,
+            }
+            .into();
+            assert_eq!(
+                error.blast_radius(),
+                Blast::Run,
+                "{uri} is a verdict on the query, which is the same at every location"
+            );
+        }
+    }
+
+    /// The exit code does not move with the owner: a refusal that *every* location met is
+    /// raised again, and it is still the catalogue's own words and still exit 5.
+    #[test]
+    fn a_refused_window_keeps_its_exit_code_and_its_message() {
+        let error = past_the_last_result();
+        assert_eq!(error.exit(), ExitCode::Rejected);
+        assert_eq!(error.kind(), "query_rejected");
+        assert_eq!(
+            error.to_string(),
+            "the catalogue rejected the query: First record position out of range"
         );
     }
 

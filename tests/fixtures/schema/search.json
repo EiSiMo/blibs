@@ -30,7 +30,8 @@
       "total": 6,
       "records": [
         "almafu_BV008885798"
-      ]
+      ],
+      "refused": null
     },
     {
       "key": "AGB",
@@ -41,7 +42,8 @@
       "total": 35,
       "records": [
         "voebb_SAK13776205"
-      ]
+      ],
+      "refused": null
     }
   ],
   "availability": "fetched",

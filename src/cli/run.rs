@@ -18,16 +18,17 @@
 
 use std::io::{self, Write};
 
-use crate::cli::{Cli, Command, LibrariesPlan, Plan, ShowPlan, long_help, validate};
+use crate::cli::{Cli, Command, LibrariesPlan, Plan, ShowPlan, TooDeep, long_help, validate};
 use crate::counts::records;
 use crate::engine::kobv::Kobv;
 use crate::engine::voebb::Voebb;
-use crate::error::{EmptyReason, Error, Outcome, UnexpectedError};
+use crate::error::{Blast, EmptyReason, Error, Outcome, UnexpectedError};
 use crate::http::{Fetch, scope_map};
 use crate::libraries::{self, Branch, Library};
 use crate::model::{
-    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Location, Note, QueryEcho,
-    SearchRequest, SearchResult, ShowResult, SortKey, SortScope, SortSpec, WindowInfo, note_kinds,
+    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Location, LocationRefusal, Note,
+    QueryEcho, SearchRequest, SearchResult, ShowResult, SortKey, SortScope, SortSpec, WindowInfo,
+    note_kinds, past_the_last_result_note, window_too_deep_note,
 };
 use crate::render::{self, Style};
 use crate::select;
@@ -103,9 +104,9 @@ fn run_search(
     err: &mut dyn Write,
     style: Style,
 ) -> Result<Outcome, Error> {
-    let outcomes = search_engines(plan, fetch)?;
-    let unstated = unstated_hidden(&outcomes);
-    let result = assemble_result(plan, outcomes, unstated);
+    let engines = search_engines(plan, fetch)?;
+    let unstated = unstated_hidden(&engines.outcomes);
+    let result = assemble_result(plan, engines, unstated);
     let outcome = outcome_of(plan, &result, unstated);
 
     if plan.json {
@@ -124,14 +125,93 @@ fn run_search(
     Ok(outcome)
 }
 
+/// What the engines of one invocation produced.
+struct Engines {
+    /// One per engine that answered.
+    outcomes: Vec<EngineOutcome>,
+    /// The locations of an engine whose every location's window began past its own last
+    /// result — see [`search_engines`]. Their blocks are built by [`at_blocks`] like any
+    /// other location the engine did not report on; what they need beyond that is the note.
+    refused: Vec<String>,
+}
+
 /// Run every engine this invocation has locations for, at the same time.
 ///
 /// The first error by engine order wins and the whole invocation fails with it — two
 /// catalogues answering half a question is worse than one catalogue saying it could not.
-fn search_engines(plan: &Plan, fetch: &dyn Fetch) -> Result<Vec<EngineOutcome>, Error> {
-    scope_map(plan.by_engine(), |(engine, locations)| {
-        search_one_engine(plan, engine, &locations, fetch)
-    })
+///
+/// The one exception is the failure that belongs to a location rather than to the run
+/// ([`Blast::Location`]), and it is the **same rule the KOBV engine applies to its own
+/// locations**, one level up: an engine every one of whose locations ran out of results
+/// raises the refusal, and here it is caught again as long as another engine still has an
+/// answer. `--at TU,AGB --page 3 --limit 20` is where that matters — position 41 is inside
+/// what voebb.de serves and past a TU result set of 40 — and without this the AGB block
+/// would be thrown away for TU's.
+///
+/// When **no** engine answered, there is nothing left for the refusal to be smaller than
+/// and it is raised: the user who simply paged too far still gets exit 5 and the
+/// catalogue's own sentence.
+fn search_engines(plan: &Plan, fetch: &dyn Fetch) -> Result<Engines, Error> {
+    let mut answers = scope_map(
+        plan.by_engine(),
+        |(engine, locations)| match search_one_engine(plan, engine, &locations, fetch) {
+            Ok(outcome) => Ok(EngineAnswer::Ran(Box::new(outcome))),
+            Err(error) if error.blast_radius() == Blast::Location => {
+                Ok(EngineAnswer::PastTheEnd { locations, error })
+            }
+            Err(error) => Err(error),
+        },
+    )?;
+    if !answers.is_empty()
+        && answers
+            .iter()
+            .all(|answer| matches!(answer, EngineAnswer::PastTheEnd { .. }))
+        && let Some(error) = answers.drain(..).find_map(EngineAnswer::into_error)
+    {
+        return Err(error);
+    }
+
+    let mut engines = Engines {
+        outcomes: Vec::with_capacity(answers.len()),
+        refused: Vec::new(),
+    };
+    for answer in answers {
+        match answer {
+            EngineAnswer::Ran(outcome) => engines.outcomes.push(*outcome),
+            EngineAnswer::PastTheEnd { locations, .. } => engines
+                .refused
+                .extend(locations.into_iter().map(|location| location.key)),
+        }
+    }
+    Ok(engines)
+}
+
+/// What one engine answered: a result, or the refusal that its locations own.
+///
+/// The sibling of `engine::kobv::Located` at the level above it, and the boxed variant is
+/// clippy's doing: an [`EngineOutcome`] is several vectors wide and an [`Error`] is not.
+enum EngineAnswer {
+    /// The engine searched.
+    Ran(Box<EngineOutcome>),
+    /// Every location of this engine asked for a window past its own last result. The
+    /// locations are kept so their note can name them; the error, so it can be raised
+    /// again when no other engine answered either.
+    PastTheEnd {
+        /// The locations this engine was given.
+        locations: Vec<Location>,
+        /// The catalogue's refusal, whole.
+        error: Error,
+    },
+}
+
+impl EngineAnswer {
+    /// The refusal, when this is one.
+    fn into_error(self) -> Option<Error> {
+        match self {
+            EngineAnswer::PastTheEnd { error, .. } => Some(error),
+            EngineAnswer::Ran(_) => None,
+        }
+    }
 }
 
 /// One engine: search, filter, sort, page, availability, keep-available — in that order
@@ -347,12 +427,17 @@ fn catalog_for<'f>(engine: Engine, fetch: &'f dyn Fetch) -> Box<dyn Catalog + 'f
 /// `unstated` comes from [`unstated_hidden`] over the same outcomes; it is passed in
 /// rather than recomputed here so that the note and [`outcome_of`] cannot end up naming
 /// two different numbers for one thing.
-fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>, unstated: usize) -> SearchResult {
-    let engines: Vec<Engine> = outcomes
-        .iter()
-        .map(|outcome| outcome.search.engine)
-        .collect();
-    let at = at_blocks(plan, &outcomes);
+fn assemble_result(plan: &Plan, engines: Engines, unstated: usize) -> SearchResult {
+    let Engines { outcomes, refused } = engines;
+    // Which engines this invocation is *about*, taken from the plan rather than from the
+    // outcomes. An engine can be missing from the outcomes and still have blocks in
+    // `at[]` — every one of its locations paged past its last result, or every one of
+    // them lies deeper than it can be paged and no search was sent at all — and listing
+    // only the engines that came back would leave those blocks under a catalogue the
+    // document says was never asked. `Plan::engines` reads all of `--at` for exactly that
+    // reason, while `Plan::by_engine` is the narrower list of searches that ran.
+    let engines: Vec<Engine> = plan.engines();
+    let at = at_blocks(plan, &outcomes, &refused);
     let window = WindowInfo {
         fetched: outcomes.iter().map(|o| o.search.fetched).sum(),
         after_filter: outcomes.iter().map(|o| o.after_filter).sum(),
@@ -388,6 +473,22 @@ fn assemble_result(plan: &Plan, outcomes: Vec<EngineOutcome>, unstated: usize) -
     // answer, and a reader who was told about somewhere else entirely has to learn that
     // before anything the answer says about a window or a filter.
     notes.extend(crate::model::ambiguous_key_notes(&plan.locations));
+    // The note for a whole engine that was refused. The engine writes this one itself when
+    // only some of its locations ran out; here it is the same sentence from the same
+    // function, for the case where the engine had nothing left to attach it to.
+    let refused: Vec<&str> = refused.iter().map(String::as_str).collect();
+    notes.extend(past_the_last_result_note(&refused));
+    // And the same limitation one step earlier, for the locations `cli::validate` refused
+    // before a request went out: a window deeper than voebb.de can be paged. A separate
+    // sentence rather than the one above, because that one reports a result set that ran
+    // out and this one reports a question nobody asked.
+    if let Some(too_deep) = &plan.too_deep {
+        notes.extend(window_too_deep_note(
+            &too_deep_keys(plan, too_deep),
+            too_deep.position,
+            too_deep.max,
+        ));
+    }
     notes.extend(unstated_note(unstated, unstated_online(&engine_notes)));
     notes.extend(window_filter_note(plan, &window));
     notes.extend(engine_notes);
@@ -522,7 +623,12 @@ fn unstated_note(unstated: usize, online: usize) -> Option<Note> {
 ///
 /// A location whose engine did not report a block still gets one, with `total: null`: a
 /// missing entry cannot be told apart from a location that was never asked for.
-fn at_blocks(plan: &Plan, outcomes: &[EngineOutcome]) -> Vec<AtBlock> {
+///
+/// `refused` are the locations of an engine that was refused whole — see [`refusal_of`],
+/// which turns that and `cli::validate`'s verdict into the entry's own `refused` member.
+/// Without it those entries would be indistinguishable from the ones nobody reported on,
+/// in the document and in the heading above the block alike.
+fn at_blocks(plan: &Plan, outcomes: &[EngineOutcome], refused: &[String]) -> Vec<AtBlock> {
     plan.locations
         .iter()
         .map(|location| {
@@ -543,8 +649,40 @@ fn at_blocks(plan: &Plan, outcomes: &[EngineOutcome]) -> Vec<AtBlock> {
                     // whose entry states none, which is why this is not a claim of "no
                     // records here".
                     records: Vec::new(),
+                    refused: refusal_of(plan, location, refused),
                 })
         })
+        .collect()
+}
+
+/// Why a location has no entry of its own from any engine — when that is because it was
+/// refused rather than because nothing was reported for it.
+///
+/// The two refusals reach this function from the two places that can decide them, and
+/// neither is re-derived here: `refused` are the locations of an engine whose every search
+/// ran out ([`search_engines`]), and [`crate::cli::TooDeep`] is `cli::validate`'s verdict
+/// from before the first request. A location refused by the KOBV engine alone never gets
+/// here at all — that engine writes its own `at[]` entry and marks it there.
+fn refusal_of(plan: &Plan, location: &Location, refused: &[String]) -> Option<LocationRefusal> {
+    if refused.contains(&location.key) {
+        return Some(LocationRefusal::PastTheLastResult);
+    }
+    plan.too_deep
+        .as_ref()
+        .filter(|too_deep| too_deep.holds(&location.key))
+        .map(|_| LocationRefusal::WindowTooDeep)
+}
+
+/// The refused locations named for the note, in the order the user wrote `--at`.
+///
+/// Read back off the locations rather than printed from [`crate::cli::TooDeep::keys`]
+/// directly, so that the note lists them the way the command line did — the same rule
+/// `engine::kobv` follows for its own.
+fn too_deep_keys<'a>(plan: &'a Plan, too_deep: &TooDeep) -> Vec<&'a str> {
+    plan.locations
+        .iter()
+        .filter(|location| too_deep.holds(&location.key))
+        .map(|location| location.key.as_str())
         .collect()
 }
 

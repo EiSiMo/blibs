@@ -26,7 +26,7 @@
 
 use crate::cli::{
     FORMAT_VALUES, LibrariesArgs, LibrariesPlan, Plan, SORT_VALUES, SearchArgs, ShowArgs, ShowPlan,
-    isbn,
+    TooDeep, isbn,
 };
 use crate::engine::voebb;
 use crate::error::{Error, UsageError};
@@ -129,11 +129,12 @@ fn plan(args: &SearchArgs, json: bool, cache: bool) -> Result<Plan, UsageError> 
         format: args.format.as_deref().map(format).transpose()?,
         language: args.language.as_deref().map(language).transpose()?,
     };
-    check_window_depth(limit, page, &filters, &locations)?;
+    let too_deep = check_window_depth(limit, page, &filters, &locations)?;
     let sort = sort_key(args.sort.as_deref())?;
     check_flag_conflicts(args, sort)?;
 
     Ok(Plan {
+        too_deep,
         terms_echo: echo(args, &query),
         query,
         locations,
@@ -555,12 +556,27 @@ fn bibliographic_variant(code: &str) -> Option<&'static str> {
         .map(|(_, bibliographic)| *bibliographic)
 }
 
-/// Refuse a window a VÖBB branch cannot be paged to.
+/// Refuse a window a VÖBB branch cannot be paged to — **that branch's block, not the
+/// whole run.**
 ///
 /// voebb.de has no offset: reaching result 200 means walking ten result pages, one
 /// sequential request each, on a session that must be replayed in order. So the depth is
-/// capped at [`voebb::MAX_POSITION`] and a deeper window is a usage error **before** the
-/// session is opened, rather than a minute of requests ending in a short answer.
+/// capped at [`voebb::MAX_POSITION`] and a deeper window is refused **before** the session
+/// is opened, rather than a minute of requests ending in a short answer.
+///
+/// **Whose refusal it is, is the whole point.** Until 2026-09-09 one VÖBB branch anywhere
+/// in `--at` made this the invocation's error, so `--at HU,AGB --page 20 --limit 20` was
+/// exit 2 with no block at all although HU reaches record 400 without effort — one
+/// location's ceiling deciding for every other, which is the unevenness
+/// `plan/feedback_round_3.md` §1.2 reported for the KOBV side one step later. The
+/// returned keys are the locations that are *not* searched; they get an empty block and
+/// [`crate::model::note_kinds::LOCATION_WINDOW_TOO_DEEP`], and every other location
+/// answers.
+///
+/// **Exit 2 survives for the run that is nothing but those locations**, and it stays exit
+/// 2 rather than becoming the KOBV side's exit 5 (`plan/cli.md` § *Exit-Codes*): here the
+/// ceiling is known before a byte goes out, so the refusal can be a usage error, and no
+/// note can help a user whose every block would be empty.
 ///
 /// The window that is measured is the one the user is asking the service for, which is
 /// why this passes [`Filters::is_active`] and **not** `Plan::anchored`: `--format` and
@@ -571,31 +587,44 @@ fn bibliographic_variant(code: &str) -> Option<&'static str> {
 /// further into the result than page 1 does — an anchored window is one block of 50 by
 /// construction and can never be too deep.
 ///
-/// The KOBV side is not checked here — SRU takes `startRecord` directly, and a window
-/// past the last hit comes back as an honest empty page.
+/// The KOBV side is not checked here — SRU takes `startRecord` directly, and how far a
+/// result set reaches is knowable only to the service. It answers a window past the end
+/// with diagnostic `1/61`, which one location owns in exactly the same way
+/// ([`crate::error::Blast::Location`]).
 fn check_window_depth(
     limit: Limit,
     page: Page,
     filters: &Filters,
     locations: &[Location],
-) -> Result<(), UsageError> {
-    if !locations.iter().any(|at| at.engine == Engine::Voebb) {
-        return Ok(());
+) -> Result<Option<TooDeep>, UsageError> {
+    let capped: Vec<&Location> = locations
+        .iter()
+        .filter(|at| at.engine == Engine::Voebb)
+        .collect();
+    if capped.is_empty() {
+        return Ok(None);
     }
     let window = FetchWindow::plan(limit, page, filters.is_active());
     let position = window
         .start
         .saturating_add(u32::from(window.size.get()).saturating_sub(1));
     if position <= voebb::MAX_POSITION {
-        return Ok(());
+        return Ok(None);
     }
-    Err(UsageError::WindowTooDeep {
-        engine: Engine::Voebb,
-        page: page.get(),
-        limit: u32::from(limit.get()),
+    if capped.len() == locations.len() {
+        return Err(UsageError::WindowTooDeep {
+            engine: Engine::Voebb,
+            page: page.get(),
+            limit: u32::from(limit.get()),
+            position,
+            max: voebb::MAX_POSITION,
+        });
+    }
+    Ok(Some(TooDeep {
+        keys: capped.into_iter().map(|at| at.key.clone()).collect(),
         position,
         max: voebb::MAX_POSITION,
-    })
+    }))
 }
 
 /// Refuse a flag the answering catalogue has no index for.
@@ -1313,6 +1342,66 @@ mod tests {
         assert!(
             search(&[deep.as_slice(), &["--format", "book"]].concat()).is_ok(),
             "the filtered window is one anchored block and stays inside the depth"
+        );
+    }
+
+    /// One catalogue's ceiling may not answer for the other. `--at HU,AGB --page 20
+    /// --limit 20` asks for result 400: AGB cannot be paged there and HU reaches it
+    /// without effort, and until 2026-09-09 the whole invocation was exit 2 with no block
+    /// at all — the same unevenness §1.2 reported for the KOBV side, one step earlier.
+    ///
+    /// Only the VÖBB location is dropped from the searches; it keeps its place in
+    /// `locations`, because that is what gives it its (empty) block and its note. And
+    /// both engines stay in `engines()`: a block under a catalogue the document says was
+    /// never asked would be worse than the ceiling itself.
+    #[test]
+    fn one_locations_paging_ceiling_does_not_refuse_the_others() {
+        let deep = &[
+            "search", "Vorleser", "--at", "HU,AGB", "--limit", "20", "--page", "20",
+        ];
+        let plan = search(deep).expect("HU reaches result 400, so the run is not refused");
+        let too_deep = plan
+            .too_deep
+            .as_ref()
+            .expect("AGB cannot be paged to result 400");
+        assert_eq!(too_deep.keys, vec!["AGB".to_owned()]);
+        assert_eq!(too_deep.max, voebb::MAX_POSITION);
+        assert_eq!(too_deep.position, 400);
+
+        let searched = plan.by_engine();
+        assert_eq!(searched.len(), 1, "{searched:?}");
+        assert_eq!(searched[0].0, Engine::Kobv);
+        assert_eq!(searched[0].1.len(), 1, "AGB is not searched: {searched:?}");
+        assert_eq!(
+            plan.locations.len(),
+            2,
+            "the refused location keeps its block"
+        );
+        assert_eq!(plan.engines(), vec![Engine::Kobv, Engine::Voebb]);
+    }
+
+    /// The other half of the same rule: with **nothing but** VÖBB locations there is no
+    /// block left for an empty one to stand beside, so the invocation stays exit 2 — and
+    /// stays exit 2 rather than turning into the KOBV side's exit 5, because this ceiling
+    /// is known before a byte goes out (`plan/cli.md` § *Exit-Codes*).
+    #[test]
+    fn a_run_of_nothing_but_voebb_locations_is_still_a_usage_error() {
+        let deep = &[
+            "search", "Vorleser", "--at", "AGB", "--limit", "20", "--page", "20",
+        ];
+        let Err(error) = search(deep) else {
+            panic!("a window past the tenth page is refused");
+        };
+        assert_eq!(error.exit(), ExitCode::Usage, "{error}");
+        assert_eq!(error.kind(), "window_too_deep");
+        assert!(error.to_string().contains("--page 20"), "{error}");
+
+        // Two of them, still nothing else: the same refusal.
+        assert_eq!(
+            usage_kind(&[
+                "search", "Vorleser", "--at", "AGB,BSTB", "--limit", "20", "--page", "20",
+            ]),
+            "window_too_deep"
         );
     }
 

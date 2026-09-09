@@ -24,8 +24,8 @@ use std::cmp::Reverse;
 use std::collections::HashSet;
 
 use crate::model::{
-    AtBlock, Engine, Format, Holding, Item, Limit, Location, Record, RecordId, SearchResult,
-    SortKey, Status,
+    AtBlock, Engine, Format, Holding, Item, Limit, Location, LocationRefusal, Record, RecordId,
+    SearchResult, SortKey, Status,
 };
 
 /// The client-side filters.
@@ -836,6 +836,14 @@ pub struct Block<'a> {
     pub location: Option<&'a Location>,
     /// The location's true hit count, when the engine could state one.
     pub total: Option<u64>,
+    /// Why this location was not searched, when it was not — [`AtBlock::refused`]
+    /// carried through.
+    ///
+    /// A block that was refused is empty for a reason that has nothing to do with what
+    /// the library holds, and the heading has to say so instead of `no results`: the
+    /// renderer cannot tell the two apart from the records, and the note that explains it
+    /// sits two lines further down in prose.
+    pub refused: Option<LocationRefusal>,
     /// The records shown under it.
     pub records: Vec<BlockRecord<'a>>,
 }
@@ -876,6 +884,9 @@ fn flat_block(result: &SearchResult) -> Block<'_> {
     Block {
         location: None,
         total: result.total,
+        // Nothing to refuse: the flat list is the answer of a search with no `--at` at
+        // all, and every refusal there is the run's.
+        refused: None,
         records: result
             .records
             .iter()
@@ -909,8 +920,22 @@ fn location_block<'a>(result: &'a SearchResult, location: &'a Location) -> Block
     Block {
         location: Some(location),
         total: total_at(result, location),
+        refused: refusal_at(result, location),
         records,
     }
+}
+
+/// Why this location was not searched, as its `at[]` entry states it.
+///
+/// Read off the entry rather than guessed from "no total and no records": those two are
+/// also what a location nobody reported on looks like, and telling a user their library
+/// holds nothing when nothing was ever asked is the one thing a heading may not do.
+fn refusal_at(result: &SearchResult, location: &Location) -> Option<LocationRefusal> {
+    result
+        .at
+        .iter()
+        .find(|block| block.key == location.key)
+        .and_then(|block| block.refused)
 }
 
 /// The membership `at[]` states for a location, if it states one.
@@ -1136,6 +1161,7 @@ mod tests {
                     engine: Engine::Kobv,
                     total: Some(6),
                     records: ids(&["almahu_1", "almahu_2"]),
+                    refused: None,
                 },
                 AtBlock {
                     key: "STABI".to_owned(),
@@ -1145,6 +1171,7 @@ mod tests {
                     engine: Engine::Kobv,
                     total: None,
                     records: ids(&["almahu_1"]),
+                    refused: None,
                 },
             ],
             availability: AvailabilityMode::Fetched,
@@ -1729,6 +1756,7 @@ mod tests {
                 engine: Engine::Voebb,
                 total: Some(1),
                 records: ids(members),
+                refused: None,
             })
             .collect();
         result.records = vec![agb, bstb];
@@ -2055,6 +2083,7 @@ mod tests {
             engine: Engine::Kobv,
             total: None,
             records: ids(&["almahu_1", "almahu_2"]),
+            refused: None,
         }];
 
         let (kept, dropped) = keep_branch_per_location(vec![here, elsewhere], &mut at, &locations);
@@ -2094,6 +2123,7 @@ mod tests {
                 engine: Engine::Kobv,
                 total: None,
                 records: ids(&["almahu_1"]),
+                refused: None,
             },
             AtBlock {
                 key: "HU".to_owned(),
@@ -2103,6 +2133,7 @@ mod tests {
                 engine: Engine::Kobv,
                 total: Some(9),
                 records: ids(&["almahu_1"]),
+                refused: None,
             },
         ];
 
@@ -2132,6 +2163,7 @@ mod tests {
             engine: Engine::Voebb,
             total: Some(35),
             records: ids(&["voebb_1"]),
+            refused: None,
         }];
 
         let (kept, dropped) = keep_branch_per_location(vec![record], &mut at, &locations);

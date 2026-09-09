@@ -591,6 +591,15 @@ pub struct Plan {
     /// The resolved locations, in the order the user gave them, without duplicates.
     /// Empty when `--at` was not given.
     pub locations: Vec<Location>,
+    /// The locations that will **not** be searched because their catalogue cannot be
+    /// paged as deep as this window, and the two numbers that say so. `None` when every
+    /// location can be reached.
+    ///
+    /// They stay in [`Self::locations`] on purpose: they get their block like any other
+    /// location, empty and with a note, because a missing block cannot be told apart from
+    /// a forgotten one. What they are kept out of is [`Self::by_engine`], which is the
+    /// list of searches that actually run.
+    pub too_deep: Option<TooDeep>,
     /// How many hits to show per location.
     pub limit: Limit,
     /// Which page.
@@ -617,19 +626,71 @@ pub struct Plan {
     pub cache: bool,
 }
 
+/// The locations one invocation refuses to search because the window lies deeper than
+/// their catalogue can be paged, decided in `cli::validate` before a byte goes out.
+///
+/// Only voebb.de has such a ceiling: it has no offset, so position 220 is the tenth
+/// sequential page of a session replayed in order. The numbers ride along because the
+/// note that reports this states both, and re-deriving them beside the note would let the
+/// sentence and the decision drift apart.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TooDeep {
+    /// The [`Location::key`]s that will not be searched, in `--at` order.
+    pub keys: Vec<String>,
+    /// The last result this window would need.
+    pub position: u32,
+    /// The last result the catalogue serves.
+    pub max: u32,
+}
+
+impl TooDeep {
+    /// Whether this location is one of the refused ones.
+    pub fn holds(&self, key: &str) -> bool {
+        self.keys.iter().any(|refused| refused == key)
+    }
+}
+
 impl Plan {
     /// The locations grouped by the engine that answers for them, in the order the
-    /// engines first appear in `--at`.
+    /// engines first appear in `--at`, **minus the ones this window cannot reach**.
+    ///
+    /// This is the list of searches, so a location refused by [`Self::too_deep`] is not
+    /// in it — asking for a page voebb.de does not serve is the one thing already known
+    /// to be pointless. Its block is written all the same, from [`Self::locations`].
     ///
     /// Without `--at` this is a single `kobv` entry with no locations: one search with
-    /// no holdings filter.
+    /// no holdings filter. A `--at` from which every location has been refused is *not*
+    /// that case and must never be turned into it — an unrestricted search over the whole
+    /// region, printed under a library's heading, is the worst answer available — so it
+    /// is no search at all. `cli::validate` refuses such an invocation outright (exit 2),
+    /// which is why this is a guard rather than a path the tool takes.
     pub fn by_engine(&self) -> Vec<(Engine, Vec<Location>)> {
-        validate::split_by_engine(&self.locations)
+        let searched: Vec<Location> = self
+            .locations
+            .iter()
+            .filter(|location| !self.refused(&location.key))
+            .cloned()
+            .collect();
+        if searched.is_empty() && !self.locations.is_empty() {
+            return Vec::new();
+        }
+        validate::split_by_engine(&searched)
+    }
+
+    /// Whether this location is refused before the search, by key.
+    fn refused(&self, key: &str) -> bool {
+        self.too_deep
+            .as_ref()
+            .is_some_and(|too_deep| too_deep.holds(key))
     }
 
     /// Which engines this invocation runs, in a stable order.
+    ///
+    /// Over **all** locations, including the ones no search was sent for: they have
+    /// blocks in `at[]`, and an engine missing from this list would leave those blocks
+    /// under a catalogue the document says was never asked about them.
     pub fn engines(&self) -> Vec<Engine> {
-        self.by_engine()
+        validate::split_by_engine(&self.locations)
             .into_iter()
             .map(|(engine, _)| engine)
             .collect()

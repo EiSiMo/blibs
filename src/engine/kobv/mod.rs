@@ -14,13 +14,13 @@ pub mod client;
 pub mod parse;
 pub mod pqf;
 
-use crate::error::{Error, UnexpectedError};
+use crate::error::{Blast, Error, UnexpectedError};
 use crate::http::{Fetch, scope_map};
 use crate::libraries;
 use crate::model::{
     AtBlock, AvailabilityId, AvailabilityMode, Catalog, Engine, EngineSearch, EngineShow,
-    FetchWindow, Holding, Isil, Location, Note, QuerySpec, Record, RecordId, SearchRequest,
-    SruPageSize,
+    FetchWindow, Holding, Isil, Location, LocationRefusal, Note, QuerySpec, Record, RecordId,
+    SearchRequest, SruPageSize, past_the_last_result_note,
 };
 
 use client::KobvClient;
@@ -100,6 +100,48 @@ impl Found {
     }
 }
 
+/// What one location's search produced: an answer, or the one refusal that belongs to
+/// that location and to nothing else.
+///
+/// The reason it exists is [`scope_map`]'s contract, which is all-or-nothing: the first
+/// error abandons every other location's search. That is right for a timeout and wrong for
+/// a window past the end of *one* result set, so the closure separates the second kind out
+/// instead of returning it. Which kind that is, is [`Error::blast_radius`]'s answer and not
+/// this module's — the same seam `engine/voebb` reads for a record page that changed shape.
+enum Located {
+    /// The search ran.
+    Found(Found),
+    /// The catalogue refused the window because this location's result set ends before it
+    /// begins. Kept whole rather than reduced to a flag: when *every* location answers
+    /// this way it is raised again, with the catalogue's own words and its own exit code.
+    PastTheEnd(Error),
+}
+
+impl Located {
+    /// The refusal, when this is one.
+    fn into_error(self) -> Option<Error> {
+        match self {
+            Located::PastTheEnd(error) => Some(error),
+            Located::Found(_) => None,
+        }
+    }
+}
+
+/// The refusal to raise when **every** location was refused, or `None` while one of them
+/// still has an answer.
+///
+/// One rule, and it is the rule `cli::run` applies to whole engines one level up: a
+/// failure that owns everything inside the thing it was caught in is that thing's failure.
+/// An engine with nothing but refused windows has no block to write a note beside, and
+/// silently reporting "found nothing" for a user who only paged too far would drop the
+/// one sentence they need.
+fn refused_everywhere(searches: &mut Vec<Located>) -> Option<Error> {
+    if searches.is_empty() || searches.iter().any(|s| matches!(s, Located::Found(_))) {
+        return None;
+    }
+    searches.drain(..).find_map(Located::into_error)
+}
+
 impl<'f> Kobv<'f> {
     /// Build the engine over a transport.
     pub fn new(fetch: &'f dyn Fetch) -> Self {
@@ -158,19 +200,39 @@ impl<'f> Kobv<'f> {
     /// holds hundreds. A window per location is the only shape that can fill every block,
     /// and it makes the counting requests unnecessary: `numberOfRecords` of a search
     /// restricted to one ISIL *is* that location's total.
+    ///
+    /// A window per location also means a **last page** per location, and they are not the
+    /// same page: `--at TU,HU --page 30 --limit 50` begins at record 1451, which HU's 2005
+    /// hits still hold and TU's 1106 do not. The location that ran out gets its block, no
+    /// total and a note ([`crate::model::note_kinds::LOCATION_PAST_THE_LAST_RESULT`]); the
+    /// others answer as usual. Only when *every* location ran out is the refusal raised —
+    /// see [`refused_everywhere`].
     fn search_by_location(
         &self,
         request: &SearchRequest,
         isils: &[Isil],
     ) -> Result<EngineSearch, Error> {
-        let searches = scope_map(isils.to_vec(), |isil| {
-            self.search_once(&request.query, std::slice::from_ref(&isil), request.window)
+        let mut searches = scope_map(isils.to_vec(), |isil| {
+            match self.search_once(&request.query, std::slice::from_ref(&isil), request.window) {
+                Ok(found) => Ok(Located::Found(found)),
+                // This one location's result set ends before the window begins. Raising it
+                // would abandon the searches of every other location — HU delivers 50
+                // sound records at position 1451 where TU has run out — so it is carried
+                // back as an answer of its own and decided below.
+                Err(error) if error.blast_radius() == Blast::Location => {
+                    Ok(Located::PastTheEnd(error))
+                }
+                Err(error) => Err(error),
+            }
         })?;
+        if let Some(error) = refused_everywhere(&mut searches) {
+            return Err(error);
+        }
 
         // Stated only when exactly one search ran; otherwise there is no single query and
         // no single hit count the whole answer came from.
         let only = match searches.as_slice() {
-            [found] => Some(found),
+            [Located::Found(found)] => Some(found),
             _ => None,
         };
         let query_echo = only.map(|found| found.query.as_str().to_owned());
@@ -179,10 +241,23 @@ impl<'f> Kobv<'f> {
         let mut records: Vec<Record> = Vec::new();
         let mut undelivered = 0;
         let mut notes: Vec<Note> = Vec::new();
-        let mut per_isil: Vec<(u64, Vec<RecordId>)> = Vec::new();
-        for found in searches {
+        let mut per_isil: Vec<(Option<u64>, Vec<RecordId>)> = Vec::new();
+        let mut refused: Vec<Isil> = Vec::new();
+        // `scope_map` preserves input order, so the answers line up with the ISILs they
+        // were asked for — which is what `at_blocks` matches a location against.
+        for (isil, search) in isils.iter().zip(searches) {
+            let found = match search {
+                Located::Found(found) => found,
+                // No total: a refused envelope may state `numberOfRecords` and have it be
+                // wrong, so the block says nothing rather than something plausible.
+                Located::PastTheEnd(_) => {
+                    refused.push(isil.clone());
+                    per_isil.push((None, Vec::new()));
+                    continue;
+                }
+            };
             undelivered += found.undelivered;
-            per_isil.push((found.total, found.ids()));
+            per_isil.push((Some(found.total), found.ids()));
             // The same limitation reported by two location searches is one limitation.
             for note in found.notes {
                 if !notes.contains(&note) {
@@ -191,13 +266,17 @@ impl<'f> Kobv<'f> {
             }
             merge_records(&mut records, found.records);
         }
+        notes.extend(past_the_last_result_note(&refused_keys(
+            &request.locations,
+            &refused,
+        )));
 
         Ok(EngineSearch {
             engine: Engine::Kobv,
             total,
             fetched: records.len(),
             undelivered,
-            at: at_blocks(&request.locations, isils, &per_isil),
+            at: at_blocks(&request.locations, isils, &per_isil, &refused),
             records,
             query_echo,
             notes,
@@ -332,10 +411,16 @@ impl Catalog for Kobv<'_> {
 /// Two locations with the same ISIL share the one search that was run for it; a location
 /// whose ISIL somehow has no search states nothing rather than borrowing another's
 /// numbers.
+///
+/// **A location whose window was refused states no total either**, and for a second
+/// reason: the count beside diagnostic `1/61` may be present and wrong, so `None` is what
+/// is actually known. The `location_past_the_last_result` note is what tells a reader that
+/// this block is empty for a reason of its own.
 fn at_blocks(
     locations: &[Location],
     isils: &[Isil],
-    per_isil: &[(u64, Vec<RecordId>)],
+    per_isil: &[(Option<u64>, Vec<RecordId>)],
+    refused: &[Isil],
 ) -> Vec<AtBlock> {
     locations
         .iter()
@@ -351,11 +436,30 @@ fn at_blocks(
                 branch: location.branch.as_ref().map(|branch| branch.kobvid.clone()),
                 engine: Engine::Kobv,
                 total: found
-                    .map(|(total, _)| *total)
+                    .and_then(|(total, _)| *total)
                     .filter(|_| location.branch.is_none()),
                 records: found.map(|(_, ids)| ids.clone()).unwrap_or_default(),
+                // By ISIL, like the note: two aliases of one institution share one
+                // search, so one refusal empties both of their blocks.
+                refused: refused
+                    .contains(&location.isil)
+                    .then_some(LocationRefusal::PastTheLastResult),
             }
         })
+        .collect()
+}
+
+/// The locations whose search was refused, named for the note.
+///
+/// By ISIL rather than by position, because two locations can share one search: two
+/// aliases of the same institution are one request, and if that request ran out then both
+/// of their blocks are empty and both have to be named. The order is the order of `--at`,
+/// so the note reads like the command line.
+fn refused_keys<'a>(locations: &'a [Location], refused: &[Isil]) -> Vec<&'a str> {
+    locations
+        .iter()
+        .filter(|location| refused.contains(&location.isil))
+        .map(|location| location.key.as_str())
         .collect()
 }
 

@@ -234,6 +234,45 @@ pub struct AtBlock {
     /// down to the records the page actually shows.
     #[serde(serialize_with = "record_ids")]
     pub records: Vec<RecordId>,
+    /// Why this location was **not searched**, when it was not. `None` means it answered.
+    ///
+    /// The field exists because `total: null` plus `records: []` is otherwise three
+    /// things at once — a branch nobody can count, a location no engine reported on, and
+    /// a location whose window this page could never reach. Only the last of them is a
+    /// statement about *this invocation* rather than about the catalogue, and it is the
+    /// only one a caller can act on by changing a flag, so it is the one that gets a
+    /// machine-readable answer instead of prose in a note.
+    ///
+    /// Always serialised, `null` included: a field that vanishes when nothing was refused
+    /// would put an agent back to guessing whether its absence means "answered" or "this
+    /// version does not say".
+    pub refused: Option<LocationRefusal>,
+}
+
+/// Why a location in `--at` was not searched at all.
+///
+/// Deliberately **not** a `bool`. Two reasons already exist the day the field is
+/// introduced, they carry different advice, and one of them would be a lie if it were
+/// printed for the other: KOBV's is the catalogue answering "this result set ends before
+/// your window", voebb's is blibs refusing to walk that far before a byte goes out. A
+/// `past_the_last_result: true` on a VÖBB branch would claim the branch has fewer hits
+/// than the page asked for, which nobody ever looked up. Renaming a published member is a
+/// contract break (`plan/cli.md` § JSON), so the shape that can hold the second reason is
+/// the shape to publish first.
+///
+/// Both leave the same trace otherwise: an empty block, no total, and a note of the
+/// matching `kind` naming the locations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LocationRefusal {
+    /// The catalogue refused the window because **this location's** result set ends
+    /// before it begins — SRU diagnostic `1/61`, raised for one of several searches.
+    /// Says how far that result set reaches and nothing about what is held.
+    PastTheLastResult,
+    /// The window lies deeper than the answering catalogue can be paged at all, so
+    /// nothing was asked. voebb.de stops at [`crate::engine::voebb::MAX_POSITION`], and
+    /// the refusal happens in `cli::validate`, before the session is opened.
+    WindowTooDeep,
 }
 
 /// Serialise record ids as the plain strings a user types back in.
@@ -663,6 +702,48 @@ pub mod note_kinds {
     /// the branch is named. The block is the whole house's.
     pub const BRANCH_NEEDS_COPIES: &str = "branch_needs_copies";
 
+    /// One location's search was refused because the requested window begins past that
+    /// location's **own** last result, so its block is empty and the other locations
+    /// answered normally.
+    ///
+    /// Every location in `--at` is its own search with its own result set, and they end at
+    /// different depths: measured 2026-09-07, `--at TU,HU --page 30 --limit 50` needs
+    /// record 1451, which HU's 2005 hits reach and TU's 1106 do not. Until this tag
+    /// existed, TU's refusal was the whole invocation's and the user got neither block —
+    /// the failure of one location sold as the failure of the run
+    /// (`plan/feedback_round_3.md` §1.2, [`crate::error::Blast`]).
+    ///
+    /// It says nothing about what the location holds. The count that came back beside the
+    /// refusal is not to be believed either — a rejected SRU envelope may state
+    /// `numberOfRecords` and have it be wrong — so such a block states no total, which is
+    /// the second reason the tag is needed: without it, "no total, no records" is
+    /// indistinguishable from a location the engine never reached.
+    ///
+    /// When **every** location answers this way there is nothing left for the refusal to be
+    /// smaller than: the run ends with the catalogue's own message and exit 5, and no note
+    /// is written at all.
+    pub const LOCATION_PAST_THE_LAST_RESULT: &str = "location_past_the_last_result";
+
+    /// One location's window lies deeper than its catalogue can be paged, so **that**
+    /// location was not searched while the others were.
+    ///
+    /// voebb.de has no offset: position 220 is the tenth sequential page of a session
+    /// replayed in order, and beyond it blibs refuses before opening one at all. Until
+    /// 2026-09-09 that refusal was the whole invocation's — `--at HU,AGB --page 20
+    /// --limit 20` was exit 2 with no block whatsoever, although HU reaches 400 records
+    /// without effort. One location's ceiling deciding for every other is the same
+    /// unevenness as [`LOCATION_PAST_THE_LAST_RESULT`], one step earlier: there the
+    /// catalogue refuses, here blibs does on its behalf.
+    ///
+    /// **Not the same tag, and not the same sentence.** That one says a result set ran
+    /// out, which is something the catalogue answered; this one says nobody asked. A
+    /// block carrying it may well hold hundreds of hits at a shallower page.
+    ///
+    /// When **every** location is one of these the run is a usage error again
+    /// ([`crate::error::UsageError::WindowTooDeep`], exit 2, before any request) — there
+    /// is nothing the empty block could stand beside.
+    pub const LOCATION_WINDOW_TOO_DEEP: &str = "location_window_too_deep";
+
     /// A location in `--at` is answered by the *other* catalogue than the record that was
     /// shown. The two are never matched against each other — a KOBV record states no
     /// branch and a voebb record no institution — so the location could not narrow this
@@ -1021,6 +1102,95 @@ fn ambiguous_key_note(location: &Location) -> Option<Note> {
     ))
 }
 
+/// The note for the locations whose window began past their own last result.
+///
+/// **One note for all of them, naming them in it.** The alternative — a note per location,
+/// each naming its own — is the shape [`Note::merged`] cannot fold: it folds on `kind`
+/// *and* `message`, so two locations running out at the same moment would print two
+/// near-identical paragraphs differing in one word, which is the failure
+/// `voebb_online_url_only` was already fixed for once. The same reasoning gives
+/// `branch_from_copies` its shape, and it is followed here.
+///
+/// `keys` are [`Location::key`]s, in the order the user wrote `--at`. Empty means nothing
+/// ran out and there is no note to write.
+///
+/// Called from both levels that can meet this refusal — one location of an engine, and one
+/// whole engine of a run — so that the limitation has one wording wherever it is caught.
+pub fn past_the_last_result_note(keys: &[&str]) -> Option<Note> {
+    let Named { at, subject, block } = Named::of(keys)?;
+    Some(Note::new(
+        note_kinds::LOCATION_PAST_THE_LAST_RESULT,
+        format!(
+            "{at}: the window begins past the last result the catalogue has for \
+             {subject}, which leaves {block} empty on this page. That says how far the \
+             result set reaches, not what is held, and no total is stated — the count \
+             beside a refused window is not to be trusted. Lower --page, or ask a location \
+             on its own to see how far it goes; the other locations answered normally."
+        ),
+    ))
+}
+
+/// The note for the locations whose window is deeper than their catalogue can be paged.
+///
+/// The sister of [`past_the_last_result_note`], and deliberately a different sentence:
+/// that one reports a result set that ended, this one reports a question nobody asked.
+/// Saying "past the last result" here would claim that a branch holds fewer records than
+/// the page asked for, which no request ever established — the depth is blibs's own
+/// ceiling on a catalogue with no offset, applied before the session is opened.
+///
+/// `keys` are [`Location::key`]s in `--at` order, `max` the deepest position the
+/// catalogue serves, and `position` the one this window needed. Empty `keys` means every
+/// location could be paged and there is no note to write; **all** of them refused is not
+/// this function's case at all but [`crate::error::UsageError::WindowTooDeep`], because a
+/// note needs an answer to stand beside.
+pub fn window_too_deep_note(keys: &[&str], position: u32, max: u32) -> Option<Note> {
+    let Named { at, subject, block } = Named::of(keys)?;
+    Some(Note::new(
+        note_kinds::LOCATION_WINDOW_TOO_DEEP,
+        format!(
+            "{at}: this page needs result {position} and the catalogue answering for \
+             {subject} is paged one sequential request at a time, so blibs stops at {max} \
+             and asked it nothing — which leaves {block} empty. Nothing was looked up, so \
+             this says nothing about what is held there. Lower --page or --limit to reach \
+             {subject} again; the other locations answered normally."
+        ),
+    ))
+}
+
+/// The three pieces of grammar a refusal note needs about the locations it names: how to
+/// list them, and how to speak about them once and about their blocks once.
+///
+/// One place, because two notes that number their subjects differently read as two
+/// different limitations — and because a note that interpolates a location per sentence
+/// stops folding (`Note::merged` folds on `kind` *and* `message`).
+struct Named {
+    /// `--at TU` or `--at TU, --at HU`.
+    at: String,
+    /// "that location" or "those locations".
+    subject: &'static str,
+    /// "its block" or "their blocks".
+    block: &'static str,
+}
+
+impl Named {
+    /// `None` for no locations at all, which is the "no note to write" case.
+    fn of(keys: &[&str]) -> Option<Self> {
+        match keys {
+            [] => None,
+            [only] => Some(Self {
+                at: format!("--at {only}"),
+                subject: "that location",
+                block: "its block",
+            }),
+            several => Some(Self {
+                at: format!("--at {}", several.join(", --at ")),
+                subject: "those locations",
+                block: "their blocks",
+            }),
+        }
+    }
+}
+
 /// The two limitations a record itself implies: the run of a serial, and the due date of
 /// a copy that is out. Each is stated **once**, not per copy.
 ///
@@ -1326,6 +1496,7 @@ mod tests {
                     records: vec![
                         RecordId::parse("almafu_BV008885798").expect("a prefixed id parses"),
                     ],
+                    refused: None,
                 },
                 AtBlock {
                     key: "AGB".to_owned(),
@@ -1335,6 +1506,7 @@ mod tests {
                     engine: Engine::Voebb,
                     total: Some(35),
                     records: vec![RecordId::voebb("SAK13776205")],
+                    refused: None,
                 },
             ],
             availability: AvailabilityMode::Fetched,

@@ -20,10 +20,10 @@ pub use id::{AvailabilityId, Engine, RecordId};
 pub use isil::Isil;
 pub use page::{FetchWindow, Limit, Page, SruPageSize};
 pub use record::{Author, AuthorKind, Format, Holding, Item, Record, ResourceUrl, Status, UrlKind};
-pub use search::ambiguous_key_notes;
 pub use search::note_kinds;
 pub use search::{
-    AtBlock, AvailabilityMode, BranchRef, EngineSearch, Identifier, Location, Note, QueryEcho,
-    QuerySpec, SearchRequest, SearchResult, ShowAt, ShowResult, SortKey, SortScope, SortSpec, Term,
-    WindowInfo,
+    AtBlock, AvailabilityMode, BranchRef, EngineSearch, Identifier, Location, LocationRefusal,
+    Note, QueryEcho, QuerySpec, SearchRequest, SearchResult, ShowAt, ShowResult, SortKey,
+    SortScope, SortSpec, Term, WindowInfo,
 };
+pub use search::{ambiguous_key_notes, past_the_last_result_note, window_too_deep_note};

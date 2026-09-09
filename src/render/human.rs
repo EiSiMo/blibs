@@ -58,8 +58,8 @@ use crate::counts::{records, results};
 use crate::error::{EmptyReason, Error};
 use crate::model::note_kinds;
 use crate::model::{
-    AvailabilityMode, Engine, Format, Holding, Item, Location, Note, Record, RecordId,
-    SearchResult, SortKey, Status, UrlKind,
+    AvailabilityMode, Engine, Format, Holding, Item, Location, LocationRefusal, Note, Record,
+    RecordId, SearchResult, SortKey, Status, UrlKind,
 };
 use crate::render::Style;
 use crate::render::style::{Voice, label};
@@ -297,6 +297,33 @@ pub fn search(
     write_footer(out, result, &shown, scoped, style)
 }
 
+/// One printed marker: the status its symbol stands for, and whether the record wearing
+/// it is a thing a library lends at all.
+///
+/// The pair, not the status on its own. The symbol is a fact of the block — the copies
+/// *there* — while the wording the legend may gloss it with is a fact of the record, and
+/// keeping only the status left the legend deciding over the page instead of over the
+/// records it speaks about ([`legend_voice`]).
+#[derive(Debug, Clone, Copy)]
+struct Marker {
+    status: Status,
+    lendable: bool,
+}
+
+impl Marker {
+    /// The marker one printed line wears.
+    ///
+    /// `lendable` is [`Record::is_online_resource`] negated and not a second reading of
+    /// the record: the copy line beneath asks the same question through [`item_voice`],
+    /// and two spellings of it would let a legend and the lines under it disagree.
+    fn of(entry: &BlockRecord<'_>) -> Self {
+        Self {
+            status: entry.status,
+            lendable: !entry.record.is_online_resource(),
+        }
+    }
+}
+
 /// Whether `--available` actually judged anything, which is the only thing the headings
 /// need to know about it.
 ///
@@ -317,13 +344,51 @@ fn availability_filtered(result: &SearchResult) -> bool {
         .is_some_and(|judged| judged > 0)
 }
 
+/// Whether the window this answer was cut from is **anchored**: one block of 50 raw
+/// records starting at record 1, with `--page` walking the records it holds instead of
+/// stepping the catalogue.
+///
+/// [`crate::cli::Plan::anchored`] read back off the answer, not a second rule: that
+/// decision is `filters.is_active() || sort != relevance`, and this document carries both
+/// halves verbatim — `window.filtered` *is* the first and `sort.by` *is* the second, so
+/// nothing here is guessed.
+///
+/// Deliberately **not** `window.filtered` alone. `--sort` anchors the window without
+/// filtering anything, so a renderer that asks the filter question gets `false` for a
+/// sorted page and then prints a range, or a `no results`, that no page can deliver
+/// (round 3, §1.4). `window.filtered` still answers its own question — "did a filter
+/// run" — wherever a message names `--format`.
+fn anchored(result: &SearchResult) -> bool {
+    result.window.filtered || result.sort.by != SortKey::Relevance
+}
+
+/// The page number when this page begins after the last record an anchored window holds,
+/// and `None` when it does not.
+///
+/// `(page − 1) × limit` is [`crate::select::PageCut`]'s offset for an anchored window and
+/// `window.after_filter` is what that window holds — the same two numbers
+/// [`crate::cli::run`] compares to choose `PastTheLastMatch`/`PastTheLastSorted`, so the
+/// heading and the reason printed under it cannot disagree about whether this page exists.
+///
+/// Never true while `--available` was the one that emptied the page: a filter that judged
+/// records had records to judge, which is only so on a page inside the window.
+fn past_the_window(result: &SearchResult) -> Option<u32> {
+    let page = result.page.get();
+    let offset = (page as usize)
+        .saturating_sub(1)
+        .saturating_mul(result.limit);
+    (anchored(result) && result.window.after_filter > 0 && offset >= result.window.after_filter)
+        .then_some(page)
+}
+
 /// What ran over the answer as a whole, as far as a heading needs to know.
 ///
 /// A heading may never say `no results` about a location whose hit count it knows to be
-/// above zero: the hits exist, and a client-side sieve simply left none of them standing.
-/// Which sieve it was decides the wording, both are facts about the run rather than about
-/// one block, and the `--no-availability` one decides whether a branch heading may claim
-/// its branch at all — so they are read off the result once and handed down.
+/// above zero: the hits exist, and a client-side sieve simply left none of them standing —
+/// or the page asked for begins past the block the sieve pinned the window to. Which of
+/// them it was decides the wording, all are facts about the run rather than about one
+/// block, and the `--no-availability` one decides whether a branch heading may claim its
+/// branch at all — so they are read off the result once and handed down.
 #[derive(Debug, Clone, Copy)]
 struct Sieve {
     /// `--available` judged at least one record — see [`availability_filtered`].
@@ -332,21 +397,31 @@ struct Sieve {
     /// the size of that window. `Some(0)` cannot occur: a window of nothing was never
     /// filtered.
     window_emptied: Option<usize>,
+    /// The page begins after the end of an anchored window, carrying its number — see
+    /// [`past_the_window`]. Exclusive with the other two by arithmetic, not by order.
+    past_the_window: Option<u32>,
     /// `--no-availability` was given, which is what makes a KOBV branch unanswerable:
     /// the branch of a copy is named in the availability answer and nowhere else.
     no_availability: bool,
+    /// The page that was asked for. Not a sieve itself, but the number every one of these
+    /// headings names, and there is exactly one of it per run — a block that carries a
+    /// refusal of its own ([`crate::model::LocationRefusal`]) needs it to say which page
+    /// it was refused for.
+    page: u32,
 }
 
 impl Sieve {
-    /// Read the three facts off the result. Nothing is derived twice: each of them has
-    /// exactly one field behind it.
+    /// Read the facts off the result. Nothing is derived twice: each of them has
+    /// exactly one rule behind it, and the two about the window share [`anchored`].
     fn of(result: &SearchResult) -> Self {
         let window = result.window;
         Self {
             availability: availability_filtered(result),
             window_emptied: (window.filtered && window.fetched > 0 && window.after_filter == 0)
                 .then_some(window.fetched),
+            past_the_window: past_the_window(result),
             no_availability: result.availability == AvailabilityMode::Skipped,
+            page: result.page.get(),
         }
     }
 }
@@ -358,7 +433,7 @@ fn write_grouped_block(
     block: &Block<'_>,
     sieve: Sieve,
     style: Style,
-    shown: &mut Vec<Status>,
+    shown: &mut Vec<Marker>,
 ) -> io::Result<()> {
     write_line(out, &block_heading(block, sieve), 0, style.heading(), style)?;
     if block.records.is_empty() {
@@ -398,7 +473,7 @@ fn write_grouped_block(
         for item in items {
             write_row(out, &item_layout, item, &item_widths, ITEM_INDENT, style)?;
         }
-        shown.push(entry.status);
+        shown.push(Marker::of(entry));
     }
     Ok(())
 }
@@ -430,7 +505,7 @@ fn write_flat_block(
     block: &Block<'_>,
     sieve: Sieve,
     style: Style,
-    shown: &mut Vec<Status>,
+    shown: &mut Vec<Marker>,
 ) -> io::Result<()> {
     let count = block.records.len();
     let filtered = sieve.availability;
@@ -475,7 +550,7 @@ fn write_flat_block(
     let widths = layout.widths(&rows, available(style, RECORD_INDENT));
     for (entry, row) in block.records.iter().zip(&rows) {
         write_row(out, &layout, row, &widths, RECORD_INDENT, style)?;
-        shown.push(entry.status);
+        shown.push(Marker::of(entry));
     }
     Ok(())
 }
@@ -485,11 +560,15 @@ fn write_flat_block(
 fn write_footer(
     out: &mut dyn Write,
     result: &SearchResult,
-    shown: &[Status],
+    shown: &[Marker],
     scoped: bool,
     style: Style,
 ) -> io::Result<()> {
-    if let Some(legend) = style.legend(shown, legend_voice(result, scoped)) {
+    // The legend lists the symbols that occurred and glosses them in one voice, so it is
+    // handed both halves of the same markers: the statuses say which entries there are,
+    // the records they belong to say what `○` may be called.
+    let statuses: Vec<Status> = shown.iter().map(|marker| marker.status).collect();
+    if let Some(legend) = style.legend(&statuses, legend_voice(shown, scoped)) {
         writeln!(out)?;
         writeln!(out, "{legend}")?;
     }
@@ -614,25 +693,31 @@ fn covers_every_record(about: &[RecordId], universe: &[&RecordId]) -> bool {
 /// What the legend's wording may promise about this output.
 ///
 /// Without `--at` the answer is about the region ([`Voice::Region`]). With it the symbols
-/// are one library's — and "on loan" only where something can be lent at all: a page of
-/// nothing but online resources would otherwise gloss `○` as "on loan" over lines that
-/// each read "currently unavailable" ([`item_voice`]). A mixed page keeps the lending
-/// voice, because there the legend is a gloss of a symbol that genuinely means both and
-/// the copy lines say which is which.
-fn legend_voice(result: &SearchResult, scoped: bool) -> Voice {
+/// are one library's, and the two scoped voices differ in exactly one gloss: `○` is "on
+/// loan" where something can be lent and "currently unavailable" where nothing can
+/// ([`item_voice`], [`crate::render::style::label`]).
+///
+/// **The set that decides it is the records wearing `○`, never the page.** Six hits of
+/// which two were online resources kept the lending voice and glossed the symbol as "on
+/// loan" over two lines that each read "currently unavailable" (round 3, §1.5) — the
+/// invented fact round 2 took out of the copy line, standing in its definition instead.
+///
+/// A mixed page — a book that is out and an e-resource nobody can reach — takes the
+/// neutral wording too, and that is the whole decision: "currently unavailable" is true
+/// of both, since a copy on loan is also not to be had right now, while "on loan" over
+/// the e-resource would be the invented fact again. The legend loses nothing by it,
+/// because the copy lines keep the sharper voice of their own record and say which is
+/// which. With no `○` on the page the choice glosses nothing, and the lending voice —
+/// the one a library block speaks in — stands.
+fn legend_voice(shown: &[Marker], scoped: bool) -> Voice {
     if !scoped {
         return Voice::Region;
     }
-    let all_online = !result.records.is_empty()
-        && result
-            .records
-            .iter()
-            .all(crate::model::Record::is_online_resource);
-    if all_online {
-        Voice::Access
-    } else {
-        Voice::Copy
-    }
+    let lendable = shown
+        .iter()
+        .filter(|marker| marker.status == Status::Unavailable)
+        .all(|marker| marker.lendable);
+    if lendable { Voice::Copy } else { Voice::Access }
 }
 
 /// The limitations worth a footnote: what the engines reported, plus the two that follow
@@ -761,22 +846,48 @@ fn availability_filter_note(result: &SearchResult) -> Option<String> {
 ///   `HU Berlin · 2005 results · none of the 50 fetched records matched` — the filter saw
 ///   one window of the result and nothing else. `· no results` there denied 2005 hits
 ///   that the footer named three lines further down (round 2, §1.3), and it is the one
-///   arm of this function that can be a lie.
+///   arm of this function that can be a lie;
+/// - past the end of an anchored window,
+///   `HU Berlin · 2005 results · page 11 begins after the fetched window` — the same lie
+///   for the other reason a window is anchored (round 3, §1.4b). `--sort` pins the window
+///   to one block and `--page` walks what it holds, so a page past it is a page past the
+///   window and not a library without hits. The wording is the reason's own, which is
+///   printed underneath: two sentences about one situation must not be two situations.
 ///
 /// Only with a known total above zero, because otherwise the heading would name a number
 /// nobody reported.
+///
+/// **The fourth case has no total to keep and comes before all of them**: a location that
+/// was never searched, because the page begins past its own last result or deeper than
+/// its catalogue can be paged at all (round 3, §1.2). Its emptiness is not a sieve's
+/// doing and not the library's — see [`refused_heading`] — and `· no results` there was
+/// the same lie as the two above, contradicted by its own note two lines further down.
 fn block_heading(block: &Block<'_>, sieve: Sieve) -> String {
     let name = block_name(block, sieve);
     let shown = block.records.len();
     if shown == 0 {
+        // Before the total is even asked for: a refused location has none by
+        // construction, and the answer to "why is this block empty" is one this
+        // invocation decided rather than one the catalogue reported.
+        if let Some(refused) = block.refused {
+            return format!("{name} · {}", refused_heading(refused, sieve.page));
+        }
         let Some(total) = block.total.filter(|total| *total > 0) else {
             return format!("{name} · no results");
         };
         // The window filter first: it runs before availability, and when it emptied the
-        // window there was nothing left for `--available` to judge.
+        // window there was nothing left for `--available` to judge. The three are
+        // mutually exclusive anyway — see [`Sieve`] — so this order reads rather than
+        // decides.
         if let Some(fetched) = sieve.window_emptied {
             return format!(
                 "{name} · {} · none of the {fetched} fetched records matched",
+                results(total)
+            );
+        }
+        if let Some(page) = sieve.past_the_window {
+            return format!(
+                "{name} · {} · page {page} begins after the fetched window",
                 results(total)
             );
         }
@@ -791,6 +902,31 @@ fn block_heading(block: &Block<'_>, sieve: Sieve) -> String {
         }
         Some(total) => format!("{name} · {}", results(total)),
         None => format!("{name} · showing {shown}"),
+    }
+}
+
+/// What a block whose location was never searched says instead of `no results`.
+///
+/// Both refusals are about **this page**, not about the library, and the fourth heading
+/// of a family whose first three are in [`block_heading`]. They read alike on purpose and
+/// differ in the one clause that matters, because that clause is the whole difference
+/// between them:
+///
+/// - `page 30 begins past its last result` — the catalogue answered, and *this location's*
+///   result set ends before the page begins. It says how far that result set reaches;
+/// - `page 20 begins past the deepest result this catalogue serves` — nothing was asked at
+///   all. voebb.de is paged one sequential request at a time and blibs stops at
+///   [`crate::engine::voebb::MAX_POSITION`], so this says how far the *tool* goes and
+///   nothing whatsoever about the branch.
+///
+/// Neither names a number of hits, and not for the reason `past_the_window` has: there
+/// simply is no total to name, because nobody counted.
+fn refused_heading(refused: LocationRefusal, page: u32) -> String {
+    match refused {
+        LocationRefusal::PastTheLastResult => format!("page {page} begins past its last result"),
+        LocationRefusal::WindowTooDeep => {
+            format!("page {page} begins past the deepest result this catalogue serves")
+        }
     }
 }
 
@@ -838,6 +974,11 @@ fn block_name(block: &Block<'_>, sieve: Sieve) -> String {
 /// `774 results for Kafka Prozess · 3 available on this page`. The survivors are not
 /// hits 1 to 3 but three of the ten on this page, and a range would suggest exactly the
 /// completeness `plan/cli.md` § *Für beide Formen* forbids.
+///
+/// An [`anchored`] window drops it for the same reason, and for both of the things that
+/// anchor one: `--sort year --limit 5 --page 2` printed `301 results … showing 6-10`
+/// over a footnote saying the sort had seen 50 records (round 3, §1.4a). Only the filter
+/// may say `matching`, because only a filter matched anything.
 fn flat_heading(result: &SearchResult, shown: usize, filtered: bool) -> String {
     let terms = &result.query.terms;
     let total = result.total.unwrap_or(shown as u64);
@@ -848,15 +989,17 @@ fn flat_heading(result: &SearchResult, shown: usize, filtered: bool) -> String {
     if filtered {
         return format!("{head} · {shown} available on this page");
     }
-    // With `--format`/`--language` a range over `total` would be a lie: the window is one
-    // anchored block of 50 raw records, `--page` walks the matches inside it, and there is
-    // no page that reaches the rest of `total` at all. The count says what is really being
-    // ranged over, and the running numbers in the list say which of them these are.
-    if result.window.filtered {
-        return format!(
-            "{head} · {shown} of {} matching in this window",
-            result.window.after_filter
-        );
+    // With an anchored window a range over `total` would be a lie: the window is one
+    // block of 50 raw records, `--page` walks what it holds, and there is no page that
+    // reaches the rest of `total` at all. The count says what is really being ranged
+    // over, and the running numbers in the list say which of them these are.
+    if anchored(result) {
+        let in_window = result.window.after_filter;
+        return if result.window.filtered {
+            format!("{head} · {shown} of {in_window} matching in this window")
+        } else {
+            format!("{head} · {shown} of {in_window} in this window")
+        };
     }
     let first = first_number(result);
     format!("{head} · showing {first}-{}", first + shown as u64 - 1)
@@ -2000,6 +2143,16 @@ mod tests {
         }
     }
 
+    /// One `at[]` entry for a location that was never searched: no total, no records,
+    /// and the reason it was refused.
+    fn refused_at(key: &str, isil: &str, engine: Engine, why: LocationRefusal) -> AtBlock {
+        AtBlock {
+            total: None,
+            refused: Some(why),
+            ..at(key, isil, 0, engine, &[])
+        }
+    }
+
     fn institution(key: &str, isil: &str, display: &str) -> Location {
         Location {
             key: key.to_owned(),
@@ -2039,6 +2192,7 @@ mod tests {
                 .iter()
                 .map(|id| RecordId::parse(id).expect("the fixture ids are prefixed"))
                 .collect(),
+            refused: None,
         }
     }
 
@@ -2696,6 +2850,185 @@ AGB (VÖBB) · 35 results · showing 2
             rendered(&result, &[])
                 .starts_with("774 results for Kafka Prozess · 3 available on this page\n")
         );
+    }
+
+    /// Round 3, §1.4a: `--sort` anchors the window without filtering anything, and the
+    /// heading asked the filter question. `301 results … showing 6-10` promised hits 6
+    /// to 10 of 301 and a page 3, four lines above a note saying the sort had seen the
+    /// 50 records of one window.
+    #[test]
+    fn the_flat_heading_counts_instead_of_ranging_over_an_anchored_window() {
+        let records = ["b3kat_BV005550341", "almafu_BV035123456"]
+            .iter()
+            .map(|id| record(id, "Der Prozess", "Kafka, Franz", 2016))
+            .collect();
+        let mut result = result("title: Prozess, author: Kafka", Some(301), records);
+        result.limit = 5;
+        result.page = Page::new(2).expect("2 is a page");
+        result.window = WindowInfo {
+            fetched: 50,
+            after_filter: 50,
+            filtered: false,
+            undelivered: 0,
+            before_available: None,
+        };
+
+        // Relevance steps the window, so the range is the truth and stays.
+        let stepped = rendered(&result, &[]);
+        assert!(stepped.contains("· showing 6-7"), "{stepped}");
+
+        result.sort = SortSpec {
+            by: SortKey::Year,
+            scope: SortScope::Fetched,
+        };
+        let sorted = rendered(&result, &[]);
+        assert!(sorted.contains("· 2 of 50 in this window"), "{sorted}");
+        assert!(
+            !sorted.contains("showing"),
+            "a range claims pages the anchor cannot deliver: {sorted}"
+        );
+        assert!(
+            !sorted.contains("matching"),
+            "nothing matched here — the sort ordered: {sorted}"
+        );
+
+        // The filter's own wording is untouched, and keeps the word only it has earned.
+        result.window.filtered = true;
+        result.window.after_filter = 22;
+        let filtered = rendered(&result, &[]);
+        assert!(
+            filtered.contains("· 2 of 22 matching in this window"),
+            "{filtered}"
+        );
+    }
+
+    /// Round 3, §1.2: a location that was never searched said `no results` — over a
+    /// library that had simply been asked for a page nobody could deliver, and two lines
+    /// above a note saying exactly that. The heading is what gets read in a block format,
+    /// so it carries the reason itself.
+    ///
+    /// Both refusals in one output, because their difference is the point: the first
+    /// reports a result set the catalogue ran out of, the second a question that was never
+    /// asked. Neither may claim a number of hits, and neither may say `no results`.
+    #[test]
+    fn a_refused_block_names_the_page_instead_of_denying_hits() {
+        let mut result = result("Kafka", None, Vec::new());
+        result.at = vec![
+            refused_at(
+                "TU",
+                "DE-83",
+                Engine::Kobv,
+                LocationRefusal::PastTheLastResult,
+            ),
+            refused_at(
+                "AGB",
+                "DE-609",
+                Engine::Voebb,
+                LocationRefusal::WindowTooDeep,
+            ),
+        ];
+        result.limit = 20;
+        result.page = Page::new(20).expect("20 is a page");
+        let locations = vec![
+            institution("TU", "DE-83", "TU Berlin"),
+            branch("AGB", "DE-609", "SIG00036", "AGB (VÖBB)"),
+        ];
+
+        let out = rendered(&result, &locations);
+        assert!(
+            out.contains("TU Berlin · page 20 begins past its last result"),
+            "{out}"
+        );
+        assert!(
+            out.contains(
+                "AGB (VÖBB) · page 20 begins past the deepest result this catalogue serves"
+            ),
+            "{out}"
+        );
+        assert!(
+            !out.contains("no results"),
+            "an empty block that was never searched is not an empty result: {out}"
+        );
+    }
+
+    /// Round 3, §1.4b: `no results` over a library with 2005 hits. An anchored window is
+    /// walked, not stepped, so a page past its end is a page past the window — and the
+    /// footer three lines down named the hits the heading had just denied.
+    #[test]
+    fn a_block_a_page_ran_past_keeps_its_total() {
+        let mut result = result("Kafka", Some(2005), Vec::new());
+        result.at = vec![at("HU", "DE-11", 2005, Engine::Kobv, &[])];
+        result.limit = 5;
+        result.page = Page::new(11).expect("11 is a page");
+        result.sort = SortSpec {
+            by: SortKey::Year,
+            scope: SortScope::Fetched,
+        };
+        result.window = WindowInfo {
+            fetched: 50,
+            after_filter: 50,
+            filtered: false,
+            undelivered: 0,
+            before_available: None,
+        };
+        let locations = vec![institution("HU", "DE-11", "HU Berlin")];
+
+        let sorted = rendered(&result, &locations);
+        assert!(
+            sorted.contains("HU Berlin · 2005 results · page 11 begins after the fetched window"),
+            "{sorted}"
+        );
+        assert!(!sorted.contains("no results"), "{sorted}");
+
+        // The other anchor, in the case the round measured beside it: 22 records matched
+        // `--format book` and page 4 begins after the last of them.
+        result.sort = SortSpec {
+            by: SortKey::Relevance,
+            scope: SortScope::Fetched,
+        };
+        result.window.filtered = true;
+        result.window.after_filter = 22;
+        result.limit = 10;
+        result.page = Page::new(4).expect("4 is a page");
+        let filtered = rendered(&result, &locations);
+        assert!(
+            filtered.contains("HU Berlin · 2005 results · page 4 begins after the fetched window"),
+            "{filtered}"
+        );
+
+        // Un-anchored, `--page` steps the catalogue and this heading knows of no end to
+        // run past: it may not claim one.
+        result.window.filtered = false;
+        let stepped = rendered(&result, &locations);
+        assert!(stepped.contains("HU Berlin · no results"), "{stepped}");
+    }
+
+    /// `--available` emptied the page inside the window, which is not a page past it:
+    /// a filter that judged records had records to judge.
+    #[test]
+    fn a_page_emptied_by_the_availability_filter_is_not_a_page_past_the_window() {
+        let mut result = result("Kafka", Some(2005), Vec::new());
+        result.at = vec![at("HU", "DE-11", 2005, Engine::Kobv, &[])];
+        result.limit = 5;
+        result.sort = SortSpec {
+            by: SortKey::Year,
+            scope: SortScope::Fetched,
+        };
+        result.window = WindowInfo {
+            fetched: 50,
+            after_filter: 50,
+            filtered: false,
+            undelivered: 0,
+            before_available: Some(5),
+        };
+        let locations = vec![institution("HU", "DE-11", "HU Berlin")];
+
+        let output = rendered(&result, &locations);
+        assert!(
+            output.contains("HU Berlin · 2005 results · none available now"),
+            "{output}"
+        );
+        assert!(!output.contains("begins after"), "{output}");
     }
 
     /// `--available` is not the only reason a page can be empty. When `--format` emptied
@@ -4186,6 +4519,62 @@ almafu_BV008885798
         // "on loan" would contradict every line under it.
         assert!(!output.contains("on loan"), "{output}");
         assert!(output.contains("○  currently unavailable"), "{output}");
+    }
+
+    /// Round 3, §1.5: the legend **defines** the symbols, so it decides over the records
+    /// that wear one — not over the page. Six hits of which two were online resources
+    /// glossed `○` as "on loan" while both lines wearing it read "currently unavailable":
+    /// the fact round 2 took out of the copy line, back in its definition.
+    #[test]
+    fn the_legend_glosses_a_symbol_over_the_records_that_wear_it() {
+        let (mut result, locations) = vorleser();
+        // The Stabi hit becomes an e-book nobody can reach. The AGB one stays a book that
+        // is out, so `○` stands over one of each and the page is the mixed case.
+        let stabi = result
+            .records
+            .iter_mut()
+            .find(|record| record.id.as_str() == "almafu_BV010111222")
+            .expect("the fixture holds the Stabi record");
+        stabi.format = Format::Ebook;
+        stabi.online = true;
+        for holding in &mut stabi.holdings {
+            holding.summary = Status::Unavailable;
+            for item in &mut holding.items {
+                item.status = Status::Unavailable;
+            }
+        }
+
+        let output = rendered(&result, &locations);
+        assert!(output.contains("○  currently unavailable"), "{output}");
+        assert!(
+            !output.contains("○  on loan"),
+            "no line wearing the symbol says it: {output}"
+        );
+        // The neutral legend costs the page nothing: the AGB copy keeps the sharper
+        // wording of its own record, which is what says which of the two is which.
+        assert!(
+            output.contains("Schlink              on loan"),
+            "the copy that is out is still out: {output}"
+        );
+    }
+
+    /// The other half of the same rule: a `○` that is only ever a copy on loan keeps the
+    /// lending voice, and a page whose online resource wears a different symbol never
+    /// enters the question.
+    #[test]
+    fn a_page_whose_unavailable_records_can_all_be_lent_keeps_the_lending_voice() {
+        let (mut result, locations) = vorleser();
+        // Available, and online: it wears `●`, which both voices gloss the same way.
+        let stabi = result
+            .records
+            .iter_mut()
+            .find(|record| record.id.as_str() == "almafu_BV010111222")
+            .expect("the fixture holds the Stabi record");
+        stabi.format = Format::Ebook;
+        stabi.online = true;
+
+        let output = rendered(&result, &locations);
+        assert!(output.contains("○  on loan"), "{output}");
     }
 
     /// §1.3: a block a window filter emptied keeps its total. `no results` denied 2005
