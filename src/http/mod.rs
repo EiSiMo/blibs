@@ -10,9 +10,13 @@
 //!
 //! - at most [`limit::cap_for`] requests in flight per host — six by default, one for
 //!   a host that measured worse under concurrency,
+//! - at most [`limit::timeout_for`] per request — ten seconds by default, more for a host
+//!   that was measured answering more slowly than that,
 //! - an honest [`USER_AGENT`] naming the tool and its repository,
 //! - an on-disk cache so a repeated agent query does not hit the service again,
-//! - backoff on 429/503, surfaced as a distinct error rather than a generic failure.
+//! - backoff on 429/503, surfaced as a distinct error rather than a generic failure,
+//! - **never a second send of a request whose first send consumed state upstream**
+//!   ([`Replay`]).
 
 pub mod cache;
 pub mod cachedir;
@@ -75,6 +79,38 @@ pub enum CachePolicy {
     Never,
 }
 
+/// Whether sending this request a second time is a repetition or a different request.
+///
+/// The distinction is not about the HTTP method — a `GET` that carries a one-shot token
+/// would be [`Replay::SingleUse`] too — but about whether **sending** it consumes state at
+/// the far side. It exists because a transport failure says nothing about what the server
+/// did: the request may never have arrived, or it may have been answered in full and the
+/// answer lost on the way back. Retrying is the right guess only when both of those
+/// possibilities lead to the same place.
+///
+/// This is the fix for the worst measured failure of the tool
+/// (`plan/feedback_round_3.md` §1.1): a voebb.de form submission that took 11 s against a
+/// 10 s deadline was retried, the replay spent the session's `requestCount` a second time,
+/// the site answered `/noaccess`, and a search the server had answered correctly was
+/// reported to the user as "the site has changed".
+///
+/// **429 and 503 are unaffected**, and deliberately so: there the server answered, and its
+/// answer is that it did not do the work. Nothing was consumed, so the backoff in
+/// [`retry`] still applies to every request regardless of this policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Replay {
+    /// Sending it again asks the same question again. Every `GET` in this crate, and the
+    /// default: a request has to *say* that it is single-use, because the failure mode of
+    /// guessing wrong in this direction is one wasted request, and in the other direction
+    /// it is a destroyed session reported as a broken site.
+    #[default]
+    Repeatable,
+    /// Sending it consumes state at the far side, so a second send is not a repetition but
+    /// a different — and, at voebb.de, guaranteed broken — request. After a transport
+    /// failure it is given up on rather than replayed.
+    SingleUse,
+}
+
 /// One request, fully described. Built in an engine's `client`, executed by [`Fetch`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Request {
@@ -88,6 +124,8 @@ pub struct Request {
     pub form: Vec<(String, String)>,
     /// Whether the cache may be used.
     pub cache: CachePolicy,
+    /// Whether a transport failure may be answered with a second send.
+    pub replay: Replay,
     /// Statuses other than 200 that are not an error for this request. Empty means only
     /// 200 will do.
     pub accept_status: &'static [u16],
@@ -102,6 +140,7 @@ impl Request {
             query: Vec::new(),
             form: Vec::new(),
             cache: CachePolicy::Normal,
+            replay: Replay::Repeatable,
             accept_status: &[],
         }
     }
@@ -132,6 +171,17 @@ impl Request {
     #[must_use]
     pub fn cache(mut self, policy: CachePolicy) -> Self {
         self.cache = policy;
+        self
+    }
+
+    /// Set the replay policy.
+    ///
+    /// Only the client that builds the request knows whether sending it consumes anything
+    /// upstream, so only that client can say so — this module cannot infer it, and a
+    /// method is not evidence.
+    #[must_use]
+    pub fn replay(mut self, policy: Replay) -> Self {
+        self.replay = policy;
         self
     }
 
@@ -355,14 +405,17 @@ impl Http {
     /// acceptable is a per-request decision ([`Request::accept_status`]) and belongs to
     /// this module, not to the transport.
     ///
+    /// **The agent carries no deadline of its own.** How long to wait depends on the host
+    /// ([`limit::timeout_for`]) and one agent serves all three of them, so the budget is
+    /// set on every request instead, in [`Http::send_once`] — the single place a request
+    /// leaves this process. A second number here would be one that has to agree with that
+    /// one, and two numbers that must agree are one number too many.
+    ///
     /// A cache directory that cannot be created is not an error — the client then runs
     /// without one.
     pub fn new(use_cache: bool) -> Self {
         let config = ureq::Agent::config_builder()
             .user_agent(USER_AGENT)
-            // One budget for the whole call, redirects and body included. A per-call
-            // timeout would let a chain of slow redirects run for a multiple of it.
-            .timeout_global(Some(retry::TIMEOUT))
             .http_status_as_error(false)
             .build();
         Self {
@@ -397,52 +450,45 @@ impl Http {
         })
     }
 
-    /// Attempt the request up to [`retry::MAX_ATTEMPTS`] times.
-    ///
-    /// Retried: 429, 503 and transport failures. Not retried: everything else, including
-    /// every 4xx — the request is broken and will be just as broken in a second.
-    /// Exhausting the attempts on a throttling status is [`ServiceError::Throttled`],
-    /// which is its own exit code so that an agent can back off instead of hammering.
+    /// Attempt the request up to [`retry::MAX_ATTEMPTS`] times, through [`with_retry`].
     fn send_with_retry(&self, request: &Request) -> Result<Response, Error> {
         let url = request.url();
-        let mut attempt = 1;
-        loop {
-            let delay = retry::delay_for(attempt);
-            if !delay.is_zero() {
-                std::thread::sleep(delay);
-            }
-            let failure = match self.send_once(request, &url) {
-                Ok(response) if is_accepted(request, response.status) => return Ok(response),
-                Ok(response) if retry::is_retryable(response.status) => {
-                    Failure::Throttled(response.status)
-                }
-                Ok(response) => {
-                    return Err(UnexpectedError::HttpStatus {
-                        host: request.host().to_owned(),
-                        status: response.status,
-                    }
-                    .into());
-                }
-                Err(error) => Failure::Transport(error),
-            };
-            if attempt >= retry::MAX_ATTEMPTS {
-                return Err(failure.into_error(request.host(), attempt));
-            }
-            attempt += 1;
-        }
+        with_retry(request, |request| {
+            self.send_once(request, &url).map_err(Failure::from)
+        })
     }
 
     /// One attempt. Everything that is not an answer comes back as the transport's own
-    /// error, which [`Failure::into_error`] turns into a [`NetworkError`].
+    /// error, which [`Failure::from`] classifies and [`Failure::into_error`] turns into a
+    /// [`NetworkError`].
+    ///
+    /// The deadline is set here, per request, from [`limit::timeout_for`] — one budget for
+    /// the whole call, redirects and body included, because a per-call timeout would let a
+    /// chain of slow redirects run for a multiple of it. It is set on the request rather
+    /// than on the agent because it is a property of the host, and this crate talks to
+    /// three of them with one agent.
     fn send_once(&self, request: &Request, url: &str) -> Result<Response, ureq::Error> {
+        let deadline = Some(limit::timeout_for(request.host()));
         let mut response = match request.method {
-            Method::Get => self.agent.get(url).call()?,
-            Method::Post => self.agent.post(url).send_form(
-                request
-                    .form
-                    .iter()
-                    .map(|(key, value)| (key.as_str(), value.as_str())),
-            )?,
+            Method::Get => self
+                .agent
+                .get(url)
+                .config()
+                .timeout_global(deadline)
+                .build()
+                .call()?,
+            Method::Post => self
+                .agent
+                .post(url)
+                .config()
+                .timeout_global(deadline)
+                .build()
+                .send_form(
+                    request
+                        .form
+                        .iter()
+                        .map(|(key, value)| (key.as_str(), value.as_str())),
+                )?,
         };
         let status = response.status().as_u16();
         let content_type = response
@@ -469,16 +515,93 @@ fn is_accepted(request: &Request, status: u16) -> bool {
     (200..300).contains(&status) || request.accept_status.contains(&status)
 }
 
+/// Attempt one request up to [`retry::MAX_ATTEMPTS`] times, `send` performing one attempt.
+///
+/// Retried: 429 and 503 for every request, and a transport failure for a request that may
+/// be sent again ([`Replay`]). Not retried: everything else, including every 4xx — the
+/// request is broken and will be just as broken in a second. Exhausting the attempts on a
+/// throttling status is [`ServiceError::Throttled`], which is its own exit code so that an
+/// agent can back off instead of hammering; giving up on a transport failure is a
+/// [`NetworkError`], which is a different code again, because "the service is busy" and
+/// "nothing came back" call for different next steps.
+///
+/// Free function over a closure rather than a method on [`Http`] so that the schedule can
+/// be proven without a socket: the count of attempts a policy produces is exactly what a
+/// regression here has to be caught by, and it is not observable through [`Fetch`], which
+/// sits *above* this loop.
+fn with_retry(
+    request: &Request,
+    send: impl Fn(&Request) -> Result<Response, Failure>,
+) -> Result<Response, Error> {
+    let mut attempt = 1;
+    loop {
+        let delay = retry::delay_for(attempt);
+        if !delay.is_zero() {
+            std::thread::sleep(delay);
+        }
+        let failure = match send(request) {
+            Ok(response) if is_accepted(request, response.status) => return Ok(response),
+            Ok(response) if retry::is_retryable(response.status) => {
+                Failure::Throttled(response.status)
+            }
+            Ok(response) => {
+                return Err(UnexpectedError::HttpStatus {
+                    host: request.host().to_owned(),
+                    status: response.status,
+                }
+                .into());
+            }
+            Err(failure) => failure,
+        };
+        if attempt >= retry::MAX_ATTEMPTS || !failure.may_repeat(request) {
+            return Err(failure.into_error(request.host(), attempt));
+        }
+        attempt += 1;
+    }
+}
+
 /// A failed attempt, kept until it is known whether another one follows.
 enum Failure {
     /// The service asked to be left alone: 429 or 503.
     Throttled(u16),
-    /// The request never produced an answer.
-    Transport(ureq::Error),
+    /// The deadline expired with the request still open.
+    TimedOut,
+    /// The request never produced an answer: DNS, TLS, a refused or dropped connection.
+    Transport(Box<dyn std::error::Error + Send + Sync>),
+}
+
+/// Classify the transport's own error once, here, so that the retry decision and the
+/// user-facing error read the same failure the same way.
+impl From<ureq::Error> for Failure {
+    fn from(error: ureq::Error) -> Self {
+        match error {
+            ureq::Error::Timeout(_) => Failure::TimedOut,
+            other => Failure::Transport(Box::new(other)),
+        }
+    }
 }
 
 impl Failure {
-    /// The error this failure becomes once the attempts are used up.
+    /// Whether the request that produced this failure may be sent a second time.
+    ///
+    /// The two arms are different situations, not degrees of the same one:
+    ///
+    /// - **429/503 is an answer.** The service replied, and its reply is that it did not do
+    ///   the work. Nothing upstream was consumed, so backing off and asking again is
+    ///   correct even for a [`Replay::SingleUse`] request — that is why the throttling path
+    ///   is deliberately left untouched by the replay policy.
+    /// - **A transport failure is silence.** Nothing here knows whether the request
+    ///   arrived, whether it was executed, or whether only the answer was lost. Sending it
+    ///   again is a guess, and for a request that consumes state upstream it is a guess
+    ///   that is *wrong by construction*: the second send cannot be the same request.
+    fn may_repeat(&self, request: &Request) -> bool {
+        match self {
+            Failure::Throttled(_) => true,
+            Failure::TimedOut | Failure::Transport(_) => request.replay == Replay::Repeatable,
+        }
+    }
+
+    /// The error this failure becomes once no further attempt will be made.
     fn into_error(self, host: &str, attempts: u32) -> Error {
         match self {
             Failure::Throttled(status) => ServiceError::Throttled {
@@ -487,16 +610,17 @@ impl Failure {
                 attempts,
             }
             .into(),
-            // A timeout gets its own variant: "did not answer in 10 s" and "could not be
-            // reached" call for different next steps.
-            Failure::Transport(ureq::Error::Timeout(_)) => NetworkError::Timeout {
+            // A timeout gets its own variant: "did not answer in 30 s" and "could not be
+            // reached" call for different next steps. The number is the host's own
+            // deadline, so the message states the budget that actually expired.
+            Failure::TimedOut => NetworkError::Timeout {
                 host: host.to_owned(),
-                seconds: retry::TIMEOUT.as_secs(),
+                seconds: limit::timeout_for(host).as_secs(),
             }
             .into(),
-            Failure::Transport(error) => NetworkError::Transport {
+            Failure::Transport(source) => NetworkError::Transport {
                 host: host.to_owned(),
-                source: Box::new(error),
+                source,
             }
             .into(),
         }
@@ -641,6 +765,157 @@ mod tests {
         let lenient = Request::get("https://host.test/p").accept_status(&[404]);
         assert!(is_accepted(&lenient, 404));
         assert!(!is_accepted(&lenient, 500));
+    }
+
+    /// A `200 OK` for whatever the loop is handed, so that only the failures under test
+    /// decide how often `send` is called.
+    fn answered() -> Response {
+        Response {
+            status: 200,
+            body: "ok".to_owned(),
+            content_type: None,
+            from_cache: false,
+        }
+    }
+
+    /// A voebb.de form submission, as `engine/voebb/client` builds it.
+    fn single_use_post() -> Request {
+        Request::post("https://www.voebb.de/aDISWeb/app").replay(Replay::SingleUse)
+    }
+
+    /// Run the retry loop over a scripted sequence of attempt outcomes and report how many
+    /// of them were actually consumed.
+    fn attempts(request: &Request, mut script: Vec<Result<Response, Failure>>) -> usize {
+        script.reverse();
+        let script = Mutex::new(script);
+        let used = Mutex::new(0);
+        let _ = with_retry(request, |_| {
+            *lock(&used) += 1;
+            lock(&script).pop().unwrap_or_else(|| Ok(answered()))
+        });
+        *lock(&used)
+    }
+
+    /// The failure of `plan/feedback_round_3.md` §1.1, in one assertion: a voebb.de form
+    /// submission that times out is **not** sent again. The replay would spend the
+    /// session's `requestCount` a second time, and voebb.de answers that with `/noaccess`
+    /// — so the retry could never have helped and was guaranteed to destroy the session it
+    /// was trying to rescue.
+    #[test]
+    fn a_single_use_request_is_never_sent_again_after_a_transport_failure() {
+        assert_eq!(
+            attempts(&single_use_post(), vec![Err(Failure::TimedOut)]),
+            1,
+            "a single-use request was sent a second time"
+        );
+        assert_eq!(
+            attempts(
+                &single_use_post(),
+                vec![Err(Failure::Transport(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::ConnectionReset,
+                    "connection reset",
+                ))))],
+            ),
+            1,
+            "any silence, not just a timeout, ends a single-use request"
+        );
+    }
+
+    /// The other half of the rule: a request that consumes nothing upstream is still
+    /// retried, so the fix costs no resilience where resilience was correct.
+    #[test]
+    fn a_repeatable_request_is_still_sent_again_after_a_transport_failure() {
+        assert_eq!(
+            attempts(
+                &Request::get("https://sru.kobv.de/k2"),
+                vec![Err(Failure::TimedOut), Ok(answered())],
+            ),
+            2
+        );
+    }
+
+    /// 429 and 503 are untouched by the replay policy, and that is deliberate: there the
+    /// service **answered**, and its answer is that it did not do the work. Nothing was
+    /// consumed, so backing off and asking again is right even for a single-use request.
+    #[test]
+    fn throttling_is_retried_for_a_single_use_request_too() {
+        for status in [429, 503] {
+            let throttled = Response {
+                status,
+                ..answered()
+            };
+            assert_eq!(
+                attempts(&single_use_post(), vec![Ok(throttled), Ok(answered())],),
+                2,
+                "HTTP {status} must still be retried"
+            );
+        }
+    }
+
+    /// A status that is neither accepted nor throttling is never retried, whatever the
+    /// replay policy says — the request is broken and will be just as broken in a second.
+    #[test]
+    fn an_unexpected_status_is_not_retried() {
+        let refused = Response {
+            status: 404,
+            ..answered()
+        };
+        assert_eq!(
+            attempts(&Request::get("https://sru.kobv.de/k2"), vec![Ok(refused)]),
+            1
+        );
+    }
+
+    /// What a voebb.de timeout **is**, now that it is no longer converted into a lost
+    /// session: exit 3, `timeout`, and not a document failure — a slow host must never
+    /// again be reported as a site that changed shape (`plan/cli.md` § *Exit-Codes*).
+    #[test]
+    fn a_single_use_timeout_is_a_network_error_and_never_a_document_error() {
+        let error = with_retry(&single_use_post(), |_| Err(Failure::TimedOut))
+            .expect_err("the attempt never answers");
+        assert_eq!(error.kind(), "timeout");
+        assert_eq!(error.exit(), crate::error::ExitCode::Network);
+        assert!(
+            !error.is_unreadable_document(),
+            "a timeout is silence, not a document that arrived and changed shape"
+        );
+        assert!(error.to_string().contains("www.voebb.de"));
+    }
+
+    /// The message states the budget that actually expired, which is the host's own — not
+    /// one number standing in for three services.
+    #[test]
+    fn a_timeout_names_the_deadline_of_the_host_that_missed_it() {
+        let voebb = Failure::TimedOut.into_error("www.voebb.de", 1);
+        let kobv = Failure::TimedOut.into_error("sru.kobv.de", 1);
+        assert!(
+            voebb
+                .to_string()
+                .contains(&limit::timeout_for("www.voebb.de").as_secs().to_string()),
+            "{voebb}"
+        );
+        assert!(
+            kobv.to_string()
+                .contains(&limit::DEFAULT_TIMEOUT.as_secs().to_string()),
+            "{kobv}"
+        );
+        assert_ne!(voebb.to_string(), kobv.to_string());
+    }
+
+    /// A request has to *say* it is single-use. Getting the default wrong in this
+    /// direction costs one wasted request; getting it wrong in the other costs a session
+    /// and reports it as a broken site.
+    #[test]
+    fn a_request_is_repeatable_unless_it_says_otherwise() {
+        assert_eq!(
+            Request::get("https://host.test/p").replay,
+            Replay::Repeatable
+        );
+        assert_eq!(
+            Request::post("https://host.test/p").replay,
+            Replay::Repeatable
+        );
+        assert_eq!(single_use_post().replay, Replay::SingleUse);
     }
 
     #[test]

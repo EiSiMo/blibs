@@ -1422,11 +1422,11 @@ impl UnexpectedError {
                 "the response announced more items than it delivered, so the copy list \
                  would have been silently short — please report it at {REPORT_URL}"
             ),
-            UnexpectedError::VoebbNoAccess { .. } => {
-                "voebb.de sessions are short-lived and single-use — run the search again; \
-                 if it fails twice in a row, the site has changed"
-                    .to_string()
-            }
+            UnexpectedError::VoebbNoAccess { .. } => format!(
+                "voebb.de sessions are short-lived and single-use, and blibs sends each \
+                 form exactly once — run the search again to start a fresh session, and \
+                 report it at {REPORT_URL} if that keeps failing"
+            ),
             UnexpectedError::Output { .. } => {
                 "the output stream closed early — this is expected when piping into \
                  `head`; otherwise check the disk"

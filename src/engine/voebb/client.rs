@@ -20,7 +20,7 @@
 //! [`super::Voebb::fill_availability`] go out one at a time.
 
 use crate::error::{Error, UnexpectedError};
-use crate::http::{CachePolicy, Fetch, Request};
+use crate::http::{CachePolicy, Fetch, Replay, Request};
 use crate::libraries::Branch;
 use crate::model::{Identifier, Note, QuerySpec, RecordId, Term, note_kinds};
 
@@ -293,6 +293,18 @@ impl<'f> VoebbClient<'f> {
     /// Every `POST` here answers 303 and the answer is behind the `Location`; the
     /// transport follows it. A body that comes back as `/noaccess` is a lost session and
     /// is refused before any other parser sees it.
+    ///
+    /// **This is the one place in the crate that knows a request may not be sent twice**,
+    /// and [`Replay::SingleUse`] is how it says so. The session's `requestCount` is
+    /// consumed by the *sending*, not by the answering: a submission that times out has
+    /// still spent it, and replaying the same payload is a request voebb.de answers with
+    /// `/noaccess` by design (`plan/voebb.md` § *Das Absendeprotokoll*). A transport
+    /// failure here is therefore reported as what it is — the host did not answer in time
+    /// — instead of being converted into a lost session by blibs's own second attempt
+    /// (`plan/feedback_round_3.md` §1.1).
+    ///
+    /// The `GET`s in this client stay repeatable: [`VoebbClient::open`] would simply start
+    /// another session, and [`VoebbClient::detail`] addresses a stateless URL.
     fn post(
         &self,
         session: &Session,
@@ -301,7 +313,7 @@ impl<'f> VoebbClient<'f> {
     ) -> Result<String, Error> {
         let mut request = Request::post(format!("{VOEBB_BASE}{}", session.action));
         request.form = payload;
-        self.send(request, step)
+        self.send(request.replay(Replay::SingleUse), step)
     }
 
     /// Execute one request, never cached, and check it for the failure page.
@@ -471,8 +483,92 @@ fn missing_button(label: &str, step: &str) -> Error {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Mutex;
+
     use super::*;
+    use crate::http::{Method, Response};
     use crate::model::Term;
+
+    const START: &str = include_str!("../../../tests/fixtures/voebb/start.html");
+    const RESULTS: &str = include_str!("../../../tests/fixtures/voebb/results.html");
+
+    /// A transport that answers the entry page and then the result list, and keeps every
+    /// request it was handed.
+    struct Recording {
+        seen: Mutex<Vec<Request>>,
+    }
+
+    impl Fetch for Recording {
+        fn fetch(&self, request: &Request) -> Result<Response, Error> {
+            let body = match request.method {
+                Method::Get => START,
+                Method::Post => RESULTS,
+            };
+            crate::http::lock(&self.seen).push(request.clone());
+            Ok(Response {
+                status: 200,
+                body: body.to_owned(),
+                content_type: None,
+                from_cache: false,
+            })
+        }
+    }
+
+    /// The session's `requestCount` is spent by the *sending*, so a form submission that
+    /// fails in transit may not be sent again — voebb.de answers the replay with
+    /// `/noaccess` by design (`plan/voebb.md` § *Das Absendeprotokoll*). The client is the
+    /// only place that knows this, and this is the assertion that it still says so
+    /// (`plan/feedback_round_3.md` §1.1).
+    #[test]
+    fn every_form_submission_is_declared_single_use() {
+        let transport = Recording {
+            seen: Mutex::new(Vec::new()),
+        };
+        let client = VoebbClient::new(&transport);
+        let mut session = client.open().expect("the entry page fixture parses");
+        client
+            .search(&mut session, &spec(&["Der Vorleser"]))
+            .expect("the result fixture parses");
+
+        let seen = crate::http::lock(&transport.seen);
+        let posts: Vec<&Request> = seen
+            .iter()
+            .filter(|request| request.method == Method::Post)
+            .collect();
+        assert!(!posts.is_empty(), "the search has to submit a form");
+        for request in posts {
+            assert_eq!(
+                request.replay,
+                Replay::SingleUse,
+                "a form submission that may be replayed burns the session: {request:?}"
+            );
+        }
+    }
+
+    /// The `GET`s stay repeatable: the entry page would simply start another session, and
+    /// the record page is a stateless URL. Losing that would turn every hiccup on a
+    /// stateless request into a failed invocation for no reason.
+    #[test]
+    fn the_stateless_requests_stay_repeatable() {
+        let transport = Recording {
+            seen: Mutex::new(Vec::new()),
+        };
+        let client = VoebbClient::new(&transport);
+        client.open().expect("the entry page fixture parses");
+        // The record page: the fixture answers it with the entry page, which is exactly
+        // what an unknown record looks like, so the request is what matters here.
+        let _ = client.detail(&RecordId::voebb("SAK13776205"));
+
+        let seen = crate::http::lock(&transport.seen);
+        let gets: Vec<&Request> = seen
+            .iter()
+            .filter(|request| request.method == Method::Get)
+            .collect();
+        assert_eq!(gets.len(), 2, "the entry page and the record page");
+        for request in gets {
+            assert_eq!(request.replay, Replay::Repeatable, "{request:?}");
+        }
+    }
 
     fn spec(terms: &[&str]) -> QuerySpec {
         QuerySpec {

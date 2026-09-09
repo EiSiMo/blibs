@@ -1,4 +1,4 @@
-//! The per-host concurrency cap.
+//! What each host gets: how many requests at once, and how long each of them may take.
 //!
 //! Both services answer `robots.txt: Disallow: /`. This tool is user-initiated search
 //! rather than crawling, which makes the rules stricter, not looser. Six in flight per
@@ -10,8 +10,15 @@
 //! and 21.7 s side by side — the parallel path is 2.7× *slower* (measured 2026-09-07,
 //! `plan/client.md`). Its cap is therefore one, which is both the faster and the politer
 //! setting; that is not a trade-off worth thinking about.
+//!
+//! **Patience is the second axis, and it is per host for the same reason.** A deadline
+//! that is right for a service answering in half a second is a guillotine for one whose
+//! own gate opens in ten-second steps. Both tables follow one rule: *a host is named only
+//! with a measurement behind it, never on suspicion*, and the measurement is written into
+//! the doc comment next to the number it justifies.
 
 use std::sync::{Condvar, Mutex, PoisonError};
+use std::time::Duration;
 
 use crate::http::lock;
 
@@ -26,12 +33,54 @@ pub const MAX_IN_FLIGHT_PER_HOST: usize = 6;
 /// slower than it could be and never broken.
 const HOST_CAPS: [(&str, usize); 1] = [("www.voebb.de", 1)];
 
+/// How long one request may take before it is given up on, for a host that has not been
+/// measured to need more.
+///
+/// The KOBV side answers a search in 0.8–1.3 s and an availability call in 0.3–0.6 s
+/// (`plan/client.md`), so ten seconds is already an order of magnitude of headroom there.
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Hosts that need longer than [`DEFAULT_TIMEOUT`], with the deadline they get instead.
+///
+/// **`www.voebb.de`: 30 s.** Measured 2026-09-09 (`plan/feedback_round_3.md` §1.1), with a
+/// hand-driven session running against the live site while blibs was failing on every
+/// attempt: the entry page took 7.0 s and three consecutive form submissions took
+/// **17.1 s**, 11.65 s and 11.1 s — all three answered correctly, and the 10 s deadline
+/// that was in force for every host cut all three off. Three things fix the number:
+///
+/// - 17.1 s is the slowest single request ever measured against this host, so the deadline
+///   has to be above it or the tool refuses answers the server is still delivering;
+/// - the host's own granularity is ten seconds — that is the step in which it lets a
+///   queued request through — so one whole step of headroom above the slowest measurement
+///   is 27.1 s, rounded to 30;
+/// - 30 s costs nothing against the behaviour it replaces. A form submission here is
+///   single-use ([`crate::http::Replay`]), so the old path spent 10 s + 1 s + 10 s + 2 s +
+///   10 s ≈ 33 s on three attempts of which only the first could ever have worked. Waiting
+///   30 s once is both shorter and the only version of the wait that can succeed.
+///
+/// The cap of one means these deadlines are never paid in parallel, so this is also the
+/// worst case for the invocation as a whole, per request.
+const HOST_TIMEOUTS: [(&str, Duration); 1] = [("www.voebb.de", Duration::from_secs(30))];
+
 /// How many requests may be in flight against `host` at once.
 pub fn cap_for(host: &str) -> usize {
-    HOST_CAPS
+    for_host(&HOST_CAPS, host, MAX_IN_FLIGHT_PER_HOST)
+}
+
+/// How long a request against `host` may take before it is given up on.
+pub fn timeout_for(host: &str) -> Duration {
+    for_host(&HOST_TIMEOUTS, host, DEFAULT_TIMEOUT)
+}
+
+/// Look `host` up in a per-host table, falling back to what every unmeasured host gets.
+///
+/// The name is matched exactly, never as a prefix or a suffix: a host that merely looks
+/// related to a measured one is not the host that was measured.
+fn for_host<T: Copy>(table: &[(&str, T)], host: &str, default: T) -> T {
+    table
         .iter()
         .find(|(name, _)| *name == host)
-        .map_or(MAX_IN_FLIGHT_PER_HOST, |(_, cap)| *cap)
+        .map_or(default, |(_, value)| *value)
 }
 
 /// A counting semaphore per host.
@@ -211,6 +260,35 @@ mod tests {
         // Not a prefix or suffix match: a host that merely looks related is not the one
         // that was measured.
         assert_eq!(cap_for("voebb.de"), MAX_IN_FLIGHT_PER_HOST);
+    }
+
+    /// Patience is per host, and the one host that was measured slow gets more of it than
+    /// the ones that were not. Ten seconds cut off three form submissions that the server
+    /// answered correctly in 17.1, 11.65 and 11.1 s (`plan/feedback_round_3.md` §1.1), so
+    /// the deadline here has to be strictly above the slowest of them.
+    #[test]
+    fn a_measured_host_is_given_more_time_than_the_default() {
+        let slowest_measured = Duration::from_millis(17_100);
+        assert!(
+            timeout_for("www.voebb.de") > slowest_measured,
+            "the slowest measured request must fit inside the deadline"
+        );
+        assert!(timeout_for("www.voebb.de") > DEFAULT_TIMEOUT);
+        assert_eq!(timeout_for("sru.kobv.de"), DEFAULT_TIMEOUT);
+        assert_eq!(timeout_for("portal.kobv.de"), DEFAULT_TIMEOUT);
+        // Same exactness as the cap table: a host that merely looks related is not the
+        // host that was measured.
+        assert_eq!(timeout_for("voebb.de"), DEFAULT_TIMEOUT);
+    }
+
+    /// The whole point of a per-host deadline: waiting once for the slow host is never
+    /// longer than the three attempts of ten seconds it replaces.
+    #[test]
+    fn the_slow_hosts_deadline_is_shorter_than_the_retries_it_replaces() {
+        let three_attempts = DEFAULT_TIMEOUT * crate::http::retry::MAX_ATTEMPTS
+            + crate::http::retry::BACKOFF[0]
+            + crate::http::retry::BACKOFF[1];
+        assert!(timeout_for("www.voebb.de") < three_attempts);
     }
 
     /// The cap of one is a serialisation, proven the same way the default cap is: four

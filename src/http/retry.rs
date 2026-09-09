@@ -5,6 +5,14 @@
 //! result is [`crate::error::ServiceError::Throttled`] — a distinct exit code, not a
 //! generic failure, so that an agent can back off instead of hammering.
 //!
+//! **How often** is here; **whether at all** is a property of the request
+//! ([`crate::http::Replay`]): a transport failure leaves it unknown whether the far side
+//! acted, and a request whose sending consumes state there is therefore never sent twice.
+//! **How long** to wait for one answer is a property of the host
+//! ([`crate::http::limit::timeout_for`]) — this module holds no deadline, because a single
+//! one for every service was what turned a slow answer into a destroyed session
+//! (`plan/feedback_round_3.md` §1.1).
+//!
 //! Neither service announces throttling: no `Retry-After`, no `RateLimit-*`. The schedule
 //! below is therefore fixed rather than negotiated, and nothing in this module reads a
 //! response header.
@@ -17,9 +25,6 @@ use std::time::{Duration, SystemTime};
 
 /// How many times a request is attempted in total.
 pub const MAX_ATTEMPTS: u32 = 3;
-
-/// Per-request timeout.
-pub const TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Base delays before attempts 2 and 3: 1 s and 2 s, then 4 s if the count ever grows.
 pub const BACKOFF: [Duration; 3] = [
