@@ -642,14 +642,30 @@ fn legend_voice(result: &SearchResult, scoped: bool) -> Voice {
 /// a client-side filter and a client-side sort both see only the fetched records, and
 /// `plan/cli.md` forbids output that suggests otherwise.
 fn footer_notes(result: &SearchResult) -> Vec<Footnote<'_>> {
-    let mut notes: Vec<Footnote<'_>> = result
-        .notes
-        .iter()
-        .map(|note| Footnote {
+    // The page-wide count has to print before `AVAILABILITY_FILTER_UNSTATED`, which
+    // refines it ("N of them said nothing at all"): a refinement printed above the fact
+    // it refines names a subset before the whole, and reads backwards (round 3, §3.4).
+    // Built here rather than left for its old place at the end, so it can be spliced in
+    // right before the note it refines instead of merely after every other note.
+    let mut available_hid = availability_filter_note(result).map(Footnote::whole);
+    let mut notes: Vec<Footnote<'_>> = Vec::with_capacity(result.notes.len() + 1);
+    for note in &result.notes {
+        if note.kind == note_kinds::AVAILABILITY_FILTER_UNSTATED
+            && let Some(hid) = available_hid.take()
+        {
+            notes.push(hid);
+        }
+        notes.push(Footnote {
             message: note.message.clone(),
             records: &note.records,
-        })
-        .collect();
+        });
+    }
+    // No refinement in this result — e.g. every hidden record's status was actually
+    // read, just not `Available` — so there is nothing to stand in front of. Same
+    // sentence, same place it always had.
+    if let Some(hid) = available_hid {
+        notes.push(hid);
+    }
     let window = result.window;
     // Not when the filter matched nothing at all: the engine states that case as
     // `window_filter_empty`, which is already in `notes` above and says the same sentence
@@ -672,9 +688,6 @@ fn footer_notes(result: &SearchResult) -> Vec<Footnote<'_>> {
         }));
     }
     if let Some(note) = sort_note(result) {
-        notes.push(Footnote::whole(note));
-    }
-    if let Some(note) = availability_filter_note(result) {
         notes.push(Footnote::whole(note));
     }
     notes
@@ -2760,6 +2773,34 @@ AGB (VÖBB) · 35 results · showing 2
 
         result.window.before_available = None;
         assert!(!rendered(&result, &locations).contains("--available hid"));
+    }
+
+    /// Round 3, §3.4: `AVAILABILITY_FILTER_UNSTATED` refines the page-wide count — "N of
+    /// the records `--available` hid said nothing at all" only means something once the
+    /// reader has been told that records were hidden, and how many. The two used to print
+    /// in the opposite order: the refinement first, naming a subset (1) before the whole
+    /// (2) it was drawn from.
+    #[test]
+    fn the_hidden_count_precedes_the_note_that_refines_it() {
+        let (mut result, locations) = vorleser();
+        result.window.before_available = Some(result.shown + 2);
+        result.notes = vec![Note::new(
+            note_kinds::AVAILABILITY_FILTER_UNSTATED,
+            "no status was stated for 1 of the records --available hid; nothing was said \
+             about their copies, so they are not known to be on loan",
+        )];
+
+        let output = rendered(&result, &locations);
+        let hid = output
+            .find("--available hid 2 of the")
+            .expect("the page-wide count is printed");
+        let refinement = output
+            .find("no status was stated for 1")
+            .expect("the refinement is printed");
+        assert!(
+            hid < refinement,
+            "the page-wide count must precede the note that refines it:\n{output}"
+        );
     }
 
     /// Colour is decoration: strip the escapes and the coloured output is the plain one.
