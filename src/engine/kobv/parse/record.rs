@@ -31,6 +31,20 @@ use super::marc::{Field, MarcRecord};
 /// (`kobvindex_LDAz00124`).
 const TITLE_MARKS: &[char] = &[' ', '/', ':', ';', ',', '='];
 
+/// The marks a title part may already end in that close it as `. ` would.
+///
+/// They are what [`volume_separator`] joins with a plain space after: `.` is kept by
+/// [`TITLE_MARKS`] on purpose, because it carries meaning (`Die Briefe Kaiser Wilhelms I.`),
+/// and ISBD's separating full stop then lands on top of it. `?` and `!` close a title the
+/// same way, and `…` is the one-character spelling of the ellipsis that `...` writes.
+/// `:`, `,`, `;`, `/` and `=` are deliberately absent: [`TITLE_MARKS`] has already removed
+/// them before a junction is reached.
+const CLOSING_MARKS: &[char] = &['.', '?', '!', '\u{2026}'];
+
+/// Trailing ISBD punctuation on a relator term. The full stop is **not** among them — it is
+/// meaningful in an abbreviation, and [`trimmed_role`] decides it case by case.
+const ROLE_MARKS: &[char] = &[' ', '/', ':', ';', ',', '='];
+
 /// Trailing punctuation on a place or publisher: `Frankfurt am Main :` and
 /// `S. Fischer,` are how AACR2 records spell them.
 const IMPRINT_MARKS: &[char] = &[' ', ':', ';', ','];
@@ -174,6 +188,9 @@ fn record_id(marc: &MarcRecord) -> Result<RecordId, Error> {
 /// subfield order inside the field is the reading order, so they are appended in that
 /// order rather than grouped by code. Without them a volume is indistinguishable from its
 /// series — `kobvindex_ZLB12845080` would otherwise be three identical lines.
+///
+/// What separates them is [`volume_separator`], not a fixed `". "`: an eighth of the
+/// junctions follow a title that closes itself.
 fn title(field: Option<&Field>) -> String {
     let Some(field) = field else {
         return String::new();
@@ -188,11 +205,31 @@ fn title(field: Option<&Field>) -> String {
             continue;
         }
         if !title.is_empty() {
-            title.push_str(". ");
+            title.push_str(volume_separator(&title));
         }
         title.push_str(&part);
     }
     title
+}
+
+/// What joins the running title to the next `$n`/`$p`.
+///
+/// ISBD prescribes `. `, but a part that already ends in a sentence-final mark has closed
+/// itself, and the prescribed stop then arrives as a second one: `Die Briefe Kaiser
+/// Wilhelms I.. Band 1`, or `Deutsche Dunciade .... Th. 1` out of an ellipsis. Trimming
+/// that mark instead is not the fix — `plan/marc-mapping.md` § *Endinterpunktion* keeps it
+/// because the ordinal and the abbreviation need it — so the separator gives way instead
+/// and joins with a plain space.
+///
+/// Measured over 492 records: 109 volume designations are appended, 12 of them to a title
+/// ending in `.`. `?` ends one title in the same sample (`Koranforschung – eine politische
+/// Philologie?`) and would read `?.` at a junction; `!` and `…` are the same mark class and
+/// are treated with it. Every other ISBD mark is gone before this is asked ([`TITLE_MARKS`]).
+fn volume_separator(title: &str) -> &'static str {
+    match title.chars().next_back() {
+        Some(mark) if CLOSING_MARKS.contains(&mark) => " ",
+        _ => ". ",
+    }
 }
 
 /// `245$b`, taken from the **same** field as the title.
@@ -390,13 +427,53 @@ fn gnd(field: &Field) -> Option<String> {
     })
 }
 
-/// The free-text relator from `$e`.
+/// The free-text relator from `$e`, stripped of the punctuation the field is written with.
 ///
-/// Free text in two languages with inconsistent full stops (`Verfasser/in`, `Übers.`).
-/// Kept apart from [`role_code`] because the two subfields can disagree, and one field
-/// having only one of them is common.
+/// Free text in two languages (`Verfasser/in`, `Übers.`, `editor`). Kept apart from
+/// [`role_code`] because the two subfields can disagree, and one field having only one of
+/// them is common.
+///
+/// The wording is passed through as the record spells it — the mixed vocabulary is the
+/// data's, not a defect. Only the ISBD punctuation goes, and it has to: four co-equal
+/// editors of `almatuudk_9922976276802884` printed as `editor` once and `editor.` three
+/// times, and in the JSON `"author."` is a different value from `"author"` for an agent
+/// comparing them.
 fn role_text(field: &Field) -> Option<String> {
-    non_empty(field.sub('e')?.to_owned())
+    non_empty(trimmed_role(field.sub('e')?))
+}
+
+/// Drop the ISBD punctuation a cataloguing rule put after a relator term, keeping the full
+/// stop of an abbreviation.
+///
+/// The separating marks always go; a full stop goes unless it ends an abbreviation, exactly
+/// as in [`trimmed_name`], where the rule is spelled for initials instead.
+fn trimmed_role(role: &str) -> String {
+    let role = trim_marks(role, ROLE_MARKS);
+    match role.strip_suffix('.') {
+        Some(shorter) if !ends_in_an_abbreviation(shorter) => trimmed(shorter, ROLE_MARKS),
+        _ => role.to_owned(),
+    }
+}
+
+/// Whether the last word of a relator term is an abbreviation, whose full stop belongs to
+/// the word and not to the field.
+///
+/// The test is capitalisation, and it is the data's own. Measured over 492 records, every
+/// `$e` ending in a full stop is one of two things: a lowercase English RDA term carrying
+/// the ISBD stop — `author.` 62, `editor.` 52, `funder.` 6, `issuing body.` 6, `owner.` 2,
+/// `publisher.` 2, `writer of forword.` 1, with `editor` 38 and `author` 5 spelling the
+/// same terms without it — or a capitalised German abbreviation that owns its stop:
+/// `Hrsg.` 25, `Ill.` 2, `Verl.` 1, `Bearb.` 1, `Red.` 1.
+///
+/// The error the rule can make is a capitalised German term that carries an ISBD stop
+/// (`Verfasser.`); none occurs in the sample, and it would keep a stop rather than turn
+/// `Hrsg.` into `Hrsg`. That is the same direction [`trimmed_name`] errs in: leave a mark
+/// standing rather than destroy a word.
+fn ends_in_an_abbreviation(role: &str) -> bool {
+    role.split_whitespace()
+        .next_back()
+        .and_then(|word| word.chars().next())
+        .is_some_and(char::is_uppercase)
 }
 
 /// The relator code from `$4`.
@@ -726,9 +803,13 @@ fn holdings(marc: &MarcRecord) -> Vec<Holding> {
 
 /// Drop trailing ISBD punctuation from a display value.
 fn trimmed(value: &str, marks: &[char]) -> String {
-    value
-        .trim_end_matches(|character| marks.contains(&character))
-        .to_owned()
+    trim_marks(value, marks).to_owned()
+}
+
+/// The borrowed form of [`trimmed`], for a caller that has to look at what is left before
+/// deciding whether to trim again.
+fn trim_marks<'a>(value: &'a str, marks: &[char]) -> &'a str {
+    value.trim_end_matches(|character| marks.contains(&character))
 }
 
 /// `None` for an empty string, so that an emptied field reads as "not stated" rather than
@@ -1046,6 +1127,117 @@ mod tests {
             record.subtitle.as_deref(),
             Some("historia general del arte")
         );
+    }
+
+    /// `245$a` is `Sämtliche Werke.` and `$p` is `zweite Abteilung.`: ISBD's separating
+    /// full stop lands on a title that has already closed itself, twice in one line. The
+    /// stops in the record stay — they are the ones `plan/marc-mapping.md` keeps — and the
+    /// separator gives way instead.
+    #[test]
+    fn a_title_that_already_ends_in_a_full_stop_is_joined_with_a_space() {
+        let record = convert("nonlatin_ru.xml", "almahu_BV010644426");
+        assert_eq!(
+            record.title,
+            "Sämtliche Werke. zweite Abteilung. zwanzigster Band. Aus dem Dunkel der Großstadt"
+        );
+    }
+
+    /// The junction, by the mark the part before it ends in.
+    #[test]
+    fn only_a_closing_mark_replaces_the_separating_full_stop() {
+        assert_eq!(volume_separator("Summa artis"), ". ");
+        assert_eq!(volume_separator("Die Briefe Kaiser Wilhelms I."), " ");
+        assert_eq!(volume_separator("Deutsche Dunciade ..."), " ");
+        assert_eq!(volume_separator("Deutsche Dunciade \u{2026}"), " ");
+        assert_eq!(volume_separator("Koranforschung - eine Philologie?"), " ");
+        assert_eq!(volume_separator("Nie wieder!"), " ");
+        assert_eq!(
+            volume_separator("Gottfried Kellers gesammelte Werke. [Abt. 6]"),
+            ". ",
+            "a bracket does not close the title"
+        );
+    }
+
+    /// No fixture record prints two full stops where one separator was meant. `...` is an
+    /// ellipsis inside a title and is what the check has to let through.
+    #[test]
+    fn no_fixture_title_carries_a_doubled_full_stop() {
+        for (file, marc) in fixture::all_records() {
+            let Ok(record) = from_marc(&marc) else {
+                continue;
+            };
+            assert!(
+                !record.title.replace("...", "").contains(".."),
+                "{:?} in {file} doubles a full stop",
+                record.title
+            );
+        }
+    }
+
+    /// Four co-equal editors, one of them named by `$4` and three by `$e = "editor."`.
+    /// The ISBD stop made the three a different vocabulary value from the first.
+    #[test]
+    fn an_isbd_stop_is_not_part_of_the_relator_term() {
+        let record = convert("filtered.xml", "almahu_9950092449202882");
+        let roles: Vec<&str> = record
+            .authors
+            .iter()
+            .filter_map(|author| author.role.as_deref())
+            .collect();
+        assert!(
+            roles.iter().all(|role| *role == "editor"),
+            "{:?}",
+            record.authors
+        );
+        assert_eq!(roles.len(), 3, "{:?}", record.authors);
+    }
+
+    /// `710$e` is `issuing body.`: the stop belongs to the field, not to the term.
+    #[test]
+    fn a_two_word_relator_term_loses_its_stop_too() {
+        let record = convert("journal.xml", "kobvindex_MFN13563");
+        assert!(
+            record
+                .authors
+                .iter()
+                .any(|author| author.role.as_deref() == Some("issuing body")),
+            "{:?}",
+            record.authors
+        );
+    }
+
+    /// `Hrsg.` is an abbreviation and keeps its stop, next to a `$4` that says `edt`.
+    #[test]
+    fn an_abbreviated_relator_term_keeps_its_full_stop() {
+        let record = convert("festschrift.xml", "almahu_9950038349602882");
+        let editors: Vec<&Author> = record
+            .authors
+            .iter()
+            .filter(|author| author.role_code.as_deref() == Some("edt"))
+            .collect();
+        assert_eq!(editors.len(), 2, "{:?}", record.authors);
+        assert!(
+            editors
+                .iter()
+                .all(|author| author.role.as_deref() == Some("Hrsg.")),
+            "{editors:?}"
+        );
+    }
+
+    /// The rule the two cases above share: separating marks always go, a full stop only
+    /// where it does not end an abbreviation.
+    #[test]
+    fn a_relator_term_is_trimmed_but_an_abbreviation_is_not() {
+        assert_eq!(trimmed_role("editor."), "editor");
+        assert_eq!(trimmed_role("author,"), "author");
+        assert_eq!(trimmed_role("issuing body."), "issuing body");
+        assert_eq!(trimmed_role("writer of forword."), "writer of forword");
+        assert_eq!(trimmed_role("editor"), "editor");
+        assert_eq!(trimmed_role("Hrsg."), "Hrsg.");
+        assert_eq!(trimmed_role("Übers."), "Übers.");
+        assert_eq!(trimmed_role("Ill."), "Ill.");
+        assert_eq!(trimmed_role("Verfasser/in"), "Verfasser/in");
+        assert_eq!(trimmed_role("Herausgebendes Organ"), "Herausgebendes Organ");
     }
 
     /// Twelve `264` fields, one per change of publisher over a century. The first usable
