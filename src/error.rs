@@ -446,12 +446,6 @@ impl Error {
     }
 }
 
-impl From<clap::Error> for Error {
-    fn from(error: clap::Error) -> Self {
-        Error::Usage(UsageError::Cli(error))
-    }
-}
-
 /// Writing the output failed — a closed pipe, a full disk. Exit 6, because it is neither
 /// the user's mistake nor the service's.
 impl From<std::io::Error> for Error {
@@ -696,8 +690,24 @@ pub enum UsageError {
     /// terminal rendering poured into a data field. `Display` is clap's first line, its
     /// summary, without the `error: ` prefix that belongs to the terminal; what was
     /// actionable in the rest of that rendering comes back as a hint.
-    #[error("{}", clap_message(.0))]
-    Cli(#[from] clap::Error),
+    ///
+    /// The variant carries the [`CommandPath`] rather than deriving it in [`Self::hint`],
+    /// and that is a layering decision, not a convenience: for one clap error family the
+    /// path can only be read off the *application's own command tree* (see
+    /// [`CommandPath`]), and that tree lives in `cli`, three layers above this module.
+    /// Resolving it here would make the bottom layer depend on the top one. It is
+    /// resolved where the clap error is born instead — `cli::command_path`, called from
+    /// `main` — so the dependency runs the way it is declared in `crate`'s module block.
+    /// No `#[from]`: a conversion that had only the clap error would have to guess the
+    /// path, and guessing it wrong points the user at a help page that does not list the
+    /// flag they got wrong.
+    #[error("{}", clap_message(.source))]
+    Cli {
+        /// What clap refused, kept whole: `Display` reduces it, the hint mines it.
+        source: clap::Error,
+        /// The command whose `--help` answers this mistake.
+        command: CommandPath,
+    },
 }
 
 impl UsageError {
@@ -727,7 +737,7 @@ impl UsageError {
             UsageError::NearNeedsTwoValues { .. } => "near_needs_two_values",
             UsageError::RecordId { .. } => "invalid_record_id",
             UsageError::UnsupportedValue { .. } => "unsupported_value",
-            UsageError::Cli(_) => "usage",
+            UsageError::Cli { .. } => "usage",
         }
     }
 
@@ -835,7 +845,7 @@ impl UsageError {
                 "blibs advertises a value its own tables do not accept — that is a bug in \
                  blibs, please report it at {REPORT_URL}"
             ),
-            UsageError::Cli(error) => clap_hint(error),
+            UsageError::Cli { source, command } => clap_hint(source, command),
         };
         Some(hint)
     }
@@ -894,37 +904,13 @@ fn clap_message(error: &clap::Error) -> String {
 /// it says *"to pass '-1' as a value, use '-- -1'"*, which would turn a mistyped `--limit`
 /// into a search term — see [`UsageError::NegativeNumber`], which catches those before
 /// clap sees them.
-fn clap_hint(error: &clap::Error) -> String {
-    let help = format!(
-        "run `{} --help` to see what it accepts",
-        clap_command_path(error)
-    );
+///
+/// The command is taken as an argument, not derived from `error`: see [`CommandPath`].
+fn clap_hint(error: &clap::Error, command: &CommandPath) -> String {
+    let help = format!("run `{command} --help` to see what it accepts");
     match clap_suggestion(error) {
         Some(suggestion) => format!("did you mean {suggestion}? {help}"),
         None => help,
-    }
-}
-
-/// The command the failure happened in — `blibs search` for a flag inside `search`,
-/// `blibs` for an unknown subcommand — read off clap's usage line, the only place that
-/// knows it. Everything from the first `-`, `<` or `[` on describes the *shape* of the
-/// call rather than its name, so the name ends there. A clap error without a usage
-/// context (a hand-built one, or a missing value) falls back to the top-level help
-/// instead of guessing.
-fn clap_command_path(error: &clap::Error) -> String {
-    let Some(usage) = error.get(ContextKind::Usage).map(ToString::to_string) else {
-        return "blibs".to_string();
-    };
-    let line = usage.lines().next().unwrap_or_default();
-    let line = line.trim().strip_prefix("Usage:").unwrap_or(line).trim();
-    let path: Vec<&str> = line
-        .split_whitespace()
-        .take_while(|word| !word.starts_with(['-', '<', '[']))
-        .collect();
-    if path.is_empty() {
-        "blibs".to_string()
-    } else {
-        path.join(" ")
     }
 }
 
@@ -937,6 +923,66 @@ fn clap_suggestion(error: &clap::Error) -> Option<String> {
         .map(ToString::to_string)
         .find(|text| !text.trim().is_empty())
         .map(|text| text.trim().to_string())
+}
+
+/// The command a clap refusal happened in — `blibs search` for a flag inside `search`,
+/// `blibs` for an unknown subcommand — so that [`UsageError::Cli`]'s hint points at the
+/// help page that actually lists the flag the user got wrong.
+///
+/// **Resolved where the clap error is born, in `cli::command_path`, and carried in the
+/// variant.** For most clap error kinds the path can be read straight off the usage line
+/// ([`Self::from_usage_line`]), which needs nothing but the error itself. But
+/// `ErrorKind::InvalidValue` — a `--format`/`--sort` given a value outside its
+/// `possible values` — never carries a `Usage` context at all: `clap_builder`'s
+/// `Error::invalid_value` (error/mod.rs) is the one constructor of its family that skips
+/// it, and the *human* rendering has no usage line either, so this is not a case of the
+/// data being dropped on the way to JSON. The only clue left is the argument, and the
+/// one source that knows which subcommand declares it is the application's own command
+/// tree — which lives in `cli`, the topmost layer, while this module is the bottom one.
+/// Deriving the path in [`UsageError::hint`] would therefore mean `error` importing
+/// `cli`, a cycle straight through the layering `crate`'s module block declares. Hence
+/// this type: `cli` answers the question it alone can answer, `error` only words the
+/// sentence. **Do not move the lookup back in here.**
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommandPath(String);
+
+impl CommandPath {
+    /// The tool itself — the fallback for a clap error whose command cannot be resolved
+    /// (a hand-built one, carrying neither a usage line nor a known argument). The
+    /// top-level help exists and lists the subcommands, so it is a worse answer than the
+    /// exact page and a much better one than a guess.
+    pub fn root() -> Self {
+        CommandPath("blibs".to_string())
+    }
+
+    /// The named subcommand of this tool, e.g. `search` giving `blibs search`.
+    pub fn subcommand(name: &str) -> Self {
+        CommandPath(format!("blibs {name}"))
+    }
+
+    /// Parses a subcommand path out of clap's own `Usage: blibs search --at <LIST> …`
+    /// line. Everything from the first `-`, `<` or `[` on describes the *shape* of the
+    /// call rather than its name, so the name ends there; a line that names nothing at
+    /// all falls back to [`Self::root`].
+    pub fn from_usage_line(usage: &str) -> Self {
+        let line = usage.lines().next().unwrap_or_default();
+        let line = line.trim().strip_prefix("Usage:").unwrap_or(line).trim();
+        let path: Vec<&str> = line
+            .split_whitespace()
+            .take_while(|word| !word.starts_with(['-', '<', '[']))
+            .collect();
+        if path.is_empty() {
+            Self::root()
+        } else {
+            CommandPath(path.join(" "))
+        }
+    }
+}
+
+impl fmt::Display for CommandPath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
 }
 
 /// Which numbering scheme an [`IsbnProblem`] was found against.
@@ -1514,10 +1560,13 @@ mod tests {
                 expected: "relevance, year, title".to_string(),
             }
             .into(),
-            UsageError::Cli(clap::Error::raw(
-                clap::error::ErrorKind::UnknownArgument,
-                "unexpected argument '--nope' found",
-            ))
+            UsageError::Cli {
+                source: clap::Error::raw(
+                    clap::error::ErrorKind::UnknownArgument,
+                    "unexpected argument '--nope' found",
+                ),
+                command: CommandPath::root(),
+            }
             .into(),
         ]
     }
@@ -1841,7 +1890,11 @@ mod tests {
              '--at'\n\nUsage: blibs search --at <LIST> <TERMS>...\n\nFor more information, \
              try '--help'.\n",
         );
-        let error: Error = UsageError::Cli(refusal).into();
+        let error: Error = UsageError::Cli {
+            source: refusal,
+            command: CommandPath::root(),
+        }
+        .into();
         assert_eq!(error.kind(), "usage");
         assert_eq!(error.exit(), ExitCode::Usage);
         let message = error.to_string();
@@ -1853,50 +1906,55 @@ mod tests {
     }
 
     /// The usage line is the only place that knows *which* help to point at, and it is
-    /// also the line that must not reach `message`.
+    /// also the line that must not reach `message`. Reading it is pure text work and
+    /// stays here; resolving the *other* kind of clap error — the one that carries no
+    /// usage line — needs the command tree and lives in `cli`, together with its test.
     #[test]
     fn the_hint_points_at_the_help_of_the_command_that_failed() {
-        assert_eq!(clap_command_path(&raw_with_usage("")), "blibs");
+        assert_eq!(CommandPath::from_usage_line("").to_string(), "blibs");
         assert_eq!(
-            clap_command_path(&raw_with_usage(
-                "Usage: blibs search --at <LIST> <TERMS>..."
-            )),
+            CommandPath::from_usage_line("Usage: blibs search --at <LIST> <TERMS>...").to_string(),
             "blibs search"
         );
         assert_eq!(
-            clap_command_path(&raw_with_usage("Usage: blibs [OPTIONS] [COMMAND]")),
+            CommandPath::from_usage_line("Usage: blibs [OPTIONS] [COMMAND]").to_string(),
             "blibs"
         );
         assert_eq!(
-            clap_command_path(&raw_with_usage("Usage: blibs libraries [OPTIONS] [NAME]")),
+            CommandPath::from_usage_line("Usage: blibs libraries [OPTIONS] [NAME]").to_string(),
             "blibs libraries"
         );
     }
 
-    /// A hand-built clap error carries no context at all; the hint must still name a
-    /// help that exists rather than an empty command.
+    /// The path is a field, so the sentence built around it has to name it — checked on
+    /// both a resolved command and the fallback, because those are the two shapes
+    /// `cli::command_path` can hand over.
     #[test]
-    fn a_clap_error_without_context_still_points_somewhere() {
-        let error: Error = UsageError::Cli(clap::Error::raw(
-            clap::error::ErrorKind::InvalidValue,
-            "a value is required for '--at <LIST>' but none was supplied",
-        ))
+    fn the_hint_names_the_command_the_path_carries() {
+        let refusal = || {
+            clap::Error::raw(
+                clap::error::ErrorKind::InvalidValue,
+                "invalid value 'buch' for '--format <TYPE>'",
+            )
+        };
+        let at_root: Error = UsageError::Cli {
+            source: refusal(),
+            command: CommandPath::root(),
+        }
         .into();
         assert_eq!(
-            error.hint().as_deref(),
+            at_root.hint().as_deref(),
             Some("run `blibs --help` to see what it accepts")
         );
-    }
-
-    fn raw_with_usage(usage: &str) -> clap::Error {
-        let mut error = clap::Error::raw(clap::error::ErrorKind::UnknownArgument, "boom");
-        if !usage.is_empty() {
-            error.insert(
-                ContextKind::Usage,
-                clap::error::ContextValue::String(usage.to_string()),
-            );
+        let at_search: Error = UsageError::Cli {
+            source: refusal(),
+            command: CommandPath::subcommand("search"),
         }
-        error
+        .into();
+        assert_eq!(
+            at_search.hint().as_deref(),
+            Some("run `blibs search --help` to see what it accepts")
+        );
     }
 
     /// The remedy for a rejected query hangs off the diagnostic URI: the four measured
@@ -2379,7 +2437,13 @@ mod tests {
         assert_eq!(io.exit(), ExitCode::Unexpected);
         assert_eq!(io.kind(), "output_failed");
 
-        let clap: Error = clap::Error::raw(clap::error::ErrorKind::InvalidValue, "bad").into();
+        // No `From<clap::Error>`: the variant carries a `CommandPath` that only `cli` can
+        // resolve, so every construction names it — see [`CommandPath`].
+        let clap: Error = UsageError::Cli {
+            source: clap::Error::raw(clap::error::ErrorKind::InvalidValue, "bad"),
+            command: CommandPath::root(),
+        }
+        .into();
         assert_eq!(clap.exit(), ExitCode::Usage);
         assert_eq!(clap.kind(), "usage");
     }

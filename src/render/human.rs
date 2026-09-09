@@ -2091,7 +2091,7 @@ mod tests {
     #[test]
     fn an_error_line_carries_exactly_one_prefix() {
         for error in crate::error::every_variant_for_tests() {
-            if matches!(error, Error::Usage(crate::error::UsageError::Cli(_))) {
+            if matches!(error, Error::Usage(crate::error::UsageError::Cli { .. })) {
                 continue;
             }
             let rendered = rendered_error(&error);

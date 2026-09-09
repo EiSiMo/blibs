@@ -26,8 +26,10 @@ pub mod run;
 pub mod validate;
 
 use clap::builder::PossibleValuesParser;
+use clap::error::ContextKind;
 use clap::{CommandFactory, Parser, Subcommand};
 
+use crate::error::CommandPath;
 use crate::libraries::{Entry, LatLon};
 use crate::model::{
     AvailabilityMode, Engine, FetchWindow, Limit, Location, Page, QuerySpec, RecordId, SortKey,
@@ -160,6 +162,62 @@ impl Cli {
 /// not "I forgot what I wanted".
 pub fn long_help() -> String {
     Cli::command().render_long_help().to_string()
+}
+
+/// The command a clap refusal happened in, for the hint on
+/// [`crate::error::UsageError::Cli`].
+///
+/// **This is resolved here, at the point the clap error is turned into a
+/// [`crate::error::UsageError`], and not later in its `hint`** — because the second of the
+/// two ways to answer it needs the application's own command tree, and that tree is
+/// `cli`, the top layer. Asking it from `error`, the bottom one, would run the
+/// dependency backwards through the layering `crate`'s module block declares as a hard
+/// rule. `error` therefore takes the answer as a [`CommandPath`] and only words the
+/// sentence around it.
+///
+/// The two ways, in order:
+///
+/// 1. clap's own usage line, which most error kinds carry as `ContextKind::Usage` and
+///    which names the command outright.
+/// 2. the argument in `ContextKind::InvalidArg`, looked up in [`Cli::command`]. This is
+///    the path for `ErrorKind::InvalidValue` — a `--format`/`--sort` given a value
+///    outside its `possible values` — which is the one clap family that carries no usage
+///    line at all. Asking the command tree is the same source clap consulted to raise
+///    the error, so it cannot drift the way a hand-maintained flag-to-subcommand table
+///    would.
+///
+/// A clap error with neither (a hand-built one) falls back to [`CommandPath::root`]
+/// instead of guessing.
+pub fn command_path(error: &clap::Error) -> CommandPath {
+    if let Some(usage) = error.get(ContextKind::Usage) {
+        return CommandPath::from_usage_line(&usage.to_string());
+    }
+    error
+        .get(ContextKind::InvalidArg)
+        .map(ToString::to_string)
+        .and_then(|arg| subcommand_declaring(&arg))
+        .unwrap_or_else(CommandPath::root)
+}
+
+/// The subcommand that declares the argument named in a clap `InvalidArg` context, e.g.
+/// `"--format <TYPE>"` resolving to `Some(blibs search)`.
+///
+/// Matches by rendering each candidate [`clap::Arg`] the same way clap rendered the one
+/// in the error — `Display for Arg` always formats in plain style regardless of the
+/// command's own colour settings (`clap_builder`'s `arg.rs`), so the two strings line up
+/// without reimplementing that formatting here.
+fn subcommand_declaring(invalid_arg: &str) -> Option<CommandPath> {
+    // `Cli::command()` hands back the tree as derived, before clap has resolved value
+    // names and argument counts on it — `build()` is the same step `get_matches` runs
+    // internally, and skipping it here makes `Arg::to_string()` panic below.
+    let mut root = Cli::command();
+    root.build();
+    root.get_subcommands()
+        .find(|sub| {
+            sub.get_arguments()
+                .any(|arg| arg.to_string() == invalid_arg)
+        })
+        .map(|sub| CommandPath::subcommand(sub.get_name()))
 }
 
 /// The three commands.
@@ -666,4 +724,103 @@ pub struct LibrariesPlan {
     pub near_input: Option<String>,
     /// Whether the output is JSON.
     pub json: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::error::{ContextKind, ContextValue, ErrorKind};
+
+    use super::*;
+    use crate::error::{Error, UsageError};
+
+    /// §3.1 of `plan/feedback_round_3.md`, measured: `blibs --json search Kafka --format
+    /// buch` pointed the hint at `blibs --help`, which does not even list `--format` —
+    /// clap only attaches `--format`'s owning page to the *human* rendering, and there it
+    /// does so on its own, outside anything this crate builds.
+    ///
+    /// The cause is that `ErrorKind::InvalidValue` — an out-of-range `--format` or
+    /// `--sort` — is the one clap error family that never carries a `Usage` context
+    /// (verified against `clap_builder` 4.6.6's `Error::invalid_value`), so the usage-line
+    /// parser that resolves every other clap refusal had nothing to read and fell back to
+    /// the top-level help. This reproduces the exact shape clap builds for that case —
+    /// `InvalidArg` set, `Usage` absent — and checks the hint against the app's own
+    /// command tree instead of a hard-coded flag list, so it keeps holding if `--format`
+    /// or `--sort` ever move to a different subcommand.
+    ///
+    /// It lives here rather than in `error` because the command tree it consults is
+    /// here: `error` is the bottom layer and may not reach up into `cli` to ask.
+    #[test]
+    fn an_invalid_value_error_points_at_the_subcommand_that_declares_the_flag() {
+        assert_eq!(
+            command_path(&raw_with_invalid_arg("--format <TYPE>")).to_string(),
+            "blibs search"
+        );
+        assert_eq!(
+            command_path(&raw_with_invalid_arg("--sort <KEY>")).to_string(),
+            "blibs search"
+        );
+        let refusal = raw_with_invalid_arg("--format <TYPE>");
+        let error: Error = UsageError::Cli {
+            command: command_path(&refusal),
+            source: refusal,
+        }
+        .into();
+        assert_eq!(
+            error.hint().as_deref(),
+            Some("run `blibs search --help` to see what it accepts")
+        );
+
+        // A flag no subcommand declares still falls back to the top-level help rather
+        // than panicking or guessing.
+        assert_eq!(
+            command_path(&raw_with_invalid_arg("--nonexistent <X>")).to_string(),
+            "blibs"
+        );
+    }
+
+    /// A clap error that does carry a usage line is answered from it, without the
+    /// command tree — the cheap path, and the one almost every refusal takes.
+    #[test]
+    fn a_usage_line_answers_without_asking_the_command_tree() {
+        assert_eq!(
+            command_path(&raw_with_usage("Usage: blibs libraries [OPTIONS] [NAME]")).to_string(),
+            "blibs libraries"
+        );
+    }
+
+    /// A hand-built clap error carries no context at all; the hint must still name a
+    /// help that exists rather than an empty command.
+    #[test]
+    fn a_clap_error_without_context_still_points_somewhere() {
+        let refusal = clap::Error::raw(
+            ErrorKind::InvalidValue,
+            "a value is required for '--at <LIST>' but none was supplied",
+        );
+        let error: Error = UsageError::Cli {
+            command: command_path(&refusal),
+            source: refusal,
+        }
+        .into();
+        assert_eq!(
+            error.hint().as_deref(),
+            Some("run `blibs --help` to see what it accepts")
+        );
+    }
+
+    fn raw_with_usage(usage: &str) -> clap::Error {
+        let mut error = clap::Error::raw(ErrorKind::UnknownArgument, "boom");
+        error.insert(ContextKind::Usage, ContextValue::String(usage.to_string()));
+        error
+    }
+
+    /// Builds the same shape clap's `Error::invalid_value` does: `InvalidArg` set, no
+    /// `Usage` — see [`an_invalid_value_error_points_at_the_subcommand_that_declares_the_flag`].
+    fn raw_with_invalid_arg(arg: &str) -> clap::Error {
+        let mut error = clap::Error::raw(ErrorKind::InvalidValue, "boom");
+        error.insert(
+            ContextKind::InvalidArg,
+            ContextValue::String(arg.to_string()),
+        );
+        error
+    }
 }

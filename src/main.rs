@@ -53,12 +53,20 @@ fn dispatch(json: bool) -> ExitCode {
 /// lines, a usage line that reads as though `--at` were mandatory, and a pointer to
 /// `--help` that no agent can follow. [`UsageError::Cli`] now reduces that to clap's first
 /// line and turns what was actionable in the rest into a hint.
+///
+/// This is the one place a `clap::Error` becomes a [`UsageError`], which is why the
+/// command whose `--help` answers the mistake is resolved here too, by
+/// [`blibs::cli::command_path`]: the lookup needs the application's command tree, and
+/// `error` sits below `cli` in the layering and may not reach up into it.
 fn refused(clap_error: clap::Error, json: bool) -> ExitCode {
     if !json {
         let _ = clap_error.print();
         return ExitCode::Usage;
     }
-    let error = Error::from(UsageError::Cli(clap_error));
+    let error = Error::from(UsageError::Cli {
+        command: blibs::cli::command_path(&clap_error),
+        source: clap_error,
+    });
     let mut stderr = std::io::stderr().lock();
     let _ = render::json::error(&error, &mut stderr);
     error.exit()

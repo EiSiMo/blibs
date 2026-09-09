@@ -811,7 +811,15 @@ mod tests {
     /// the flag wiring — `--at a,b` splitting, `--json` after the subcommand, and so on.
     fn parse(args: &[&str]) -> Result<Cli, Error> {
         let command_line = std::iter::once("blibs").chain(args.iter().copied());
-        Ok(Cli::try_parse_from(command_line)?)
+        // The same construction `main::refused` performs: a clap refusal carries the
+        // command whose help answers it, resolved here because only `cli` knows it.
+        Cli::try_parse_from(command_line).map_err(|source| {
+            UsageError::Cli {
+                command: crate::cli::command_path(&source),
+                source,
+            }
+            .into()
+        })
     }
 
     fn search(args: &[&str]) -> Result<Plan, Error> {
