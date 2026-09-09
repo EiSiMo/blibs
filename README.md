@@ -75,7 +75,7 @@ without is a word, and several words must all occur.
 ```
 $ blibs search "Der Herr der Ringe" --at HU,AGB --limit 3
 
-HU Berlin · 11 results · showing 3
+HU Berlin · N results · showing 3
 
   ●  Der Herr der Ringe            Jackson, Peter           2004   almafu_BV036622058
        ZB Grimm-Zentrum, 7. OG - Mediathek  2025 DVDM 21         available
@@ -84,7 +84,7 @@ HU Berlin · 11 results · showing 3
   ●  From Page to Screen / Vom B…  Almagro-Jiménez, Manuel  2020   almahu_9950338104802882
        1 copy                                                    available
 
-AGB (VÖBB) · 214 results · showing 3
+AGB (VÖBB) · N results · showing 3
 
   ?  Der Herr der Ringe                  Tolkien, J. R. R.          voebb_SAK11034413
   ?  Der Herr der Ringe                  Tolkien, J. R. R.   2003   voebb_SAK34704391
@@ -102,9 +102,10 @@ note: an electronic title has no copies on a shelf, and the Link zu Overdrive ro
 ```
 
 One block per location, in the order given to `--at`, and a KOBV institution reads the
-same way. Each block's heading carries that location's true hit count (`214 results`), not
-the count of the combined search; `showing N` appears whenever the block prints fewer than
-that. A record can appear in more than one block if more than one of your locations holds
+same way. Each block's heading carries that location's true hit count, not the count of
+the combined search; `showing 3` appears whenever the block prints fewer than that. The
+hit counts stand as `N` here because the index grows and no two identical searches answer
+alike. A record can appear in more than one block if more than one of your locations holds
 it — that is intentional, not a duplicate. Under each hit stand the copies **of that
 location**: where they are, their shelfmark, their own status and what may be done with
 them. `--no-availability` is the flag that turns those lines off.
@@ -122,7 +123,7 @@ not two; `notes[].records` in `--json` is the same list.
 ```
 $ blibs search Kafka Prozess --limit 4
 
-774 results for Kafka Prozess · showing 1-4
+N results for Kafka Prozess · showing 1-4
 
   1 ●  Der Prozess                       Einem, Gottfried von  2019  kobvindex_ZLB34296964
   2 ●  Der Prozess                       Einem, Gottfried von  2019  kobvindex_ZLB34302416
@@ -133,7 +134,7 @@ $ blibs search Kafka Prozess --limit 4
 ```
 
 No location to group by, so no item lines here — run `show` on a record id for those. The
-heading echoes the query as it was searched, field flags included (`133 results for
+heading echoes the query as it was searched, field flags included (`N results for
 title: Process, author: Kafka`), because the count belongs to all of it. Output fits the
 terminal down to 40 columns and uses the room it has above that. A shelfmark, a status and
 a record id are never shortened — half a shelfmark finds no book, half a date is a
@@ -505,7 +506,9 @@ engine/kobv/  → SRU (x-pquery), portal availability JSON; composes http, inter
 engine/voebb/ → session form, search POST, record page; composes the same http
 model         → Record, RecordId, Holding, Item, Availability, SearchResult, Engine
 select        → client-side sort/filter, and the "my libraries" match
+libraries     → the compiled-in list: resolves --at and a record's ISIL, and ranks by distance
 error         → one error enum; every variant carries actionable remediation text
+counts        → the English phrases for a count, shared by error and render
 ```
 
 ## Licence

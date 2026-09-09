@@ -17,14 +17,15 @@
 //! The layering is a hard rule, not a suggestion:
 //!
 //! ```text
-//! cli     → argument parsing, validation, engine choice, exit codes
-//! render  → human and JSON renderers over the same domain types
-//! engine  → client (I/O only) and parse (interpretation only), per catalogue
-//! select  → client-side sort/filter, grouping, "my libraries"
-//! model   → the domain types every layer above shares
-//! http    → transport, cache, backoff, per-host cap; interprets nothing
-//! error   → one error enum; every variant says what failed and what to do
-//! counts  → the English phrases for a count, shared by `error` and `render`
+//! cli       → argument parsing, validation, engine choice, exit codes
+//! render    → human and JSON renderers over the same domain types
+//! engine    → client (I/O only) and parse (interpretation only), per catalogue
+//! select    → client-side sort/filter, grouping, "my libraries"
+//! model     → the domain types every layer above shares
+//! libraries → the compiled-in list: resolves `--at` and a record's ISIL, ranks by distance
+//! http      → transport, cache, backoff, per-host cap; interprets nothing
+//! error     → one error enum; every variant says what failed and what to do
+//! counts    → the English phrases for a count, shared by `error` and `render`
 //! ```
 //!
 //! Two rules run through all of it. A parser never performs I/O and a client never
