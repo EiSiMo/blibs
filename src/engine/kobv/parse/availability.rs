@@ -301,6 +301,7 @@ pub fn merge(response: &AvailabilityResponse, holdings: &mut Vec<Holding>) -> Ve
                 summary: summary_of(&group.items),
                 // KOBV states its holdings as copies, never as prose.
                 holdings_statement: None,
+                online_access: None,
                 items: group.items.clone(),
             });
         }
@@ -378,6 +379,7 @@ fn new_holding(isil: &Isil) -> Holding {
         summary: Status::Unknown,
         // KOBV states its holdings as copies, never as prose.
         holdings_statement: None,
+        online_access: None,
         items: Vec::new(),
     };
     // One naming rule for both engines and this parser: `library` is the full official
@@ -1174,6 +1176,7 @@ mod tests {
             summary: Status::Unknown,
             // Prose holdings: only voebb.de states any.
             holdings_statement: None,
+            online_access: None,
             items: Vec::new(),
         }
     }

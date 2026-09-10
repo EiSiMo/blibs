@@ -1032,6 +1032,7 @@ mod tests {
             summary,
             // Prose holdings: only voebb.de states any.
             holdings_statement: None,
+            online_access: None,
             items,
         }
     }

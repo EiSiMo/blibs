@@ -534,6 +534,7 @@ fn network_holding(id: &RecordId) -> Holding {
         // The result list states no holdings prose; the record page does, and
         // `merge_detail` takes the whole holding from there.
         holdings_statement: None,
+        online_access: None,
         items: Vec::new(),
     };
     libraries::name_holding(&mut holding);

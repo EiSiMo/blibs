@@ -58,6 +58,7 @@
         "mine": true,
         "summary": "available",
         "holdings_statement": null,
+        "online_access": null,
         "items": [
           {
             "location": "ZB Grimm-Zentrum, 7. OG / Bereich B",
@@ -90,6 +91,7 @@
         "mine": false,
         "summary": "reference",
         "holdings_statement": null,
+        "online_access": null,
         "items": [
           {
             "location": null,

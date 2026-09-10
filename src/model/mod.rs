@@ -19,7 +19,9 @@ pub use catalog::{Catalog, EngineShow};
 pub use id::{AvailabilityId, Engine, RecordId};
 pub use isil::Isil;
 pub use page::{FetchWindow, Limit, Page, SruPageSize};
-pub use record::{Author, AuthorKind, Format, Holding, Item, Record, ResourceUrl, Status, UrlKind};
+pub use record::{
+    Author, AuthorKind, Format, Holding, Item, OnlineAccess, Record, ResourceUrl, Status, UrlKind,
+};
 pub use search::note_kinds;
 pub use search::{
     AtBlock, AvailabilityMode, BranchRef, EngineSearch, Identifier, Location, LocationRefusal,

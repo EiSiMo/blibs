@@ -58,8 +58,8 @@ use crate::counts::{records, results};
 use crate::error::{EmptyReason, Error};
 use crate::model::note_kinds;
 use crate::model::{
-    AvailabilityMode, Engine, Format, Holding, Item, Location, LocationRefusal, Note, Record,
-    RecordId, SearchResult, SortKey, Status, UrlKind,
+    AvailabilityMode, Engine, Format, Holding, Item, Location, LocationRefusal, Note, OnlineAccess,
+    Record, RecordId, SearchResult, SortKey, Status, UrlKind,
 };
 use crate::render::Style;
 use crate::render::style::{Voice, label};
@@ -447,10 +447,22 @@ fn write_grouped_block(
         .iter()
         .map(|entry| grouped_record_row(entry, style))
         .collect();
+    // The holdings of this block's location, read once: the access line below is drawn
+    // from them, and so is the prose statement further down.
+    let holdings: Vec<Vec<&Holding>> = block
+        .records
+        .iter()
+        .map(|entry| holdings_at(entry, block.location))
+        .collect();
     let item_rows: Vec<Vec<Vec<Cell>>> = block
         .records
         .iter()
-        .map(|entry| item_rows(&entry.items, item_voice(entry.record), style))
+        .zip(&holdings)
+        .map(|(entry, holdings)| {
+            let mut rows = item_rows(&entry.items, item_voice(entry.record), style);
+            rows.extend(online_rows(holdings, style));
+            rows
+        })
         .collect();
 
     let record_widths = record_layout.widths(&record_rows, available(style, RECORD_INDENT));
@@ -458,7 +470,13 @@ fn write_grouped_block(
     let item_layout = search_item_layout();
     let item_widths = item_layout.widths(&all_items, available(style, ITEM_INDENT));
 
-    for ((entry, record_row), items) in block.records.iter().zip(&record_rows).zip(&item_rows) {
+    for (((entry, record_row), items), holdings) in block
+        .records
+        .iter()
+        .zip(&record_rows)
+        .zip(&item_rows)
+        .zip(&holdings)
+    {
         write_row(
             out,
             &record_layout,
@@ -467,7 +485,7 @@ fn write_grouped_block(
             RECORD_INDENT,
             style,
         )?;
-        for holding in holdings_at(entry, block.location) {
+        for holding in holdings {
             write_holdings_statement(out, holding, ITEM_INDENT, style)?;
         }
         for item in items {
@@ -572,7 +590,7 @@ fn write_footer(
         writeln!(out)?;
         writeln!(out, "{legend}")?;
     }
-    let notes = footer_notes(result);
+    let notes = footer_notes(result, scoped);
     if !notes.is_empty() {
         // Which records the answer is made of, for the footnotes that speak about some of
         // them. `SearchResult::shown` is this list's length by construction (`cli::run`),
@@ -720,13 +738,31 @@ fn legend_voice(shown: &[Marker], scoped: bool) -> Voice {
     if lendable { Voice::Copy } else { Voice::Access }
 }
 
+/// The limitations an [`online_row`] already states at the record it belongs to.
+///
+/// A footnote exists to say what no line says. These three said what a line now says, and
+/// they said it once per record: `--author "von Schirach" --at AGB` printed three of them
+/// under ten hits, each a paragraph, each quoting voebb.de in German, and none of them
+/// beside the line it was about. So the grouped list drops them — `scoped`, because only
+/// there is there a copy line to have drawn one.
+///
+/// **Dropped from this footer only.** `--json` carries every note untouched, tags and
+/// quoted wording included, which is where an agent reads them; and `show` keeps them,
+/// because there the note stands under one record rather than under ten and the quoted
+/// row is the evidence for the status printed above it.
+const ONLINE_ACCESS_KINDS: [&str; 3] = [
+    note_kinds::VOEBB_ONLINE_ONLY,
+    note_kinds::VOEBB_ONLINE_STATE_UNSTATED,
+    note_kinds::VOEBB_ONLINE_URL_ONLY,
+];
+
 /// The limitations worth a footnote: what the engines reported, plus the two that follow
 /// from the window itself.
 ///
 /// The window ones exist so that a short answer is never mistaken for a complete one:
 /// a client-side filter and a client-side sort both see only the fetched records, and
 /// `plan/cli.md` forbids output that suggests otherwise.
-fn footer_notes(result: &SearchResult) -> Vec<Footnote<'_>> {
+fn footer_notes(result: &SearchResult, scoped: bool) -> Vec<Footnote<'_>> {
     // The page-wide count has to print before `AVAILABILITY_FILTER_UNSTATED`, which
     // refines it ("N of them said nothing at all"): a refinement printed above the fact
     // it refines names a subset before the whole, and reads backwards (round 3, §3.4).
@@ -735,6 +771,9 @@ fn footer_notes(result: &SearchResult) -> Vec<Footnote<'_>> {
     let mut available_hid = availability_filter_note(result).map(Footnote::whole);
     let mut notes: Vec<Footnote<'_>> = Vec::with_capacity(result.notes.len() + 1);
     for note in &result.notes {
+        if scoped && ONLINE_ACCESS_KINDS.contains(&note.kind) {
+            continue;
+        }
         if note.kind == note_kinds::AVAILABILITY_FILTER_UNSTATED
             && let Some(hid) = available_hid.take()
         {
@@ -1323,6 +1362,63 @@ fn write_holdings_statement(
     )
 }
 
+/// The line an electronic title has instead of a copy line.
+///
+/// **This is where the fact belongs.** An e-title's record line used to have nothing
+/// beneath it at all, and what explained the gap was a footnote under the whole page:
+/// three of them under ten records, each a paragraph, each quoting voebb.de in German
+/// (measured on `--author "von Schirach" --at AGB`). "No copies" and "read it online"
+/// look identical from an empty gap, so the gap is filled here — one line, in the copy
+/// columns, saying where the title is read and what the record says about lending it.
+///
+/// The status is the **holding's** summary, which for such a holding is what its lending
+/// link stated ([`crate::model::Holding::online_access`]), and it is spoken in
+/// [`Voice::Access`] whatever the rest of the page speaks in: there is no copy here, so
+/// `○` may never say "on loan".
+///
+/// Three cells and no fourth: the ordering column belongs to a copy that can be ordered
+/// from a magazine, and an access has nothing to put in it.
+fn online_row(holding: &Holding, access: &OnlineAccess, style: Style) -> Vec<Cell> {
+    let status = holding.summary;
+    vec![
+        Cell::new(online_place(access)),
+        Cell::new(String::new()).whole(),
+        Cell::new(label(status, Voice::Access).to_owned())
+            .styled(style.status(status))
+            .whole(),
+    ]
+}
+
+/// What stands in the location column of an [`online_row`]: `online · Onleihe`, or
+/// `online` alone where the record named no platform.
+fn online_place(access: &OnlineAccess) -> String {
+    match &access.platform {
+        Some(platform) => format!("online · {platform}"),
+        None => ONLINE.to_owned(),
+    }
+}
+
+/// The word an access line begins with, and the whole of it where no platform is named.
+const ONLINE: &str = "online";
+
+/// The [`online_row`]s of a set of holdings, in their own order.
+///
+/// Empty for every holding with copies — [`crate::model::Holding::online_access`] is set
+/// only where the parser established that the empty item list is an electronic title —
+/// so a caller appends these to the copy lines without having to ask which of the two a
+/// holding is.
+fn online_rows(holdings: &[&Holding], style: Style) -> Vec<Vec<Cell>> {
+    holdings
+        .iter()
+        .filter_map(|holding| {
+            holding
+                .online_access
+                .as_ref()
+                .map(|access| online_row(holding, access, style))
+        })
+        .collect()
+}
+
 /// Which vocabulary the copy lines of a record may use.
 ///
 /// [`Record::is_online_resource`] and nothing spelled out again here: the note about
@@ -1739,7 +1835,14 @@ fn write_holdings(
     let rows: Vec<Vec<Vec<Cell>>> = split
         .mine
         .iter()
-        .map(|entry| item_rows(&entry.items, voice, style))
+        .map(|entry| {
+            let mut rows = item_rows(&entry.items, voice, style);
+            // The same line the grouped list draws, from the same holding: a record read
+            // online must not look like a record whose copies were never stated, and it
+            // may not look like one of the two in `search` and like the other in `show`.
+            rows.extend(online_rows(&[entry.holding], style));
+            rows
+        })
         .collect();
     let all: Vec<Vec<Cell>> = rows.iter().flatten().cloned().collect();
     let layout = show_item_layout();
@@ -2125,6 +2228,8 @@ mod tests {
             summary,
             // Prose holdings: only voebb.de states any.
             holdings_statement: None,
+            // An access instead of copies: only voebb.de states one.
+            online_access: None,
             items,
         }
     }
@@ -2459,6 +2564,139 @@ mod tests {
         (search_result, locations)
     }
 
+    /// A record read online instead of borrowed, as voebb.de states it: one holding, no
+    /// copies, and the access in their place.
+    fn online_record(id: &str, platform: Option<&str>, status: Status) -> Record {
+        let mut record = record(
+            id,
+            "Du sollst nicht funktionieren",
+            "Schirach, A. von",
+            2014,
+        );
+        let mut holding = holding(
+            "DE-609",
+            "Berlin VÖBB/ZLB",
+            "Zentral- und Landesbibliothek Berlin",
+            status,
+            Vec::new(),
+        );
+        holding.online_access = Some(OnlineAccess {
+            platform: platform.map(str::to_owned),
+        });
+        record.online = true;
+        record.holdings = vec![holding];
+        record
+    }
+
+    /// The finding this line exists for: an electronic title had **nothing** under its
+    /// record line, and what explained the gap was a footnote under the whole page —
+    /// three of them under ten hits, each a paragraph quoting voebb.de in German
+    /// (`--author "von Schirach" --at AGB`). "No copies" and "read it online" look
+    /// identical from an empty gap.
+    #[test]
+    fn an_electronic_title_says_at_its_own_line_where_it_is_read() {
+        let (mut result, locations) = vorleser();
+        let online = online_record("voebb_SAK16169882", Some("Onleihe"), Status::Available);
+        result.records = vec![online];
+        result.at = vec![at(
+            "AGB",
+            "DE-609",
+            35,
+            Engine::Voebb,
+            &["voebb_SAK16169882"],
+        )];
+        let output = rendered(&result, &locations);
+        assert!(
+            output.contains("online · Onleihe"),
+            "the access stands where a copy line would: {output}"
+        );
+        assert!(
+            one_line(&output).contains("online · Onleihe available"),
+            "and it carries the status the lending link stated: {output}"
+        );
+    }
+
+    /// A record whose page names no platform says `online` and stops there — a name
+    /// guessed from the URL would be this tool's invention.
+    #[test]
+    fn an_access_without_a_platform_names_none() {
+        let (mut result, locations) = vorleser();
+        result.records = vec![online_record("voebb_SAK34364366", None, Status::Unknown)];
+        result.at = vec![at(
+            "AGB",
+            "DE-609",
+            35,
+            Engine::Voebb,
+            &["voebb_SAK34364366"],
+        )];
+        let output = one_line(&rendered(&result, &locations));
+        assert!(
+            output.contains("online status not confirmed"),
+            "no platform, no separator, and the status is still said: {output}"
+        );
+        assert!(!output.contains("online ·"), "{output}");
+    }
+
+    /// The footnote the line replaces. It says what the line says, once per record, from
+    /// under the whole page — so the grouped list drops it, and `--json` keeps it.
+    #[test]
+    fn the_access_line_replaces_the_footnote_that_said_the_same() {
+        let (mut result, locations) = vorleser();
+        result.records = vec![online_record(
+            "voebb_SAK16169882",
+            Some("Onleihe"),
+            Status::Available,
+        )];
+        result.at = vec![at(
+            "AGB",
+            "DE-609",
+            35,
+            Engine::Voebb,
+            &["voebb_SAK16169882"],
+        )];
+        result.notes = vec![note_about(
+            note_kinds::VOEBB_ONLINE_ONLY,
+            "an electronic title has no copies on a shelf; the loan status shown is the \
+             one the Link zur Onleihe row states",
+            &["voebb_SAK16169882"],
+        )];
+        let output = rendered(&result, &locations);
+        assert!(!output.contains("note:"), "{output}");
+        assert!(output.contains("online · Onleihe"), "{output}");
+    }
+
+    /// Without `--at` there is no copy line to have drawn an access line, so the footnote
+    /// is the only thing that can say it — and it stays.
+    ///
+    /// The KOBV engine answers every location-less search, and no `voebb` record can
+    /// reach a flat list today. The rule is written for the renderer all the same: a
+    /// footnote dropped where nothing replaced it is exactly the silent loss this crate
+    /// exists to avoid.
+    #[test]
+    fn an_unscoped_list_keeps_the_footnote_it_has_no_line_for() {
+        let (mut result, _) = vorleser();
+        result.notes = vec![note_about(
+            note_kinds::VOEBB_ONLINE_ONLY,
+            "an electronic title has no copies on a shelf",
+            &["voebb_SAK13776205"],
+        )];
+        let output = rendered(&result, &[]);
+        assert!(
+            output.contains("an electronic title has no copies on a shelf"),
+            "{output}"
+        );
+    }
+
+    /// `show` draws the same line from the same holding. One rule with two spellings is
+    /// how this renderer once painted a green light over a book a branch had lent out.
+    #[test]
+    fn show_states_the_access_where_the_copies_would_stand() {
+        let record = online_record("voebb_SAK16169882", Some("Onleihe"), Status::Available);
+        let locations = vec![branch("AGB", "DE-609", "SIG00036", "AGB (VÖBB)")];
+        let output = one_line(&rendered_show(&record, &locations));
+        assert!(output.contains("online · Onleihe available"), "{output}");
+    }
+
     /// The example in `plan/cli.md` § *Mit `--at`*, character for character.
     ///
     /// Two deviations, both because the example abbreviates itself:
@@ -2634,8 +2872,8 @@ AGB (VÖBB) · 35 results · showing 2
     fn a_note_names_the_records_it_is_about() {
         let (mut result, locations) = vorleser();
         result.notes = vec![note_about(
-            note_kinds::VOEBB_ONLINE_ONLY,
-            "an electronic title states no loan status this tool can read",
+            note_kinds::VOEBB_NO_COPIES_LISTED,
+            "the record states no copies of its own",
             &["voebb_SAK13776205", "voebb_SAK14200311"],
         )];
         let output = rendered(&result, &locations);
@@ -2740,8 +2978,8 @@ AGB (VÖBB) · 35 results · showing 2
     fn a_record_list_respects_the_terminal_width() {
         let (mut result, locations) = vorleser();
         result.notes = vec![note_about(
-            note_kinds::VOEBB_ONLINE_ONLY,
-            "an electronic title states no loan status this tool can read",
+            note_kinds::VOEBB_NO_COPIES_LISTED,
+            "the record states no copies of its own",
             &[
                 "almahu_BV011234567",
                 "voebb_SAK13776205",

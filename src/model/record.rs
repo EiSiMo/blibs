@@ -278,10 +278,43 @@ pub struct Holding {
     /// is the normal shape and not a loss. `None` for every KOBV holding — the union
     /// catalogue states its holdings as `924` fields, which arrive as items.
     pub holdings_statement: Option<String>,
+    /// How this holding is reached when there is nothing to reach on a shelf: an
+    /// electronic title, whose record states an access instead of copies.
+    ///
+    /// `Some` is the statement — *this* empty item list is empty because the title is
+    /// read online, and not because the page listed no copies. It is set only where the
+    /// parser established that, so it never has to be read together with [`Self::items`]:
+    /// a holding with copies never carries one.
+    ///
+    /// The loan state, where the record states one, is [`Self::summary`] like everywhere
+    /// else. `None` for every KOBV holding — the union catalogue's electronic titles are
+    /// links on the record ([`Record::urls`]) and not holdings of their own.
+    pub online_access: Option<OnlineAccess>,
     /// The individual copies, once availability has been fetched. Empty is ambiguous on
     /// its own — [`crate::model::AvailabilityMode`] on the result says whether it means
     /// "not asked" or "asked, nothing came back".
     pub items: Vec<Item>,
+}
+
+/// The access an electronic title has instead of copies.
+///
+/// It exists so that a reader is told at the record what a footnote used to tell them
+/// under the whole page: an e-title's line has nothing beneath it, and "no copies" and
+/// "read it online" look identical from there.
+///
+/// A struct rather than a bare `Option<String>` because the **presence** is the statement
+/// and the platform is the detail: voebb.de names one in its `Link zu …` row and names
+/// none at all where the record states a plain `URL`, and both are the same kind of
+/// holding.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct OnlineAccess {
+    /// The platform as the record names it — `Onleihe`, `Overdrive` — read from the text
+    /// of the `Link zu …` row with that prefix removed.
+    ///
+    /// `None` where the record states no lending link at all and only a bare `URL`: the
+    /// page names no platform there, and one guessed from the URL's host would be this
+    /// tool's invention rather than the catalogue's word.
+    pub platform: Option<String>,
 }
 
 /// One copy on one shelf.

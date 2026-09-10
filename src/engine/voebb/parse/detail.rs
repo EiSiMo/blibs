@@ -51,8 +51,8 @@ use scraper::{ElementRef, Html, Selector};
 use crate::error::{Error, REPORT_URL};
 use crate::libraries::{self, Branch, VOEBB_NETWORK, text::fold};
 use crate::model::{
-    Author, AuthorKind, Format, Holding, Isil, Item, Note, Record, RecordId, ResourceUrl, Status,
-    UrlKind, note_kinds,
+    Author, AuthorKind, Format, Holding, Isil, Item, Note, OnlineAccess, Record, RecordId,
+    ResourceUrl, Status, UrlKind, note_kinds,
 };
 
 use super::{collapse, compile};
@@ -87,14 +87,14 @@ pub fn parse_detail(html: &str, id: &RecordId) -> Result<DetailPage, Error> {
     let document = Html::parse_document(html);
     let bibliographic = Bibliographic::read(&document)?;
     let mut notes = Vec::new();
-    let items = match items_of(&document, &bibliographic, &mut notes) {
-        Ok(items) => items,
+    let copies = match items_of(&document, &bibliographic, &mut notes) {
+        Ok(copies) => copies,
         Err(error) => {
             notes.push(page_unreadable(&error));
-            Vec::new()
+            Copies::none()
         }
     };
-    let record = record_of(id, &bibliographic, items);
+    let record = record_of(id, &bibliographic, copies);
     // Every note this page produced is about this one record, and it is named here
     // rather than at each `push` because that is true of all of them without exception:
     // the page *is* the record. Three `voebb_online_only` notes over two blocks are
@@ -156,7 +156,7 @@ pub fn is_missing_record(html: &str) -> bool {
 ///
 /// Every field is filled by one small function below, so that a change to voebb.de's
 /// wording touches exactly one of them.
-fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> Record {
+fn record_of(id: &RecordId, bibliographic: &Bibliographic, copies: Copies) -> Record {
     let (title, subtitle) = title_of(bibliographic.first("Titel").unwrap_or_default());
     let publication = bibliographic.first("Veröffentlichung").unwrap_or_default();
     let (place, publisher) = imprint_of(publication);
@@ -184,7 +184,7 @@ fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> 
         urls: urls_of(bibliographic, id),
         holdings: vec![holding_of(
             id,
-            items,
+            copies,
             lending_status(link),
             holdings_statement_of(bibliographic),
         )],
@@ -209,10 +209,11 @@ fn record_of(id: &RecordId, bibliographic: &Bibliographic, items: Vec<Item>) -> 
 /// turned into a status — what a run of volumes says about a loan is nothing.
 fn holding_of(
     id: &RecordId,
-    items: Vec<Item>,
+    copies: Copies,
     without_items: Status,
     holdings_statement: Option<String>,
 ) -> Holding {
+    let Copies { items, online } = copies;
     let summary = if items.is_empty() {
         without_items
     } else {
@@ -227,6 +228,7 @@ fn holding_of(
         mine: false,
         summary,
         holdings_statement,
+        online_access: online,
         items,
     };
     // The naming rule lives in one place for both engines; this parser only supplies the
@@ -721,7 +723,7 @@ fn items_of(
     document: &Html,
     bibliographic: &Bibliographic,
     notes: &mut Vec<Note>,
-) -> Result<Vec<Item>, Error> {
+) -> Result<Copies, Error> {
     let selectors = selectors();
     let Some(table) = document.select(&selectors.item_table).next() else {
         let Some(row) = lending_link(bibliographic) else {
@@ -740,7 +742,10 @@ fn items_of(
                  either — the access voebb.de names is a plain URL on the record, and it \
                  says nothing about whether that access is free",
             ));
-            return Ok(Vec::new());
+            // No platform: this record names nobody, it states a bare URL. The line the
+            // renderer draws from it says `online` and stops there, which is what the
+            // page says.
+            return Ok(Copies::online(OnlineAccess { platform: None }));
         };
         let state = row.values.first().map_or("", String::as_str);
         let label = &row.label;
@@ -767,7 +772,9 @@ fn items_of(
                 ),
             ),
         });
-        return Ok(Vec::new());
+        return Ok(Copies::online(OnlineAccess {
+            platform: platform_of(label),
+        }));
     };
 
     let rows: Vec<ElementRef<'_>> = table.select(&selectors.item_row).collect();
@@ -776,14 +783,79 @@ fn items_of(
             bibliographic.first("Medienart").unwrap_or_default(),
             holdings_statement_of(bibliographic).as_deref(),
         ));
-        return Ok(Vec::new());
+        // An empty table is **not** an online access: this record states copies of its
+        // own nowhere, and why that is is what `no_copies_note` says. Claiming an access
+        // here would put `online` under a newspaper whose volumes are records of their
+        // own.
+        return Ok(Copies::none());
     }
 
     let columns = Columns::from_header(table)?;
-    Ok(rows
-        .into_iter()
-        .map(|row| item(row, &columns, notes))
-        .collect())
+    Ok(Copies::shelved(
+        rows.into_iter()
+            .map(|row| item(row, &columns, notes))
+            .collect(),
+    ))
+}
+
+/// What the copies of a record are: real ones on a shelf, or the access that stands in
+/// for them.
+///
+/// The two are exclusive by construction, which is why they are one type: [`holding_of`]
+/// would otherwise have to decide from an empty `Vec` whether the record is electronic,
+/// and that is the guess this struct prevents — an empty item table means "no copies
+/// stated" and says nothing at all about how the title is read.
+struct Copies {
+    /// The copies the item table listed.
+    items: Vec<Item>,
+    /// The access an electronic title states instead of copies.
+    online: Option<OnlineAccess>,
+}
+
+impl Copies {
+    /// A record whose item table listed copies.
+    fn shelved(items: Vec<Item>) -> Self {
+        Self {
+            items,
+            online: None,
+        }
+    }
+
+    /// An electronic title: no copies, and the access the page named in their place.
+    fn online(access: OnlineAccess) -> Self {
+        Self {
+            items: Vec::new(),
+            online: Some(access),
+        }
+    }
+
+    /// Neither — a record that stated no copies, and no reason a renderer may state
+    /// either. The note that came with it is what says why.
+    fn none() -> Self {
+        Self {
+            items: Vec::new(),
+            online: None,
+        }
+    }
+}
+
+/// The platform out of the label of a `Link zu …` row: `Link zur Onleihe` is `Onleihe`.
+///
+/// Two words dropped, never a name matched: the label is `Link` plus the preposition in
+/// whatever form the platform's name takes (`zu`, `zur`, `zum`), and everything behind
+/// those two words is the platform. A third platform tomorrow is read the same way — the
+/// same rule [`LENDING_LINK`] follows to find the row at all.
+///
+/// `None` for a label with nothing behind them: a platform named by nothing is not a
+/// platform, and `online ·` followed by a blank would be a line claiming a detail it does
+/// not have.
+fn platform_of(label: &str) -> Option<String> {
+    let name = label
+        .split_whitespace()
+        .skip(2)
+        .collect::<Vec<_>>()
+        .join(" ");
+    (!name.is_empty()).then_some(name)
 }
 
 /// The `Medienart` of a record whose parts carry the copies, folded as [`format_of`] folds.
@@ -2390,6 +2462,66 @@ mod tests {
             "the selector is worth nothing without somewhere to report it: {note:?}"
         );
         assert_eq!(note.records, vec![RecordId::voebb("SAK13776205")]);
+    }
+
+    /// The three shapes of an electronic title all state **where** the title is read, and
+    /// the holding carries it: the renderer draws one line per record from it, in the
+    /// place a copy line would stand, so that an empty gap under a record is never all a
+    /// reader gets ([`crate::model::Holding::online_access`]).
+    ///
+    /// The platform is the label's own words with `Link zu`/`zur` dropped, and it is
+    /// `None` where the page names nobody — never guessed from the URL's host.
+    #[test]
+    fn an_electronic_title_states_where_it_is_read() {
+        let onleihe = parsed(ONLINE, "SAK16112988");
+        assert_eq!(
+            onleihe.record.holdings[0].online_access,
+            Some(OnlineAccess {
+                platform: Some("Onleihe".to_owned())
+            })
+        );
+        let overdrive = parsed(OVERDRIVE, "SAK34672596");
+        assert_eq!(
+            overdrive.record.holdings[0].online_access,
+            Some(OnlineAccess {
+                platform: Some("Overdrive".to_owned())
+            })
+        );
+        // A bare `URL` row names no platform, and the access says so by naming none.
+        let url_only = parsed(ONLINE_URL, "SAK34364366");
+        assert_eq!(
+            url_only.record.holdings[0].online_access,
+            Some(OnlineAccess { platform: None })
+        );
+    }
+
+    /// An empty item table is not an online access. The record states no copies of its
+    /// own — a newspaper whose volumes are records of their own, a multi-part work — and
+    /// claiming an access for it would put `online` under a title nobody reads online.
+    #[test]
+    fn a_record_without_copies_states_no_access_either() {
+        let page = parsed(NEWSPAPER, "SAK13708822");
+        assert!(items(&page).is_empty());
+        assert_eq!(page.record.holdings[0].online_access, None, "{page:?}");
+    }
+
+    /// Two words dropped and no name matched: whatever stands behind `Link zu…` is the
+    /// platform, in whichever form the preposition takes.
+    #[test]
+    fn a_platform_is_whatever_the_label_names_behind_its_preposition() {
+        assert_eq!(platform_of("Link zur Onleihe").as_deref(), Some("Onleihe"));
+        assert_eq!(
+            platform_of("Link zu Overdrive").as_deref(),
+            Some("Overdrive")
+        );
+        assert_eq!(
+            platform_of("Link zum Digitalen Lesesaal").as_deref(),
+            Some("Digitalen Lesesaal"),
+            "a platform whose name is several words keeps all of them"
+        );
+        // Nothing behind the preposition is not a platform, and `online ·` followed by a
+        // blank would be a line claiming a detail it does not have.
+        assert_eq!(platform_of("Link zu"), None);
     }
 
     /// The second lending platform, found live on 2026-09-06: `Link zu Overdrive` where

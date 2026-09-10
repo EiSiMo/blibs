@@ -795,6 +795,7 @@ fn holdings(marc: &MarcRecord) -> Vec<Holding> {
             summary: Status::Unknown,
             // KOBV states its holdings as copies, never as prose.
             holdings_statement: None,
+            online_access: None,
             items: Vec::new(),
         });
     }

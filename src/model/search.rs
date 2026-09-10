@@ -1578,6 +1578,7 @@ mod tests {
                     summary: Status::Available,
                     // Prose holdings: only voebb.de states any.
                     holdings_statement: None,
+                    online_access: None,
                     items: vec![
                         Item {
                             location: Some("ZB Grimm-Zentrum, 7. OG / Bereich B".to_owned()),
@@ -1615,6 +1616,7 @@ mod tests {
                     summary: Status::Reference,
                     // Prose holdings: only voebb.de states any.
                     holdings_statement: None,
+                    online_access: None,
                     // The portal wrote one of its placeholders in the location cell:
                     // what is not stated is `null`, never an empty string.
                     items: vec![Item {
@@ -1668,6 +1670,7 @@ mod tests {
                 summary: Status::Reference,
                 // Prose holdings: only voebb.de states any.
                 holdings_statement: None,
+                online_access: None,
                 items: vec![Item {
                     location: Some("AGB Erwachsenenbibliothek".to_owned()),
                     branch: Some("SIG00036".to_owned()),
@@ -2026,6 +2029,7 @@ mod tests {
             summary: Status::Available,
             // Prose holdings: only voebb.de states any.
             holdings_statement: None,
+            online_access: None,
             items: vec![Item {
                 location: None,
                 branch: Some("SIG00036".to_owned()),

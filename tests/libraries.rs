@@ -507,6 +507,7 @@ fn name_holding_is_the_one_naming_rule() {
         summary: Status::Unknown,
         // Prose holdings: only voebb.de states any.
         holdings_statement: None,
+        online_access: None,
         items: Vec::new(),
     };
     name_holding(&mut known);

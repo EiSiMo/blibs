@@ -1949,7 +1949,9 @@ fn one_limitation_over_three_records_is_one_note_naming_all_three() {
          are the renderer's own line: {message:?}"
     );
 
-    // The human output prints the paragraph once, not three times.
+    // The human output prints no paragraph at all: each of the three records says at its
+    // own line where it is read, which is what the paragraph used to say from under the
+    // whole page. The note itself stays in the document above.
     let human = invoke(
         &["search", "Vorleser", "--at", "AGB", "--limit", "3"],
         &fetch,
@@ -1957,10 +1959,16 @@ fn one_limitation_over_three_records_is_one_note_naming_all_three() {
     assert_eq!(
         human.out.matches("has no copies on a shelf").count()
             + human.err.matches("has no copies on a shelf").count(),
-        1,
+        0,
         "out:\n{}\nerr:\n{}",
         human.out,
         human.err
+    );
+    assert_eq!(
+        human.out.matches("online · Onleihe").count(),
+        3,
+        "one access line per record, under the record it belongs to: {}",
+        human.out
     );
 }
 
