@@ -548,9 +548,9 @@ fn window_filter_note(plan: &Plan, window: &WindowInfo) -> Option<Note> {
     Some(Note::new(
         note_kinds::WINDOW_FILTER_EMPTY,
         format!(
-            "none of the {} fetched records matched {filter} {value} — the filter runs \
+            "none of the {} matched {filter} {value} — the filter runs \
              over the fetched window, so this is not a statement about the whole result",
-            window.fetched
+            crate::counts::fetched_records(window.fetched)
         ),
     ))
 }

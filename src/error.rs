@@ -249,13 +249,13 @@ impl EmptyReason {
                 filter,
                 value,
             } => {
+                let window = counts::fetched_records(*fetched);
                 let head = match total {
                     Some(total) => format!(
-                        "{total} results, but none of the {fetched} fetched records matched {filter} {value}"
+                        "{}, but none of the {window} matched {filter} {value}",
+                        counts::results(*total)
                     ),
-                    None => {
-                        format!("none of the {fetched} fetched records matched {filter} {value}")
-                    }
+                    None => format!("none of the {window} matched {filter} {value}"),
                 };
                 format!(
                     "{head}\n\
@@ -2282,6 +2282,26 @@ mod tests {
         assert_eq!(
             reason.message(),
             "774 results, but none of the 50 fetched records matched --format video\n\
+             narrow the search itself (--title, --author) so the filter has more to work on"
+        );
+    }
+
+    /// The singular of both counts in one message. `FilteredOut` built its two phrases by
+    /// hand while every other variant went through `counts`, and a window of one record
+    /// therefore read "1 results, but none of the 1 fetched records" — the exact failure
+    /// the `counts` module names in its own doc comment. Reachable without contrivance:
+    /// an ISBN search finds one record and `--format` rejects it.
+    #[test]
+    fn one_result_and_one_fetched_record_are_both_singular() {
+        assert_eq!(
+            EmptyReason::FilteredOut {
+                total: Some(1),
+                fetched: 1,
+                filter: "--format".to_string(),
+                value: "video".to_string(),
+            }
+            .message(),
+            "1 result, but none of the 1 fetched record matched --format video\n\
              narrow the search itself (--title, --author) so the filter has more to work on"
         );
     }

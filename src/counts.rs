@@ -26,6 +26,22 @@ pub fn results(total: u64) -> String {
     }
 }
 
+/// `1 fetched record` / `50 fetched records`, for the window a client-side filter saw.
+///
+/// Its own function rather than [`records`] with a word in front of it, because the
+/// adjective sits *inside* the phrase the three callers share — the error text, the block
+/// heading and the `window_filter_empty` note all say "none of the N fetched records
+/// matched", and a caller that built it from `records` would have to know that the count
+/// and its noun can be split. The window is a `usize` for the same reason `records` takes
+/// one: it is a length, not a catalogue's claim.
+pub fn fetched_records(count: usize) -> String {
+    if count == 1 {
+        "1 fetched record".to_owned()
+    } else {
+        format!("{count} fetched records")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -40,5 +56,8 @@ mod tests {
         assert_eq!(results(1), "1 result");
         assert_eq!(results(0), "0 results");
         assert_eq!(results(774), "774 results");
+        assert_eq!(fetched_records(1), "1 fetched record");
+        assert_eq!(fetched_records(0), "0 fetched records");
+        assert_eq!(fetched_records(50), "50 fetched records");
     }
 }

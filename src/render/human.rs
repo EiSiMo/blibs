@@ -54,7 +54,7 @@
 
 use std::io::{self, Write};
 
-use crate::counts::{records, results};
+use crate::counts::{fetched_records, records, results};
 use crate::error::{EmptyReason, Error};
 use crate::model::note_kinds;
 use crate::model::{
@@ -920,8 +920,9 @@ fn block_heading(block: &Block<'_>, sieve: Sieve) -> String {
         // decides.
         if let Some(fetched) = sieve.window_emptied {
             return format!(
-                "{name} · {} · none of the {fetched} fetched records matched",
-                results(total)
+                "{name} · {} · none of the {} matched",
+                results(total),
+                fetched_records(fetched)
             );
         }
         if let Some(page) = sieve.past_the_window {
