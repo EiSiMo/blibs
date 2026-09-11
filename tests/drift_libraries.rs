@@ -1,9 +1,9 @@
 //! `data/libraries.json` against the two services it was built from.
 //!
-//! The library list is data, not code (`CLAUDE.md`), and data goes stale silently:
+//! The library list is data, not code, and data goes stale silently:
 //! institutions move, rename themselves, lose a branch or gain one, and nothing in the
 //! tool would ever notice. This test is the thing that notices. It fetches the two
-//! upstream sources named in `plan/libraries.md` §1 — lobid-organisations for the
+//! two upstream sources — lobid-organisations for the
 //! institutions, the KOBV library directory (`bibinfo.kobv.de`) for the KOBV ids and the
 //! branches — re-derives every field that has an upstream source, and fails with a
 //! grouped diff when the file and the services disagree.
@@ -23,19 +23,19 @@
 //! else stays red on purpose: a 429 or 503, any other HTTP status, a body that does not
 //! parse, and a body that parses but is not plausible (no `member`, `totalItems` of
 //! zero, a directory that shrank to a handful of entries). That is the rule from
-//! `CLAUDE.md` — a missing structure is never turned into an empty result, and here an
+//! this crate — a missing structure is never turned into an empty result, and here an
 //! empty result would read as "no drift", which is the one answer this test must never
 //! give by accident.
 //!
 //! Three fields are **not** compared, because no upstream source states them
-//! (`plan/libraries.md` §1, §5, §8.3): `aliases` and `short_name` are hand-curated by the
+//! curated by hand: `aliases` and `short_name` are chosen by the
 //! rules in §5, and `portal_name` is a parser key observed in the KOBV portal's
 //! availability fragment, not something lobid or bibinfo knows. `match[]` is likewise
 //! observed, not derived. Their invariants live in `tests/libraries.rs`, offline.
 //!
 //! Nor can this test see an institution that ought to be *added*: the lobid query asks
 //! for the 123 ISILs the file already carries, and the bibinfo directory contains 313
-//! further houses that were deliberately not adopted (`plan/libraries.md` §8.2, §11).
+//! further houses that were deliberately not adopted.
 //! Widening the list is a decision, not drift.
 //!
 //! ```text
@@ -50,7 +50,7 @@ use blibs::http::{CachePolicy, Fetch, Http, Request};
 use blibs::libraries::data::{Branch, LIBRARIES_JSON, Library};
 use blibs::libraries::geo::LatLon;
 
-/// The collective lobid query. One request for all 123 ISILs (`plan/drift.md`).
+/// The collective lobid query. One request for all 123 ISILs.
 const LOBID_SEARCH: &str = "https://lobid.org/organisations/search";
 
 /// The KOBV library directory: institutions, branches, coordinates, KOBV ids.
@@ -61,11 +61,11 @@ const BIBINFO_LIBRARIES: &str = "https://bibinfo.kobv.de/json/libraries.json";
 const BIBINFO_TERMS: &str = "https://bibinfo.kobv.de/json/terms.json";
 
 /// The group code that makes a directory entry a house of the public network
-/// (`plan/libraries.md` §8.2, rule 4). The VÖBB has no ISIL hierarchy, so this code is
+/// (rule 4 of the list's own rules). The VÖBB has no ISIL hierarchy, so this code is
 /// the only thing that ties its 98 houses to `DE-609`.
 const VOEBB_GROUP: &str = "gVOEBB";
 
-/// What `terms.json` resolves [`VOEBB_GROUP`] to. Quoted in `plan/libraries.md` §8.2; if
+/// What `terms.json` resolves [`VOEBB_GROUP`] to. Pinned here because if
 /// the label changes, the anchor of rule 4 has moved and wants looking at.
 const VOEBB_GROUP_LABEL: &str = "Öffentliche Bibliotheken Berlin (VÖBB)";
 
@@ -74,7 +74,7 @@ const VOEBB_GROUP_LABEL: &str = "Öffentliche Bibliotheken Berlin (VÖBB)";
 /// 50 m. The file states five decimals (≈1 m), and today the *worst* of the 333
 /// comparisons is 0.65 m — the sources restate the same measurement rather than
 /// re-geocoding it, so there is no jitter to absorb and the threshold has a 75× margin.
-/// `plan/libraries.md` §8.4 used 300 m for a different question ("is bibinfo better than
+/// An earlier survey used 300 m for a different question ("is bibinfo better than
 /// lobid, should we overwrite?"); this one only has to *notice*, so it is tighter. A real
 /// relocation is hundreds of metres at least.
 const COORDINATE_TOLERANCE_KM: f64 = 0.05;
@@ -104,7 +104,7 @@ struct Exception {
     reason: &'static str,
 }
 
-/// Every deviation the file makes on purpose, from `plan/libraries.md` §8.4 and from the
+/// Every deviation the file makes on purpose, from the survey above and from the
 /// first real run of this test (2026-09-07).
 static EXCEPTIONS: &[Exception] = &[
     Exception {
@@ -112,7 +112,7 @@ static EXCEPTIONS: &[Exception] = &[
         field: "record",
         reason: "the Charité's collective ISIL has no lobid record and no bibinfo main \
                  entry — only its four campus libraries exist, and those are its branches \
-                 (plan/libraries.md §8.4). Nothing in this row has an upstream source, so \
+                 by hand. Nothing in this row has an upstream source, so \
                  none of its fields is compared",
     },
     Exception {
@@ -127,14 +127,14 @@ static EXCEPTIONS: &[Exception] = &[
         reason: "bibinfo carries two entries under DE-109 — the AGB (SIG00036) and the \
                  Berliner Stadtbibliothek (BIB000000072) — so there is no single main \
                  entry. Both hang under DE-609, where their holdings are reported \
-                 (plan/libraries.md §3, §8.4), and DE-109 itself keeps kobvid null",
+                 by hand, and DE-109 itself keeps kobvid null",
     },
     Exception {
         key: "SIG00036",
         field: "parent",
         reason: "the Amerika-Gedenkbibliothek: bibinfo files it under DE-109, the file \
                  under DE-609, because DE-109 never appears in a MARC 924 and DE-609 \
-                 does (plan/libraries.md §3)",
+                 does",
     },
     Exception {
         key: "BIB000000072",
@@ -157,7 +157,7 @@ static EXCEPTIONS: &[Exception] = &[
         key: "BIB000000236",
         field: "parent",
         reason: "'Stadtbibliothek Pankow / Museum Pankow': no ISIL and not in the VÖBB \
-                 group, tied to DE-609 by its name prefix (plan/libraries.md §8.2 rule 5)",
+                 group, tied to DE-609 by its name prefix (rule 5)",
     },
     Exception {
         key: "BIB000000307",
@@ -498,7 +498,7 @@ fn fetch_bibinfo(http: &Http) -> Result<BTreeMap<String, BibEntry>, Failure> {
 
 /// The directory's vocabulary, keyed by code.
 ///
-/// Only [`VOEBB_GROUP`] is read, and its absence is fatal: rule 4 of `plan/libraries.md`
+/// Only [`VOEBB_GROUP`] is read, and its absence is fatal: rule 4 of the list's rules
 /// §8.2 hangs 98 houses off that one code, and a silent miss would delete them all.
 fn fetch_terms(http: &Http) -> Result<BTreeMap<String, BibTerm>, Failure> {
     let request = Request::get(BIBINFO_TERMS).cache(CachePolicy::Normal);
@@ -506,7 +506,7 @@ fn fetch_terms(http: &Http) -> Result<BTreeMap<String, BibTerm>, Failure> {
     if !terms.contains_key(VOEBB_GROUP) {
         return Err(Failure::Fatal(format!(
             "the KOBV vocabulary no longer knows {VOEBB_GROUP}, which is the only thing \
-             that ties the 98 VÖBB houses to DE-609 (plan/libraries.md §8.2 rule 4)\n  {}",
+             that ties the 98 VÖBB houses to DE-609 (rule 4)\n  {}",
             request.url()
         )));
     }
@@ -715,7 +715,7 @@ fn directory_entries_for<'a>(
 }
 
 /// Compare one institution against lobid, with the directory as the documented fallback
-/// for the three fields lobid leaves empty (`plan/libraries.md` §8.4).
+/// for the three fields lobid leaves empty.
 fn compare_institution(
     library: &Library,
     org: &LobidOrg,
@@ -869,7 +869,7 @@ fn compare_institutions(
 /// The institution a sub-ISIL belongs to, longest match first.
 ///
 /// The order matters: `DE-578-3` is a list entry of its own (`CVK`), and a shortest-match
-/// rule would swallow it into `DE-578` as a branch (`plan/libraries.md` §8.2 rule 3).
+/// rule would swallow it into `DE-578` as a branch (rule 3).
 fn sub_isil_parent<'a>(isil: &str, known: &BTreeSet<&'a str>) -> Option<&'a str> {
     known
         .iter()
@@ -884,7 +884,7 @@ fn sub_isil_parent<'a>(isil: &str, known: &BTreeSet<&'a str>) -> Option<&'a str>
 }
 
 /// Re-derive which directory entries are branches of which institution, by the rules of
-/// `plan/libraries.md` §8.2 in their stated order.
+/// the list's own rules, in their stated order.
 ///
 /// Rules 2 (same ISIL, i.e. the main entry), 3 (sub-ISIL) and 4 (the VÖBB group code) are
 /// mechanical and run here. Rule 1 (observed in a live availability answer) and rule 5

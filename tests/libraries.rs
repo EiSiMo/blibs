@@ -24,7 +24,7 @@ fn parsed() -> Vec<Library> {
     serde_json::from_str(LIBRARIES_JSON).expect("data/libraries.json must parse")
 }
 
-/// Institutions and branches share one alias namespace (`plan/libraries.md` §5, rule 9).
+/// Institutions and branches share one alias namespace.
 fn all_aliases(library: &Library) -> impl Iterator<Item = &String> {
     library
         .aliases
@@ -32,7 +32,7 @@ fn all_aliases(library: &Library) -> impl Iterator<Item = &String> {
         .chain(library.branches.iter().flat_map(|branch| &branch.aliases))
 }
 
-/// The compiled-in list parses, and it has the size `plan/libraries.md` states.
+/// The compiled-in list parses, and it has the size the listing reports.
 ///
 /// Deliberately parsed here rather than through `libraries::all()`: this test is about
 /// the *file*, and it has to keep working when the loader around it changes.
@@ -72,7 +72,7 @@ fn aliases_are_unique() {
     }
 }
 
-/// Every short name obeys the rules of `plan/libraries.md` §5: `A-Z0-9`, 2–10 characters,
+/// Every short name obeys the list's own rules: `A-Z0-9`, 2–10 characters,
 /// and never a hyphen. The last part is what makes the resolution order safe — an alias
 /// can never be mistaken for an ISIL, so no input can name two houses.
 #[test]
@@ -478,7 +478,7 @@ fn near_orders_by_distance() {
 /// because a house left the network.
 ///
 /// `display_name` is the **full** official name — that is what `holdings[].library`
-/// promises in `plan/cli.md`; the short one is a separate member and a separate lookup.
+/// promises; the short one is a separate member and a separate lookup.
 #[test]
 fn display_name_falls_back_to_the_bare_code() {
     assert_eq!(display_name(&Isil::new("DE-XYZ")), "DE-XYZ");
@@ -558,7 +558,7 @@ fn portal_name_resolves_to_its_house() {
 
 /// No alias may look like a KOBV id, because `--at` reads both out of one namespace.
 ///
-/// The alias rules (`plan/libraries.md` §5, rule 3) keep an alias from looking like an
+/// The alias rules keep an alias from looking like an
 /// ISIL by forbidding the hyphen. They say nothing about KOBV ids, and an eight-character
 /// id such as `SIG00036` satisfies every one of them — so this is the missing half of
 /// that rule, and it has to be an invariant of the file rather than a tie-break in the

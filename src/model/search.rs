@@ -82,8 +82,9 @@ pub struct QuerySpec {
     /// `--publisher`.
     pub publisher: Option<Term>,
     /// `--author`, always kept as a raw string because it is **always** searched as a
-    /// word list, never as a phrase: `"Kafka, Franz"` finds 2911 records, `"Franz
-    /// Kafka"` as a phrase finds 40.
+    /// word list, never as a phrase: the index holds authority forms, so a phrase in the
+    /// natural name order finds two orders of magnitude fewer records than the inverted
+    /// one.
     pub author: Option<String>,
     /// `--year`. Means "was running in this year" for serials, "published in" for
     /// monographs.
@@ -520,6 +521,19 @@ pub mod note_kinds {
     /// union catalogue's doing rather than this tool's — but `records[]` promises each
     /// record exactly once, and that promise is kept here.
     pub const DUPLICATE_RECORDS_DROPPED: &str = "duplicate_records_dropped";
+
+    /// The identifier index answered a `--isbn` search with records carrying a different
+    /// ISBN, and they were dropped.
+    ///
+    /// Not a filter the user asked for and not a limitation of the window: it is the
+    /// catalogue's own index being coarser than the question: measured 2026-09-11,
+    /// `@attr 1=7 "9783596294336"`, `…330`, `…331` and the ISBN-10 form `3596294336` all
+    /// answer with the same 18 records. Every number that agrees in the leading twelve
+    /// digits is therefore a hit, and a page of somebody else's editions is the worst
+    /// kind of wrong answer — it looks exactly like a right one. The tag exists so that
+    /// an agent can tell the narrowing from the search, and so that a page shorter than
+    /// the count beside it has a stated reason.
+    pub const ISBN_NEIGHBOURS_DROPPED: &str = "isbn_neighbours_dropped";
 
     /// The KOBV catalogue does not order a result stably: two identical requests return
     /// different records in a different order, so consecutive pages can overlap and can

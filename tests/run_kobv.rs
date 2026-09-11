@@ -2,9 +2,9 @@
 //! outcome out, with `tests/fixtures/` standing in for the network.
 //!
 //! These go through `blibs::cli::run`, so they cover exactly what `main` does apart from
-//! locking the streams — including the order that `plan/cli.md` fixes and that nothing
-//! else can prove: **search, then select, then availability**, never availability for
-//! records that will not be displayed.
+//! locking the streams — including the fixed order that nothing else can prove:
+//! **search, then select, then availability**, never availability for records that will
+//! not be displayed.
 
 mod common;
 
@@ -258,6 +258,77 @@ fn the_limit_applies_to_every_block_on_its_own() {
     };
     assert_eq!(records(hu), 1, "{}", ran.out);
     assert_eq!(records(stabi), 1, "{}", ran.out);
+}
+
+/// The identifier index ignores the check digit, so a `--isbn` search is answered with
+/// records that are not the book asked for. They are dropped before anything is counted.
+///
+/// `filtered.xml` is exactly this shape: the first record carries `9783828867529` (and
+/// the ISBN-10 of the same edition), the other two carry unrelated numbers. Searching the
+/// first leaves one hit and a note saying where the other two went — without it the page
+/// would be a third the length of the count printed above it, for no stated reason.
+#[test]
+fn an_isbn_search_drops_the_records_carrying_a_different_isbn() {
+    let fetch = search_fetch();
+    let ran = invoke(&["--json", "search", "--isbn", "9783828867529"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::Success);
+    let document = ran.json();
+    assert_eq!(
+        document["shown"], 1,
+        "only the record that states this ISBN is an answer to it"
+    );
+    assert_eq!(
+        document["window"]["fetched"], 1,
+        "the other two were never answers, so they are not part of the window either"
+    );
+    assert_eq!(
+        document["total"], 230,
+        "the catalogue's own count is left alone — it counts what the index matched, \
+         which is exactly what the note is about"
+    );
+    let kinds: Vec<&str> = document["notes"]
+        .as_array()
+        .expect("notes[] is an array")
+        .iter()
+        .map(|note| note["kind"].as_str().expect("a note has a kind"))
+        .collect();
+    assert!(
+        kinds.contains(&"isbn_neighbours_dropped"),
+        "a page shorter than its count must say why: {kinds:?}"
+    );
+}
+
+/// The same sieve emptying the page: exit 1 with a reason of its own, and never the
+/// generic "no results".
+///
+/// `NoHits` would advise fewer words and there are no words; `FilteredOut` would name a
+/// flag the user set as a preference, and `--isbn` is the whole question. What the user
+/// needs to hear is that the catalogue answered and that none of what it sent is this
+/// book.
+#[test]
+fn an_isbn_no_record_carries_is_its_own_empty_reason() {
+    // `english.xml` holds one record, and its ISBN is not this one.
+    let fetch = FixtureFetch::new().fallback("kobv/sru/english.xml");
+    let ran = invoke(&["search", "--isbn", "9783828867529"], &fetch);
+
+    assert_eq!(ran.exit(), ExitCode::NoResults);
+    assert!(
+        ran.err.contains("no record carries ISBN 9783828867529"),
+        "stderr was {:?}",
+        ran.err
+    );
+    assert!(
+        ran.err.contains("ignores the check digit"),
+        "the reason has to name the cause, not just the outcome: {:?}",
+        ran.err
+    );
+    assert!(
+        !ran.err.contains("fewer") && !ran.err.contains("general words"),
+        "advice about words for a search that had none: {:?}",
+        ran.err
+    );
+    assert!(ran.out.is_empty(), "an empty result renders no list");
 }
 
 /// A filter that empties the window is **not** "nothing found". Exit 1 either way, but
@@ -605,7 +676,7 @@ fn without_the_flag_the_document_is_the_one_it_always_was() {
 /// `--available` filters records that were already fetched, so it costs the services
 /// nothing: the same search and the same one availability call per displayed record,
 /// flag or no flag. A filter that refilled the page would ask about records nobody sees,
-/// which is what `CLAUDE.md` § *Upstream etiquette* forbids.
+/// which is what the upstream etiquette of this tool forbids.
 #[test]
 fn the_available_filter_costs_no_extra_request() {
     let plain = search_fetch_answering_third("kobv/availability/reference.json");

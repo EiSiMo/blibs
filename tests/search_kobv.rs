@@ -5,13 +5,13 @@
 //! once*. That last number is a promise to an upstream service that serves
 //! `robots.txt: Disallow: /`, so it is asserted rather than assumed.
 //!
-//! What is proven here, from `plan/`:
+//! What is proven here:
 //!
 //! - `--at HU,STABI` issues exactly one search request **per location** and no counting
 //!   request at all — `--limit` is a promise per block, so every block needs a window of
 //!   its own, and a location's own search already states its total;
-//! - the PQF that goes out is character-for-character what `plan/scraping.md` §A.4a
-//!   documents, with canonical ISIL spelling;
+//! - the PQF that goes out is character-for-character what was measured against the
+//!   service, with canonical ISIL spelling;
 //! - one availability request per record, a record without MARC `924` causes none, and
 //!   `AvailabilityMode::Skipped` causes none at all;
 //! - the recorder never sees more than six requests in flight at once;
@@ -33,8 +33,7 @@ use blibs::model::{
 
 use common::{FixtureFetch, Recorder, read_fixture};
 
-/// The reference query of `plan/scraping.md` §A.4a, in the shape `cli` hands over: one
-/// free word, no flags.
+/// The reference query, in the shape `cli` hands over: one free word, no flags.
 fn query(word: &str) -> QuerySpec {
     QuerySpec {
         terms: vec![Term::from_argument(word)],
@@ -107,8 +106,8 @@ fn search(fetch: &FixtureFetch, request: &SearchRequest) -> blibs::model::Engine
 /// prints comes free with it — `numberOfRecords` of a search restricted to one ISIL is
 /// that location's own count.
 ///
-/// The PQF is asserted character for character against the measurement in
-/// `plan/scraping.md` §A.4a, including the canonical `DE-11`: the attribute is
+/// The PQF is asserted character for character against the measurement,
+/// including the canonical `DE-11`: the attribute is
 /// case-sensitive and `de-11` would match nothing, silently.
 #[test]
 fn two_locations_are_two_searches_and_nothing_else() {
@@ -220,7 +219,7 @@ fn without_locations_one_unfiltered_search_runs() {
 }
 
 /// The library list only ever *adds* names. `library` is the full official name and
-/// `short_name` the short one — the split the JSON contract in `plan/cli.md` fixes.
+/// `short_name` the short one — the split the JSON contract fixes.
 #[test]
 fn holdings_are_named_from_the_library_list() {
     let fetch = FixtureFetch::new().fallback("kobv/sru/mono_kafka.xml");

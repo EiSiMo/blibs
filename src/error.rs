@@ -144,6 +144,26 @@ pub enum EmptyReason {
         /// The value that flag was given.
         value: String,
     },
+    /// A `--isbn` search: the catalogue answered, and no record it sent carries that
+    /// ISBN.
+    ///
+    /// Its own reason, and the only one that reports a *narrowing blibs performed on the
+    /// catalogue's behalf*. `dc.identifier` discards the check digit, so a well-formed
+    /// ISBN that names no book still returns the editions whose numbers agree in the
+    /// middle nine digits; before this existed they were printed as hits, which is a
+    /// wrong answer that looks exactly like a right one.
+    ///
+    /// Neither `NoHits` nor `FilteredOut` can say this. The first would advise fewer
+    /// words, and there are no words; the second would name a flag the user set as a
+    /// preference, and `--isbn` is not one — it is the whole question.
+    IsbnNotHeld {
+        /// The ISBN as the user typed it, hyphens and all, so the digits can be checked
+        /// against what they meant to type.
+        isbn: String,
+        /// How many records the index answered with. Never zero — a zero-hit ISBN search
+        /// is [`EmptyReason::NoHits`] and needs none of this explanation.
+        neighbours: usize,
+    },
     /// `--available` was given and none of the displayed records is in right now. Its
     /// own reason, not `FilteredOut`: this filter runs *after* the page was cut, so
     /// narrowing the search — the advice `FilteredOut` gives — changes nothing here,
@@ -262,6 +282,13 @@ impl EmptyReason {
                      narrow the search itself (--title, --author) so the filter has more to work on"
                 )
             }
+            EmptyReason::IsbnNotHeld { isbn, neighbours } => format!(
+                "no record carries ISBN {isbn}\n\
+                 the catalogue's identifier index ignores the check digit, so it answered \
+                 with {} for neighbouring ISBNs instead; those were dropped rather than \
+                 shown as this one — check the digits, or search the title",
+                counts::records(*neighbours)
+            ),
             EmptyReason::NothingAvailable {
                 total,
                 judged,
@@ -2301,6 +2328,32 @@ mod tests {
             .message(),
             "1 result, but none of the 1 fetched record matched --format video\n\
              narrow the search itself (--title, --author) so the filter has more to work on"
+        );
+    }
+
+    /// The reason has to name the *cause*, because the outcome on its own is
+    /// indistinguishable from a book nobody holds — and the two call for opposite next
+    /// steps. Singular and plural both, since the index can answer with one neighbour.
+    #[test]
+    fn an_isbn_no_record_carries_names_the_blind_index() {
+        assert_eq!(
+            EmptyReason::IsbnNotHeld {
+                isbn: "9783828867529".to_string(),
+                neighbours: 1,
+            }
+            .message(),
+            "no record carries ISBN 9783828867529\n\
+             the catalogue's identifier index ignores the check digit, so it answered \
+             with 1 record for neighbouring ISBNs instead; those were dropped rather than \
+             shown as this one — check the digits, or search the title"
+        );
+        assert!(
+            EmptyReason::IsbnNotHeld {
+                isbn: "9783828867529".to_string(),
+                neighbours: 6,
+            }
+            .message()
+            .contains("with 6 records for neighbouring ISBNs")
         );
     }
 

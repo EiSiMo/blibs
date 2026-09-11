@@ -1,6 +1,6 @@
 //! End-to-end tests of the voebb.de engine against saved fixtures.
 //!
-//! What has to be proven here, from `plan/voebb.md`:
+//! What has to be proven here:
 //!
 //! - the session is opened, searched and filtered **in that order**, and every request
 //!   replays the form state of the answer before it;
@@ -286,8 +286,7 @@ fn the_branch_total_is_the_facets_own_count() {
     assert_eq!(records[0]["local_id"], "SAK15039548");
 }
 
-/// The human output puts the branch's own heading over the block, the way `plan/cli.md`
-/// has it.
+/// The human output puts the branch's own heading over the block.
 #[test]
 fn the_block_heading_names_the_branch_and_its_total() {
     let fetch = voebb_fetch();
@@ -1373,7 +1372,7 @@ fn a_search_with_no_hits_at_all_is_no_results_and_not_a_broken_selector() {
 }
 
 /// The same page without the sentence that makes it an empty result is an unknown page,
-/// and unknown still has to fail loudly. This is the direction `CLAUDE.md` fixes: a
+/// and unknown still has to fail loudly. This is the direction the rule fixes: a
 /// missing structure may never be rendered as an empty result.
 #[test]
 fn a_result_page_that_states_neither_hits_nor_emptiness_still_fails() {
@@ -1403,7 +1402,7 @@ fn a_result_page_that_states_neither_hits_nor_emptiness_still_fails() {
 /// Onleihe or Overdrive title only in the text of its access link — so the record arrives
 /// with a holding and no copies. The engine has always said so in a note; `Voebb::show`
 /// dropped every note it was given (round 2, package 4a), and `blibs show` then printed a
-/// silently empty copy list, which CLAUDE.md forbids above all other failure modes. The
+/// silently empty copy list, which this crate forbids above all other failure modes. The
 /// search path over the same record page printed the note all along.
 #[test]
 fn show_of_an_online_title_states_why_it_lists_no_copies() {
@@ -1438,8 +1437,8 @@ fn show_of_an_online_title_states_why_it_lists_no_copies() {
 
 /// The return date reaches the JSON document, in the form an agent can use.
 ///
-/// `plan/voebb.md` §9 recorded that no return date exists in the item table, checked over
-/// 46 copies; `voebb_SAK34906286` carries eight (measured 2026-09-08). The date is ISO
+/// A survey of 46 copies recorded that no return date exists in the item table;
+/// `voebb_SAK34906286` carries eight (measured 2026-09-08). The date is ISO
 /// here and German on the page, and it never touches the traffic light — that still comes
 /// from the marker class, so the copy that is out is out either way.
 #[test]
@@ -1738,7 +1737,7 @@ fn a_transport_failure_is_still_an_error_and_not_a_note() {
 /// The rule is one function ([`Voebb::detail`]) for both paths, and the parser keeps the
 /// record whenever the *item table* alone is unreadable — which is the shape both
 /// measured failures had. So `show` prints the record, prints the note, and does not
-/// abort. `CLAUDE.md` has a whole trap line about one rule with two spellings.
+/// abort. One rule with two spellings is a trap this crate has already paid for once.
 #[test]
 fn show_of_a_page_with_an_unreadable_item_table_still_shows_the_record() {
     let broken =
@@ -2044,7 +2043,7 @@ fn an_engine_that_ran_out_of_results_does_not_empty_the_other() {
 /// sequential request at a time and blibs stops at position 220 — but `--at HU,AGB --page
 /// 20 --limit 20` asks for result 400, which HU reaches without effort. Until 2026-09-09
 /// the ceiling of the one location refused the whole invocation: exit 2, not a single
-/// block (`plan/feedback_round_3.md` §1.2).
+/// block.
 ///
 /// Now only AGB is refused. It keeps its block, the block says which page it was refused
 /// for, the note says why, and **nothing at all is sent to voebb.de** — the point of
@@ -2156,8 +2155,7 @@ fn a_branch_refused_for_its_paging_depth_says_so_in_the_document() {
 
 /// A run of nothing but VÖBB locations keeps its exit 2 — there is no other block for an
 /// empty one to stand beside, and the ceiling is known before a byte goes out, which is
-/// exactly what `plan/cli.md` § *Exit-Codes* says makes this a usage error and the KOBV
-/// side's `1/61` an exit 5.
+/// exactly what makes this a usage error while the KOBV side's `1/61` is an exit 5.
 #[test]
 fn a_run_of_only_voebb_locations_is_still_refused_outright() {
     let fetch = FixtureFetch::new().fallback("voebb/start.html");

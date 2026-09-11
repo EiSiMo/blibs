@@ -125,6 +125,41 @@ pub fn dedup(records: Vec<Record>) -> (Vec<Record>, usize) {
 ///
 /// An empty result here is **not** "nothing found" — it is "nothing in the fetched
 /// window matched", and the caller must say so; `window.after_filter` in the JSON and the
+/// Drop the records the identifier index answered with that are **not** the ISBN asked
+/// for.
+///
+/// The identifier index discards hyphens, the ISBN-10/13 distinction **and the check
+/// digit**: measured 2026-09-11, `@attr 1=7` answers `9783596294336`, `9783596294330`,
+/// `9783596294331` and `3596294336` with the same 18 records. Validating the check digit
+/// before sending catches a *mistyped* ISBN and is why `cli::isbn` exists; what it cannot
+/// catch is a record whose own `020` holds a number with a typo in it, which the blind
+/// index then offers as an answer to a correctly typed search. This is the comparison the
+/// index does not make.
+///
+/// **A record that lists no ISBN at all is kept.** An empty `020` is "not stated in this
+/// record", never "a different number" — 4.9 % of records state no holdings either, and
+/// the same rule applies: a missing structure may not be read as a negative answer. The
+/// records that go are the ones that state an ISBN and state a different one.
+///
+/// Runs before every other sieve and before the counts, because these records were never
+/// answers to the question. Returns how many were dropped, so the caller can say so
+/// instead of quietly showing a shorter page.
+pub fn keep_isbn(records: Vec<Record>, isbn: &str) -> (Vec<Record>, usize) {
+    let before = records.len();
+    let kept: Vec<Record> = records
+        .into_iter()
+        .filter(|record| {
+            record.isbns.is_empty()
+                || record
+                    .isbns
+                    .iter()
+                    .any(|candidate| crate::cli::isbn::same_book(isbn, candidate))
+        })
+        .collect();
+    let dropped = before - kept.len();
+    (kept, dropped)
+}
+
 /// window line in the human output exist for exactly that distinction.
 pub fn filter(records: Vec<Record>, filters: &Filters) -> Vec<Record> {
     records
@@ -987,6 +1022,55 @@ mod tests {
         AtBlock, Author, AuthorKind, AvailabilityMode, BranchRef, Engine, Isil, Page, QueryEcho,
         RecordId, SortScope, SortSpec, WindowInfo,
     };
+
+    /// The same record with the ISBNs a `020` would have given it.
+    fn with_isbns(id: &str, isbns: &[&str]) -> Record {
+        let mut record = record(id, "irrelevant", None);
+        record.isbns = isbns.iter().map(|isbn| (*isbn).to_string()).collect();
+        record
+    }
+
+    /// The sieve's three cases in one assertion: the number itself, the same edition in
+    /// its other form, and a different number.
+    #[test]
+    fn only_the_records_stating_this_isbn_survive() {
+        let records = vec![
+            with_isbns("gbv_1", &["9783828867529"]),
+            with_isbns("gbv_2", &["3828867529"]),
+            with_isbns("gbv_3", &["9783828867512"]),
+        ];
+        let (kept, dropped) = keep_isbn(records, "9783828867529");
+        let ids: Vec<&str> = kept.iter().map(|record| record.id.as_str()).collect();
+        assert_eq!(ids, ["gbv_1", "gbv_2"], "the ISBN-10 is the same edition");
+        assert_eq!(dropped, 1);
+    }
+
+    /// **A record that states no ISBN is kept.** An empty `020` is "not stated in this
+    /// record", and dropping it would turn a missing structure into a negative answer —
+    /// the one failure this crate refuses everywhere else. It is also the only reading
+    /// that cannot invent an absence: nothing here proves the record is a different book.
+    #[test]
+    fn a_record_that_states_no_isbn_is_never_dropped() {
+        let records = vec![
+            with_isbns("gbv_1", &[]),
+            with_isbns("gbv_2", &["9783828867512"]),
+        ];
+        let (kept, dropped) = keep_isbn(records, "9783828867529");
+        let ids: Vec<&str> = kept.iter().map(|record| record.id.as_str()).collect();
+        assert_eq!(ids, ["gbv_1"]);
+        assert_eq!(dropped, 1);
+    }
+
+    /// A value in `020` that is not an ISBN at all — a price, a vendor id — is not a
+    /// match and does not rescue the record either. What rescues a record is having
+    /// **no** ISBN; having one that is unreadable is still having one.
+    #[test]
+    fn an_unreadable_020_does_not_count_as_a_match() {
+        let records = vec![with_isbns("gbv_1", &["(MiAaPQ)EBC6507603"])];
+        let (kept, dropped) = keep_isbn(records, "9783828867529");
+        assert!(kept.is_empty());
+        assert_eq!(dropped, 1);
+    }
 
     fn record(id: &str, title: &str, year: Option<i32>) -> Record {
         Record {

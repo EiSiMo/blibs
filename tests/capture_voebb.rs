@@ -3,7 +3,7 @@
 //! Every test in this file is `#[ignore]`d and hits the live service. They exist because
 //! voebb.de cannot be captured the way the KOBV side can: a search there is session-bound
 //! — a cookie, a hidden `identity` that changes with every response, and a `requestCount`
-//! that has to match — so the `curl` recipes in `plan/scraping.md` § *Fixtures* have no
+//! that has to match — so the plain `curl` recipe that refreshes a KOBV fixture has no
 //! voebb equivalent. Replaying that flow by hand is what a captured fixture is supposed to
 //! save, so the flow itself does the capturing.
 //!
@@ -75,7 +75,7 @@ fn save(relative: &str, body: &str) {
 ///
 /// This is the page `parse_results` could not read: it reported `selector "div#R06
 /// p.info" matched nothing` and exit 6 for what is an ordinary empty result. Without the
-/// page there is no positive marker to recognise it by, and CLAUDE.md forbids the
+/// page there is no positive marker to recognise it by, and this crate forbids the
 /// alternative — a missing selector must never be turned into an empty result.
 #[test]
 #[ignore = "hits the live voebb.de service; run with --ignored"]
@@ -106,7 +106,7 @@ fn capture_a_zero_hit_result_page() {
 }
 
 /// The same empty answer, but through the **advanced** form — the path a field flag
-/// takes. `plan/next.md` point 9 was first reported against this one
+/// takes. The reproducible crash was first reported against this one
 /// (`--title "Prometheus LernAtlas" Skelett --at AGB`), and it stayed broken after the
 /// simple search's empty page was understood, so aDISWeb evidently phrases or places the
 /// notice differently here.

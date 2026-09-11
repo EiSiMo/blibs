@@ -98,6 +98,56 @@ fn verify(expected: char, given: char, scheme: IsbnScheme) -> Result<(), IsbnPro
     }
 }
 
+/// Whether a record's own ISBN is the one that was searched for.
+///
+/// Needed because the identifier index is coarser than the question: it discards hyphens,
+/// the `978`/`979` prefix **and the check digit**, so a search for one ISBN answers with
+/// every record whose number agrees in the middle nine digits. Sieving those out again
+/// needs a comparison the index does not make, and this is it.
+///
+/// Both sides are compared in their 13-digit form, because the same edition is catalogued
+/// as an ISBN-10 in one record and as an ISBN-13 in the next and they are the same book.
+/// Anything that is not a well-formed ISBN on either side is **not** a match — not an
+/// error and not a wildcard: a record whose `020` holds something this function cannot
+/// read is a record that says nothing about the question, and the caller keeps such a
+/// record rather than dropping it.
+pub fn same_book(searched: &str, candidate: &str) -> bool {
+    match (isbn13(searched), isbn13(candidate)) {
+        (Some(left), Some(right)) => left == right,
+        _ => false,
+    }
+}
+
+/// One ISBN in its 13-digit form, or `None` if it is not an ISBN at all.
+///
+/// An ISBN-10 becomes `978` plus its first nine digits plus a freshly computed check
+/// digit — the conversion the standard defines, and the reason it is safe here is that
+/// the nine digits carry the whole identity; both check digits are derived from them.
+/// The check digit of the input is **not** verified: `--isbn` has already been through
+/// [`parse`], and a record's own number is what the record says, right or wrong. What is
+/// rejected is a length or a character that cannot be an ISBN in any reading.
+fn isbn13(value: &str) -> Option<String> {
+    let compact: Vec<char> = compact(value).into_iter().map(fold_x).collect();
+    match compact.len() {
+        10 => {
+            let body: Vec<char> = compact.get(..9)?.to_vec();
+            if !body.iter().all(char::is_ascii_digit) {
+                return None;
+            }
+            let mut thirteen: Vec<char> = "978".chars().chain(body).collect();
+            thirteen.push(mod10_check(&thirteen));
+            Some(thirteen.into_iter().collect())
+        }
+        13 => {
+            if !compact.iter().all(char::is_ascii_digit) {
+                return None;
+            }
+            Some(compact.into_iter().collect())
+        }
+        _ => None,
+    }
+}
+
 /// Fold a lowercase check `x` to the canonical `X`; everything else passes through.
 fn fold_x(c: char) -> char {
     if c == 'x' { 'X' } else { c }
@@ -296,5 +346,43 @@ mod tests {
     fn every_residue_has_a_symbol() {
         let symbols: Vec<char> = (0..=10).map(symbol).collect();
         assert_eq!(symbols.iter().collect::<String>(), "0123456789X");
+    }
+
+    /// The whole point of the function: the index answers a search for one ISBN with the
+    /// neighbours that share its first twelve digits, and they are different books.
+    #[test]
+    fn a_neighbouring_check_digit_is_not_the_same_book() {
+        // 978-3-16-148410-0 is well formed and unassigned; ...-9 is Popper's *Logik der
+        // Forschung*. The index returns the second for a search for the first.
+        assert!(!same_book("9783161484100", "9783161484109"));
+        assert!(same_book("9783161484100", "978-3-16-148410-0"));
+    }
+
+    /// The same edition is an ISBN-10 in one record and an ISBN-13 in the next.
+    #[test]
+    fn the_ten_and_thirteen_digit_forms_of_one_edition_match() {
+        assert!(same_book("9783465046639", "3465046633"));
+        assert!(same_book("3465046633", "9783465046639"));
+        assert!(same_book("3-465-04663-3", "978-3-465-04663-9"));
+    }
+
+    /// An ISBN-10 whose check digit is `X` still converts: the nine digits carry the
+    /// identity and the 13-digit check is computed fresh, which for this number is `0`.
+    #[test]
+    fn an_x_check_digit_converts() {
+        assert!(same_book("316148410X", "9783161484100"));
+        assert!(!same_book("316148410X", "9783161484109"));
+    }
+
+    /// Not an ISBN on either side is not a match, and never a wildcard — the caller is
+    /// keeping records it cannot judge, so a `true` here would drop them instead.
+    #[test]
+    fn anything_that_is_not_an_isbn_matches_nothing() {
+        assert!(!same_book("9783161484100", ""));
+        assert!(!same_book("9783161484100", "3161484"));
+        assert!(!same_book("9783161484100", "EUR 24,00"));
+        assert!(!same_book("", "9783161484100"));
+        // An ISSN is eight characters and is not an ISBN in any reading.
+        assert!(!same_book("00029549", "00029549"));
     }
 }

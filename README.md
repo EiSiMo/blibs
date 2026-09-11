@@ -359,6 +359,7 @@ field is *absent* when there is nothing to say, rather than an empty array.
 | `record_schema_unknown` | ✓ | | a record arrived in a schema this tool cannot read |
 | `window_filter_empty` | ✓ | | `--format`/`--language` matched none of the fetched records |
 | `duplicate_records_dropped` | ✓ | | the catalogue delivered one record twice in this window |
+| `isbn_neighbours_dropped` | ✓ | | `--isbn`: records carrying a different ISBN were dropped |
 | `result_order_unstable` | ✓ | | from page two on: consecutive pages may overlap or skip |
 | `availability_filter_unstated` | ✓ | | `--available` hid records the service says nothing about |
 | `voebb_free_terms_as_title` | ✓ | | free words next to a field flag were searched as a title |
@@ -467,9 +468,16 @@ next.
   there would be nothing to judge on.
 - **Subject headings are mixed-language and untranslated.** `--subject Recht` and
   `--subject law` are different searches; both can return hits.
-- **ISBN check digits are verified before anything is sent.** The upstream identifier
-  index discards them, so a mistyped ISBN would otherwise return a different book, not an
-  empty result. An ISSN is accepted the same way.
+- **An ISBN answers with that ISBN, or with nothing.** The check digit is verified before
+  anything is sent, because the upstream identifier index discards it — measured, a search
+  for `9783596294336` and for `…330` and `…331` returns the same 18 records, and so does
+  the ISBN-10 form. That blindness also lets the index answer with records whose own `020`
+  holds a different number, so those are dropped before anything is counted: the page can
+  be shorter than the count above it, an `isbn_neighbours_dropped` note says by how much,
+  and an answer in which *no* record carries the ISBN is exit 1 that says so rather than a
+  page of somebody else's editions. A record that states no ISBN at all is kept — silence
+  is not a different number. An ISSN is verified the same way and needs no sieve; there
+  the check digit is significant upstream.
 - **Language codes are the bibliographic ones.** `--language ger`, not `deu` and not `de`;
   the terminology code is refused with the bibliographic one named.
 - **A VÖBB branch (`AGB`) needs the second engine, `voebb.de`.** A KOBV record never says

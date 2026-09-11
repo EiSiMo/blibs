@@ -26,9 +26,9 @@ use crate::error::{Blast, EmptyReason, Error, Outcome, UnexpectedError};
 use crate::http::{Fetch, scope_map};
 use crate::libraries::{self, Branch, Library};
 use crate::model::{
-    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Location, LocationRefusal, Note,
-    QueryEcho, SearchRequest, SearchResult, ShowResult, SortKey, SortScope, SortSpec, WindowInfo,
-    note_kinds, past_the_last_result_note, window_too_deep_note,
+    AtBlock, AvailabilityMode, Catalog, Engine, EngineSearch, Identifier, Location,
+    LocationRefusal, Note, QueryEcho, SearchRequest, SearchResult, ShowResult, SortKey, SortScope,
+    SortSpec, WindowInfo, note_kinds, past_the_last_result_note, window_too_deep_note,
 };
 use crate::render::{self, Style};
 use crate::select;
@@ -94,6 +94,10 @@ struct EngineOutcome {
     /// What `--available` removed from this engine's page, split into "said no" and
     /// "said nothing".
     hidden: select::Hidden,
+    /// How many records the ISBN sieve dropped as neighbours of the number asked for.
+    /// Carried so that an empty answer can say *why* it is empty instead of advising the
+    /// user to try fewer words they never typed.
+    neighbours: usize,
 }
 
 /// `search`: one thread per engine, then one document out of all of them.
@@ -106,8 +110,13 @@ fn run_search(
 ) -> Result<Outcome, Error> {
     let engines = search_engines(plan, fetch)?;
     let unstated = unstated_hidden(&engines.outcomes);
+    let neighbours = engines
+        .outcomes
+        .iter()
+        .map(|outcome| outcome.neighbours)
+        .sum();
     let result = assemble_result(plan, engines, unstated);
-    let outcome = outcome_of(plan, &result, unstated);
+    let outcome = outcome_of(plan, &result, unstated, neighbours);
 
     if plan.json {
         render::json::write(&result, out)?;
@@ -264,6 +273,33 @@ fn search_one_engine(
             ),
         ));
     }
+    // Before every filter and before every count, because these records were never
+    // answers: the identifier index discards the check digit, so a `--isbn` search is
+    // answered with the editions whose numbers agree in the middle nine digits too.
+    let (deduplicated, neighbours) = match &plan.query.identifier {
+        Some(Identifier::Isbn(isbn)) => select::keep_isbn(deduplicated, isbn),
+        // An ISSN's check digit *is* significant upstream, so its answer needs no sieve —
+        // and no record carries an ISSN in a field this crate parses, so a sieve here
+        // could only ever drop everything.
+        _ => (deduplicated, 0),
+    };
+    if neighbours > 0 {
+        search.fetched = search.fetched.saturating_sub(neighbours);
+        // `total` is left as the catalogue stated it. It counts what the *index* matched,
+        // which is exactly what this note is about — and replacing it with the number of
+        // survivors would state a count of the window as if it were a count of the
+        // result, which is a worse claim than the one being explained.
+        search.notes.push(Note::new(
+            note_kinds::ISBN_NEIGHBOURS_DROPPED,
+            format!(
+                "the catalogue's identifier index ignores the check digit, so the count \
+                 beside this search also covers records that carry a different one; {} in \
+                 this window did, and {} dropped",
+                records(neighbours),
+                if neighbours == 1 { "was" } else { "were" }
+            ),
+        ));
+    }
     if engine == Engine::Kobv && plan.page.get() > 1 {
         search.notes.push(Note::new(
             note_kinds::RESULT_ORDER_UNSTABLE,
@@ -341,6 +377,7 @@ fn search_one_engine(
         after_filter,
         before_available,
         hidden,
+        neighbours,
     })
 }
 
@@ -699,9 +736,21 @@ fn too_deep_keys<'a>(plan: &'a Plan, too_deep: &TooDeep) -> Vec<&'a str> {
 /// comes first because those records exist and are merely out, and the *filtered* window
 /// comes before the *sorted* one because when both anchored the window it was the filter
 /// that removed records.
-fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize) -> Outcome {
+fn outcome_of(plan: &Plan, result: &SearchResult, unstated: usize, neighbours: usize) -> Outcome {
     if result.shown > 0 {
         return Outcome::Found;
+    }
+    // Before every other reason, because it is the only one that did not come from the
+    // catalogue: the records exist, they were delivered, and blibs dropped them because
+    // none of them is the book that was asked for. Every reason below would talk about
+    // words, filters or libraries, and none of those is what happened here.
+    if let Some(Identifier::Isbn(isbn)) = &plan.query.identifier
+        && neighbours > 0
+    {
+        return Outcome::Empty(EmptyReason::IsbnNotHeld {
+            isbn: isbn.clone(),
+            neighbours,
+        });
     }
     // First, and only when the filter had something to judge: these records *are* there
     // and they *are* held here, they are merely not in. Falling through would offer
