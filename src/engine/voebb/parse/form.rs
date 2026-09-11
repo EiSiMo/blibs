@@ -4,7 +4,7 @@
 //! form. Two of its hidden fields are single-use — `identity` changes with **every**
 //! response and `requestCount` counts up — so the state is read out of the page that was
 //! just received and never written by hand; sending a stale one produces a `/noaccess`
-//! page with status 200 (`plan/voebb.md` § *Die Seite*).
+//! page with status 200.
 //!
 //! The buttons are read out of the page for the same reason: a button's `focus` value is
 //! its `data-fld`, and that differs from page to page ( *Erweiterte Suche* is
@@ -65,7 +65,7 @@ pub mod fields {
     pub const SEARCH_SCOPE: &str = "$Select";
     /// The only scope this tool sends: the network's physical and electronic holdings.
     /// Not the branch selector — that vocabulary is coarser than the facet's and does not
-    /// even contain the AGB (`plan/voebb.md` § *Einfeldsuche*).
+    /// even contain the AGB.
     pub const SCOPE_HOLDINGS: &str = "Bibliotheksbestand";
 
     /// One of these per ticked facet box, carrying the checkbox element's **id**

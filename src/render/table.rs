@@ -245,8 +245,8 @@ pub enum Column {
     /// Sized to its widest cell, and the first to give way when the row does not fit.
     Auto,
     /// Always exactly this wide, whatever the content. This is what reproduces the
-    /// example output in `plan/cli.md`, whose columns do not depend on the records that
-    /// happen to be on the page.
+    /// example output, whose columns do not depend on the records that happen to be on
+    /// the page.
     Fixed(usize),
     /// Sized to its widest cell but never narrower than `ideal`, giving way down to
     /// `min` but no further — the title column, which absorbs the shortfall for
@@ -254,11 +254,10 @@ pub enum Column {
     ///
     /// The two numbers are what a fixed width cannot express at once: `ideal` is the
     /// width the column keeps when everything in it is shorter, which is what pins the
-    /// example layouts in `plan/cli.md` to their stated columns; content wider than that
-    /// widens the column instead of being cut, as long as the row has the room. **Never
-    /// pre-shorten a cell to `ideal` at the call site** — that caps the column at the
-    /// constant even in a wide terminal, and lets a narrowed column cut a value that was
-    /// complete.
+    /// example layouts to their stated columns; content wider than that widens the
+    /// column instead of being cut, as long as the row has the room. **Never pre-shorten
+    /// a cell to `ideal` at the call site** — that caps the column at the constant even
+    /// in a wide terminal, and lets a narrowed column cut a value that was complete.
     Flex {
         /// The width the column takes when no cell in it is wider.
         ideal: usize,
@@ -327,7 +326,7 @@ impl Layout {
     }
 
     /// Change the gap between columns. Zero is right when the widths already include
-    /// their own padding, which is how the examples in `plan/cli.md` are written.
+    /// their own padding, which is how the examples are written.
     #[must_use]
     pub fn with_gap(mut self, gap: usize) -> Self {
         self.gap = gap;
@@ -668,8 +667,8 @@ mod tests {
         assert!(!Cell::new("almafu_BV008885798").whole().truncatable);
     }
 
-    /// The `--at` example in `plan/cli.md`, character for character. The widths there
-    /// include their own padding, so the gap is zero.
+    /// The `--at` example, character for character. The widths there include their own
+    /// padding, so the gap is zero.
     #[test]
     fn the_grouped_example_row_is_reproducible() {
         let layout = Layout::new(vec![

@@ -43,8 +43,9 @@ pub trait Catalog: Sync {
 /// an e-lending title nowhere but in the text of its access link, so such a record arrives
 /// with an empty `items[]` and a note is the *only* thing that explains it — and the
 /// engines used to drop those notes on the floor, leaving `blibs show` of an Overdrive
-/// title with a silently empty copy list. That is the failure mode CLAUDE.md forbids above
-/// all others: an empty list is indistinguishable from "held nowhere". `Kobv::show` lost
+/// title with a silently empty copy list. That is the failure mode this crate forbids
+/// above all others: an empty list is indistinguishable from "held nowhere". `Kobv::show`
+/// lost
 /// the availability notes to the same signature.
 ///
 /// The notes join the ones [`crate::model::ShowResult::new`] derives from the record

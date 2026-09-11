@@ -23,11 +23,11 @@
 //!   URL. None of that may read as "this library holds nothing".
 //! - **The branch is read from the `bibids=` link, never from the cell text.** The text is
 //!   a placeholder (`Library`, `Bibliothek`, `'`) in almost half of all rows, and matching
-//!   on it hits nothing for 59 of 67 distinct texts (`plan/scraping.md` §B.5.1).
+//!   on it hits nothing for 59 of 67 distinct texts.
 //! - **A location or branch name can start with a bare join comma.** When the portal has
 //!   no house name to put in front of it, the `, <branch>` join it normally writes between
-//!   two names still comes through with nothing before it — `comma_prefix.json`,
-//!   `plan/feedback_round_3.md` §3.2. [`LEADING_SEPARATORS`] cuts it.
+//!   two names still comes through with nothing before it — `comma_prefix.json`.
+//!   `LEADING_SEPARATORS` cuts it.
 
 use std::sync::OnceLock;
 
@@ -53,8 +53,8 @@ const PLACEHOLDERS: &[&str] = &["Library", "Bibliothek", "'"];
 /// it to a free-text suffix (`ZB Grimm-Zentrum</a>, 3. OG / Bereich B - Freihandbestand`).
 /// For `BIB000000004` the same service writes the join with nothing in front of it, so the
 /// link text itself starts with it: `<a …>, Unter den Linden</a>` — confirmed against the
-/// live portal, `plan/feedback_round_3.md` §3.2, `comma_prefix.json`. Carried through
-/// unstripped, the location and the branch name both start with a comma nobody asked for.
+/// live portal in `comma_prefix.json`. Carried through unstripped, the location and the
+/// branch name both start with a comma nobody asked for.
 ///
 /// Only the comma is listed. `;`, `·`, `-` and `/` also join parts of these cells
 /// (`1945,Mai-Dez.; 1946,Jan.-Juni`, `Bereich B - Freihandbestand`,
@@ -150,8 +150,8 @@ pub fn parse(json: &str) -> Result<AvailabilityResponse, Error> {
 /// One traffic light per ISIL, **in the response's key order**.
 ///
 /// The order is load-bearing: the shelf-table fragment carries no ISIL at all, so the
-/// blocks of copies are matched against these keys positionally (`plan/scraping.md`
-/// §B.5.1). That is why `serde_json` is built with `preserve_order`.
+/// blocks of copies are matched against these keys positionally. That is why `serde_json`
+/// is built with `preserve_order`.
 fn statuses_by_isil(availability: OrderedIsils, notes: &mut Vec<Note>) -> Vec<(Isil, Status)> {
     availability
         .0
@@ -241,7 +241,7 @@ pub fn parse_fragment(html: &str) -> Result<Vec<ItemGroup>, Error> {
 /// a `hasAvailability: false`, a group left without an ISIL. Never drops a group and
 /// never invents an ISIL for one.
 ///
-/// Three stages, in the order `plan/scraping.md` §B.5.1 settles them:
+/// Three stages, in this order:
 ///
 /// 1. **Positional.** Equal numbers of ISILs and groups means the *n*-th group belongs to
 ///    the *n*-th ISIL — measured to hold in 43 of 43 responses. Wherever the library list
@@ -584,7 +584,7 @@ struct Envelope {
     data: Option<Data>,
 }
 
-/// The members measured in `plan/scraping.md` §B.5.
+/// The measured members.
 #[derive(serde::Deserialize)]
 struct Data {
     html: Option<String>,
@@ -849,9 +849,8 @@ mod tests {
         assert_eq!(parsed_order, raw_order);
     }
 
-    /// The measured claim of `plan/scraping.md` §B.5.1: matching by position and matching
-    /// by portal name give the same answer. If this ever fails, the assumption behind
-    /// stage 1 is gone.
+    /// The measured claim: matching by position and matching by portal name give the same
+    /// answer. If this ever fails, the assumption behind stage 1 is gone.
     #[test]
     fn positional_and_name_based_matching_agree_on_every_fixture() {
         for json in [
@@ -1017,10 +1016,9 @@ mod tests {
         assert_eq!(response.by_isil[1].1, Status::PossiblyAvailable);
     }
 
-    /// `comma_prefix.json` (`plan/feedback_round_3.md` §3.2): the portal's location link
-    /// is `<a …>, Unter den Linden</a>` — the house name in front of the join comma is
-    /// empty, but the comma itself still comes through. Both fields it feeds must lose the
-    /// comma, not just the link text.
+    /// `comma_prefix.json`: the portal's location link is `<a …>, Unter den Linden</a>` —
+    /// the house name in front of the join comma is empty, but the comma itself still
+    /// comes through. Both fields it feeds must lose the comma, not just the link text.
     #[test]
     fn a_bare_join_comma_is_cut_from_location_and_branch_name() {
         let response = parsed(COMMA_PREFIX);

@@ -1,8 +1,6 @@
 //! MARC to [`Record`].
 //!
-//! One function per output field, each independently testable against a fixture. Which
-//! MARC field fills which output field is settled in `plan/marc-mapping.md` and is not
-//! re-derived here.
+//! One function per output field, each independently testable against a fixture.
 //!
 //! The `924` rules are the ones with teeth: subfields are always `$a$b$c$d`, `$d` is
 //! ignored, `$b` is the ISIL and `$a` the library's own record number, an ISIL may occur
@@ -217,9 +215,8 @@ fn title(field: Option<&Field>) -> String {
 /// ISBD prescribes `. `, but a part that already ends in a sentence-final mark has closed
 /// itself, and the prescribed stop then arrives as a second one: `Die Briefe Kaiser
 /// Wilhelms I.. Band 1`, or `Deutsche Dunciade .... Th. 1` out of an ellipsis. Trimming
-/// that mark instead is not the fix — `plan/marc-mapping.md` § *Endinterpunktion* keeps it
-/// because the ordinal and the abbreviation need it — so the separator gives way instead
-/// and joins with a plain space.
+/// that mark instead is not the fix — the ordinal and the abbreviation need it — so the
+/// separator gives way instead and joins with a plain space.
 ///
 /// Measured over 492 records: 109 volume designations are appended, 12 of them to a title
 /// ending in `.`. `?` ends one title in the same sample (`Koranforschung – eine politische
@@ -633,9 +630,8 @@ fn format(marc: &MarcRecord, online: bool) -> Format {
 /// binding — taking any of them would either list a wrong number or list every ISBN twice.
 ///
 /// The number is **normalised**: `3-8044-1755-8` is emitted as `3804417558`. That is what
-/// `plan/cli.md` § JSON states, and `plan/cli.md` is the contract — `plan/marc-mapping.md`
-/// still says "not normalised" and is the older of the two. The reason the contract wins:
-/// the same edition is hyphenated in one record and bare in the next, so an agent that
+/// the JSON contract states, and the contract wins over the record's own spelling: the
+/// same edition is hyphenated in one record and bare in the next, so an agent that
 /// compares `isbns[]` against the number it searched for would miss half the catalogue,
 /// and `--isbn` is normalised the same way before it is sent (`cli::isbn`). Re-hyphenating
 /// for display is the operation that is *not* possible here — it needs the
@@ -830,8 +826,8 @@ mod tests {
         from_marc(&marc).unwrap_or_else(|error| panic!("{id} converts: {error}"))
     }
 
-    /// The reference record used throughout `plan/`: every field populated, ISBD
-    /// punctuation on title, subtitle, place and publisher.
+    /// The reference record: every field populated, ISBD punctuation on title, subtitle,
+    /// place and publisher.
     #[test]
     fn the_reference_record_maps_every_field() {
         let record = convert("record.xml", "almafu_BV008885798");
@@ -982,8 +978,8 @@ mod tests {
         assert_eq!(record.isbns, ["3700101198"]);
     }
 
-    /// `plan/cli.md` § JSON promises bare digits, so the hyphens the record writes come
-    /// out — otherwise the same edition compares unequal to itself between two records.
+    /// The JSON contract promises bare digits, so the hyphens the record writes come out —
+    /// otherwise the same edition compares unequal to itself between two records.
     #[test]
     fn an_isbn_is_emitted_without_its_hyphens() {
         assert_eq!(normalized_isbn("3-8044-1755-8"), "3804417558");
@@ -1132,8 +1128,7 @@ mod tests {
 
     /// `245$a` is `Sämtliche Werke.` and `$p` is `zweite Abteilung.`: ISBD's separating
     /// full stop lands on a title that has already closed itself, twice in one line. The
-    /// stops in the record stay — they are the ones `plan/marc-mapping.md` keeps — and the
-    /// separator gives way instead.
+    /// stops in the record stay, and the separator gives way instead.
     #[test]
     fn a_title_that_already_ends_in_a_full_stop_is_joined_with_a_space() {
         let record = convert("nonlatin_ru.xml", "almahu_BV010644426");

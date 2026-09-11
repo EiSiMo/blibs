@@ -1,6 +1,6 @@
 //! Terminal output: one readable line per hit.
 //!
-//! Rules that the example output in `plan/cli.md` pins down character for character:
+//! Rules this output keeps:
 //!
 //! - **With `--at`, output is grouped by location** — one block per location, one line
 //!   per record, that location's copies beneath it. No flag turns this off. Without
@@ -13,15 +13,15 @@
 //!   gives one traffic light for the *title*, with no volume, and a green light would
 //!   otherwise read as a statement about the year the user wants.
 //! - **A copy that is out says when it comes back** where the catalogue states a date, in
-//!   the status cell it belongs to and never in a column of its own ([`status_text`]).
+//!   the status cell it belongs to and never in a column of its own (`status_text`).
 //! - **A library that states its holdings in prose says so at the holding**, verbatim and
-//!   wrapped, above whatever copies it also has ([`write_holdings_statement`]) — for a
+//!   wrapped, above whatever copies it also has (`write_holdings_statement`) — for a
 //!   newspaper that sentence is the entire answer.
 //! - When a client-side filter was in play, a line saying how large the window was — so
 //!   that "nothing found" is never mistaken for "nothing exists".
 //! - **A footnote about particular records names them**, under its own sentence: four
 //!   identical paragraphs saying nothing about which of ten lines they meant is what the
-//!   ids in [`Note::records`] exist to prevent ([`note_records_line`]).
+//!   ids in [`Note::records`] exist to prevent (`note_records_line`).
 //!
 //! The columns of the examples are reproduced with **[`Column::Flex`] rather than
 //! [`Column::Fixed`]** wherever the content is truncatable: the example's width is the
@@ -178,8 +178,7 @@ const LANGUAGE_NAMES: [(&str, &str); 30] = [
 /// Exactly the policy of [`LANGUAGE_NAMES`], for the same reason: a **display table, never
 /// a vocabulary**. The code stays in the JSON (`role_code`), and only the line a human
 /// reads is spelled out. The codes here are the ones that actually occur in this catalogue
-/// in any number (`plan/marc-mapping.md` § `$4`); a code that is not here is **printed as
-/// the code**.
+/// in any number; a code that is not here is **printed as the code**.
 ///
 /// Printing the bare code rather than inventing a word is the whole point: `$4` is an
 /// **open** vocabulary — `kom`, `isb`, `dgg`, `dgs` and `wac` are German extensions that no
@@ -501,7 +500,7 @@ fn write_grouped_block(
 /// The same [`select::holding_is_at`] the copy lines were selected with, and not a second
 /// spelling of the narrowing: a renderer that re-derived which holding belongs to a
 /// location would drift from the one that answered, which has already cost a green light
-/// over a book a branch had lent out (CLAUDE.md, *The traps*).
+/// over a book a branch had lent out.
 ///
 /// Empty without a location — the flat list has no copy lines to hang a statement under.
 fn holdings_at<'a>(entry: &BlockRecord<'a>, location: Option<&Location>) -> Vec<&'a Holding> {
@@ -543,10 +542,10 @@ fn write_flat_block(
     // gone by the time this runs, so the survivors' positions are not knowable here, and
     // counting the survivors would print hit 5 as 4 the moment a hidden record precedes a
     // shown one. The number is a pure reading aid — `blibs` is stateless, `show 3` cannot
-    // work, and the id is what `show` takes (`plan/cli.md` § *Für beide Formen*) — so a
-    // number that no longer knows its position is dropped rather than invented. Starting
-    // over at 1 would be the same false claim in a quieter voice: on `--page 2` those
-    // numbers belong to the records of page 1.
+    // work, and the id is what `show` takes — so a number that no longer knows its
+    // position is dropped rather than invented. Starting over at 1 would be the same
+    // false claim in a quieter voice: on `--page 2` those numbers belong to the records
+    // of page 1.
     let first = (!filtered).then(|| first_number(result));
     let numbering = first.map(|first| Numbering {
         first,
@@ -640,7 +639,7 @@ impl Footnote<'_> {
 ///
 /// The one place both `search` and `show` say this: a footnote that names records was
 /// printed identically in both paths and would otherwise be the second spelling of one
-/// rule (CLAUDE.md, *The traps*). `indent` is the note's own, and the list stands
+/// rule. `indent` is the note's own, and the list stands
 /// [`NOTE_RECORDS_INDENT`] columns further in.
 fn write_note_records(
     out: &mut dyn Write,
@@ -760,8 +759,8 @@ const ONLINE_ACCESS_KINDS: [&str; 3] = [
 /// from the window itself.
 ///
 /// The window ones exist so that a short answer is never mistaken for a complete one:
-/// a client-side filter and a client-side sort both see only the fetched records, and
-/// `plan/cli.md` forbids output that suggests otherwise.
+/// a client-side filter and a client-side sort both see only the fetched records, and the
+/// output must never suggest otherwise.
 fn footer_notes(result: &SearchResult, scoped: bool) -> Vec<Footnote<'_>> {
     // The page-wide count has to print before `AVAILABILITY_FILTER_UNSTATED`, which
     // refines it ("N of them said nothing at all"): a refinement printed above the fact
@@ -831,7 +830,7 @@ fn footer_notes(result: &SearchResult, scoped: bool) -> Vec<Footnote<'_>> {
 /// sort and the window is the honest number again.
 ///
 /// Never conditional on knowing the total: with several locations there is no joint hit
-/// count, and a sort that silently looked complete is exactly what `plan/cli.md` forbids.
+/// count, and a sort that silently looked complete is exactly what this note prevents.
 fn sort_note(result: &SearchResult) -> Option<String> {
     if result.sort.by == SortKey::Relevance {
         return None;
@@ -1013,7 +1012,7 @@ fn block_name(block: &Block<'_>, sieve: Sieve) -> String {
 /// After `--available` the range is dropped for a count —
 /// `774 results for Kafka Prozess · 3 available on this page`. The survivors are not
 /// hits 1 to 3 but three of the ten on this page, and a range would suggest exactly the
-/// completeness `plan/cli.md` § *Für beide Formen* forbids.
+/// completeness the page cannot deliver.
 ///
 /// An [`anchored`] window drops it for the same reason, and for both of the things that
 /// anchor one: `--sort year --limit 5 --page 2` printed `301 results … showing 6-10`
@@ -1059,7 +1058,7 @@ fn digits(number: u64) -> usize {
     number.to_string().len()
 }
 
-/// The columns of a record line under a location heading, as in `plan/cli.md`.
+/// The columns of a record line under a location heading.
 fn grouped_record_layout() -> Layout {
     Layout::new(vec![
         Column::Least(1),
@@ -1868,7 +1867,7 @@ fn write_holdings(
 /// the library holds more than one copy that said anything.
 ///
 /// The count is the point: one traffic light per institution summarises several houses
-/// and answers "can I go there" only by accident (`plan/usecases.md` UC-1).
+/// and answers "can I go there" only by accident.
 ///
 /// Both numbers are the **narrowed** ones. The light is [`select::HoldingAt::status`] and
 /// the count runs over [`select::HoldingAt::items`], so `show <id> --at AGB` says what the
@@ -1932,8 +1931,8 @@ fn write_holding_heading(
 /// away, and where it went.
 ///
 /// The counterpart of the narrowing itself. A branch answer that simply shows fewer copies
-/// than the house has is indistinguishable from a house that has that few, and CLAUDE.md
-/// forbids reporting a record as having no shelfmarks it does in fact have. So the copies
+/// than the house has is indistinguishable from a house that has that few, and reporting
+/// a record as having no shelfmarks it does in fact have is forbidden. So the copies
 /// that were dropped are counted and their houses named — never listed, because they are
 /// not what was asked for.
 ///
@@ -2172,8 +2171,8 @@ mod tests {
     };
     use crate::render::table::{MIN_WIDTH, pad_right, strip_ansi};
 
-    /// The width the examples in `plan/cli.md` were written for. Wide enough that no
-    /// column has to give way, which is what makes them reproducible at all.
+    /// The width the examples were written for. Wide enough that no column has to give
+    /// way, which is what makes them reproducible at all.
     const WIDE: usize = 100;
 
     fn record(id: &str, title: &str, author: &str, year: i32) -> Record {
@@ -2467,7 +2466,7 @@ mod tests {
         ]
     }
 
-    /// The three-location example, built to match `plan/cli.md` § *Mit `--at`*.
+    /// The three-location example of the grouped `--at` output.
     fn vorleser() -> (SearchResult, Vec<Location>) {
         let mut hu_first = record(
             "almahu_BV011234567",
@@ -2698,7 +2697,7 @@ mod tests {
         assert!(output.contains("online · Onleihe available"), "{output}");
     }
 
-    /// The example in `plan/cli.md` § *Mit `--at`*, character for character.
+    /// The grouped `--at` example, character for character.
     ///
     /// Two deviations, both because the example abbreviates itself:
     ///
@@ -2737,7 +2736,7 @@ AGB (VÖBB) · 35 results · showing 2
         assert_eq!(rendered(&result, &locations), expected);
     }
 
-    /// The flat example in `plan/cli.md` § *Ohne `--at`*.
+    /// The flat example, without `--at`.
     ///
     /// One deviation: the range is `showing 1-3`, not `showing 1-10`. The example lists
     /// three of the ten records it claims; the range states what was actually printed.
@@ -3055,7 +3054,7 @@ AGB (VÖBB) · 35 results · showing 2
 
     /// The flat heading counts instead of naming a range once the filter ran: the
     /// survivors are not hits 1 to 3 but three of the ten on this page, and a range is
-    /// exactly the suggestion `plan/cli.md` § *Für beide Formen* forbids.
+    /// exactly the suggestion of a completeness the page cannot deliver.
     #[test]
     fn the_flat_heading_counts_instead_of_ranging_after_the_availability_filter() {
         let ids = [
@@ -3752,7 +3751,7 @@ AGB (VÖBB) · 35 results · showing 2
         assert!(output.contains(long), "{output:?}");
     }
 
-    /// The record of `plan/cli.md` § `show`.
+    /// The record of the `show` example.
     fn prozess() -> Record {
         let mut record = record("almafu_BV008885798", "Der Prozess", "", 1953);
         record.subtitle = Some("Roman".to_owned());
@@ -3868,13 +3867,13 @@ AGB (VÖBB) · 35 results · showing 2
         ]
     }
 
-    /// The example in `plan/cli.md` § `show`.
+    /// The `show` example.
     ///
     /// Three deviations, each with a reason the data itself gives:
     ///
     /// 1. `ISBN 9783596294331`, not `978-3-596-29433-1`. Re-hyphenating needs the
     ///    registration-group ranges, which are not in this binary, and the record's own
-    ///    hyphens come out on the way in (`plan/cli.md` § JSON).
+    ///    hyphens come out on the way in.
     /// 2. `· 2 of 2 available` behind the HU name: copies are counted whenever a house
     ///    has more than one, and the example omits it there while demanding it in prose.
     /// 3. The sentence about the copy on loan, which the rules require and the example
@@ -4168,8 +4167,8 @@ almafu_BV008885798
             .collect()
     }
 
-    /// "When is it back" is a use case (`plan/usecases.md`), voebb.de answers it — eight
-    /// times on `voebb_SAK34906286` alone — and the renderer used to drop the answer.
+    /// "When is it back" is a use case, voebb.de answers it — eight times on
+    /// `voebb_SAK34906286` alone — and the renderer used to drop the answer.
     ///
     /// The date joins the status rather than opening a column of its own: most copies are
     /// in and would pay for it with an empty cell.
@@ -4634,7 +4633,7 @@ almafu_BV008885798
 
     /// The copies the branch narrowing dropped are counted and their houses named. A
     /// shorter list is otherwise indistinguishable from a library that holds that much,
-    /// and CLAUDE.md forbids reporting a record as having shelfmarks it does not have in
+    /// and reporting a record as having shelfmarks it does not have is forbidden in
     /// either direction.
     #[test]
     fn the_copies_a_branch_narrowed_away_are_stated() {

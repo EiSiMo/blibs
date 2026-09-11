@@ -7,9 +7,9 @@
 //! One host asks for less than that, and says so with its latency rather than with a
 //! header: voebb.de answers a single record page in 1.5–2.0 s, but requests that overlap
 //! are let through in ten-second steps. Four record pages cost 7.9 s one after the other
-//! and 21.7 s side by side — the parallel path is 2.7× *slower* (measured 2026-09-07,
-//! `plan/client.md`). Its cap is therefore one, which is both the faster and the politer
-//! setting; that is not a trade-off worth thinking about.
+//! and 21.7 s side by side — the parallel path is 2.7× *slower* (measured 2026-09-07). Its
+//! cap is therefore one, which is both the faster and the politer setting; that is not a
+//! trade-off worth thinking about.
 //!
 //! **Patience is the second axis, and it is per host for the same reason.** A deadline
 //! that is right for a service answering in half a second is a guillotine for one whose
@@ -36,17 +36,17 @@ const HOST_CAPS: [(&str, usize); 1] = [("www.voebb.de", 1)];
 /// How long one request may take before it is given up on, for a host that has not been
 /// measured to need more.
 ///
-/// The KOBV side answers a search in 0.8–1.3 s and an availability call in 0.3–0.6 s
-/// (`plan/client.md`), so ten seconds is already an order of magnitude of headroom there.
+/// The KOBV side answers a search in 0.8–1.3 s and an availability call in 0.3–0.6 s, so
+/// ten seconds is already an order of magnitude of headroom there.
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Hosts that need longer than [`DEFAULT_TIMEOUT`], with the deadline they get instead.
 ///
-/// **`www.voebb.de`: 30 s.** Measured 2026-09-09 (`plan/feedback_round_3.md` §1.1), with a
-/// hand-driven session running against the live site while blibs was failing on every
-/// attempt: the entry page took 7.0 s and three consecutive form submissions took
-/// **17.1 s**, 11.65 s and 11.1 s — all three answered correctly, and the 10 s deadline
-/// that was in force for every host cut all three off. Three things fix the number:
+/// **`www.voebb.de`: 30 s.** Measured 2026-09-09, with a hand-driven session running
+/// against the live site while blibs was failing on every attempt: the entry page took
+/// 7.0 s and three consecutive form submissions took **17.1 s**, 11.65 s and 11.1 s — all
+/// three answered correctly, and the 10 s deadline that was in force for every host cut
+/// all three off. Three things fix the number:
 ///
 /// - 17.1 s is the slowest single request ever measured against this host, so the deadline
 ///   has to be above it or the tool refuses answers the server is still delivering;
@@ -264,8 +264,8 @@ mod tests {
 
     /// Patience is per host, and the one host that was measured slow gets more of it than
     /// the ones that were not. Ten seconds cut off three form submissions that the server
-    /// answered correctly in 17.1, 11.65 and 11.1 s (`plan/feedback_round_3.md` §1.1), so
-    /// the deadline here has to be strictly above the slowest of them.
+    /// answered correctly in 17.1, 11.65 and 11.1 s, so the deadline here has to be
+    /// strictly above the slowest of them.
     #[test]
     fn a_measured_host_is_given_more_time_than_the_default() {
         let slowest_measured = Duration::from_millis(17_100);

@@ -5,8 +5,8 @@
 //! (ISIL) and thus to filter by holdings *upstream*. The portal's availability service
 //! answers "is it in right now", one call per record.
 //!
-//! The traps this engine has to survive are listed in `CLAUDE.md`; the two that shape the
-//! code most are that **HTTP 200 means nothing here** — diagnostics, silent truncation
+//! Two measured traps shape this code more than anything else: **HTTP 200 means nothing
+//! here** — diagnostics, silent truncation
 //! and phantom records all arrive with status 200 — and that availability **must not be
 //! batched**, because the response is keyed by ISIL and two records' keys collide.
 
@@ -193,13 +193,12 @@ impl<'f> Kobv<'f> {
 
     /// One search per institution in `--at`, up to six at a time.
     ///
-    /// Not one `@or` search over all of them: `--limit` is a promise **per block**
-    /// (`plan/cli.md` § *Menschliche Ausgabe*), and a joint search can only deliver one
-    /// window of records ranked across every location — ten hits of which nine are the
-    /// first library's would leave the second block one line long while its catalogue
-    /// holds hundreds. A window per location is the only shape that can fill every block,
-    /// and it makes the counting requests unnecessary: `numberOfRecords` of a search
-    /// restricted to one ISIL *is* that location's total.
+    /// Not one `@or` search over all of them: `--limit` is a promise **per block**, and a
+    /// joint search can only deliver one window of records ranked across every location —
+    /// ten hits of which nine are the first library's would leave the second block one
+    /// line long while its catalogue holds hundreds. A window per location is the only
+    /// shape that can fill every block, and it makes the counting requests unnecessary:
+    /// `numberOfRecords` of a search restricted to one ISIL *is* that location's total.
     ///
     /// A window per location also means a **last page** per location, and they are not the
     /// same page: `--at TU,HU --page 30 --limit 50` begins at record 1451, which HU's 2005
@@ -531,8 +530,8 @@ fn undelivered(response: &SruResponse) -> usize {
 /// institution that joined the network yesterday must still have its holding shown.
 ///
 /// `library` is the full official name, `short_name` the short one; that split is fixed by
-/// the JSON contract in `plan/cli.md`, where `library` reads "Humboldt-Universität zu
-/// Berlin, Universitätsbibliothek" next to a `short_name` of "HU Berlin".
+/// the JSON contract, where `library` reads "Humboldt-Universität zu Berlin,
+/// Universitätsbibliothek" next to a `short_name` of "HU Berlin".
 fn name_libraries(holdings: &mut [Holding]) {
     for holding in holdings {
         libraries::name_holding(holding);

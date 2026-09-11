@@ -170,8 +170,9 @@ mod tests {
     /// a different book rather than as nothing. The message has to name the digit the
     /// rest of the number implies, or the user cannot tell which position they mistyped.
     ///
-    /// `plan/cli.md` prints this ISBN with a final `1` as the correct one; the check
-    /// digit for `978-3-596-29433` is in fact `6`, so both `-1` and `-4` are rejected.
+    /// The check digit for `978-3-596-29433` is `6`, so both `-1` and `-4` are rejected.
+    /// The arithmetic is the only authority here: a specification that names a different
+    /// digit is a specification with a typo in it.
     #[test]
     fn a_broken_check_digit_names_the_expected_one() {
         assert_eq!(

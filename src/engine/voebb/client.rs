@@ -11,8 +11,7 @@
 //!   written by hand ([`Session`]).
 //! - **The visible fields are replayed too**, the way a browser would send them: the
 //!   search box and the scope select ride along on the facet filter and on every further
-//!   page, which is exactly what the measured recipe in `plan/voebb.md` § *Hausfacette*
-//!   does.
+//!   page, which is exactly what the measured house-facet exchange does.
 //!
 //! Everything runs **sequentially on one session**: the session is a state, and
 //! concurrency on it is undefined. The transport agrees — voebb.de is capped at one
@@ -298,10 +297,9 @@ impl<'f> VoebbClient<'f> {
     /// and [`Replay::SingleUse`] is how it says so. The session's `requestCount` is
     /// consumed by the *sending*, not by the answering: a submission that times out has
     /// still spent it, and replaying the same payload is a request voebb.de answers with
-    /// `/noaccess` by design (`plan/voebb.md` § *Das Absendeprotokoll*). A transport
-    /// failure here is therefore reported as what it is — the host did not answer in time
-    /// — instead of being converted into a lost session by blibs's own second attempt
-    /// (`plan/feedback_round_3.md` §1.1).
+    /// `/noaccess` by design. A transport failure here is therefore reported as what it
+    /// is — the host did not answer in time — instead of being converted into a lost
+    /// session by blibs's own second attempt.
     ///
     /// The `GET`s in this client stay repeatable: [`VoebbClient::open`] would simply start
     /// another session, and [`VoebbClient::detail`] addresses a stateless URL.
@@ -516,9 +514,8 @@ mod tests {
 
     /// The session's `requestCount` is spent by the *sending*, so a form submission that
     /// fails in transit may not be sent again — voebb.de answers the replay with
-    /// `/noaccess` by design (`plan/voebb.md` § *Das Absendeprotokoll*). The client is the
-    /// only place that knows this, and this is the assertion that it still says so
-    /// (`plan/feedback_round_3.md` §1.1).
+    /// `/noaccess` by design. The client is the only place that knows this, and this is
+    /// the assertion that it still says so.
     #[test]
     fn every_form_submission_is_declared_single_use() {
         let transport = Recording {

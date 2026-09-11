@@ -63,8 +63,8 @@ pub struct LibraryView<'a> {
     /// implied.
     #[serde(rename = "type")]
     pub kind_of_entry: EntryKind,
-    /// The shorthand `--at` takes, or `null` where the list carries no spoken one. Never
-    /// invented (`plan/libraries.md` §5, rule 5).
+    /// The shorthand `--at` takes, or `null` where the list carries no spoken one.
+    /// Never invented.
     pub alias: Option<&'a str>,
     /// Every shorthand for this house — a house may have several (`STABI`, `SBB`).
     pub aliases: &'a [String],
@@ -109,9 +109,9 @@ pub struct LibraryView<'a> {
 #[derive(Debug, serde::Serialize)]
 pub struct BranchView<'a> {
     /// Always [`EntryKind::Branch`], and the first member, exactly as in every other
-    /// object of this command — `plan/cli.md` promises that of *every* element, and an
-    /// agent that walks a document should not have to know whether it descended into a
-    /// house to know what it is holding.
+    /// object of this command — the schema promises that of *every* element, and an agent
+    /// that walks a document should not have to know whether it descended into a house to
+    /// know what it is holding.
     #[serde(rename = "type")]
     pub kind_of_entry: EntryKind,
     /// The portal's own id for the branch, which is what `items[].branch` carries.
@@ -403,7 +403,7 @@ mod tests {
         serde_json::from_slice(&out).expect("what was written is JSON")
     }
 
-    /// The error object of `plan/cli.md`, member for member.
+    /// The error object, member for member.
     #[test]
     fn the_error_object_carries_code_kind_message_and_hint() {
         let error = Error::Usage(UsageError::UnknownLibrary {
@@ -605,7 +605,7 @@ mod tests {
     }
 
     /// A branch nested in its house's document says what it is, exactly as a standalone
-    /// one does — `plan/cli.md` promises the member of *every* element.
+    /// one does — the schema promises the member of *every* element.
     #[test]
     fn a_nested_branch_states_its_kind_too() {
         let library = crate::libraries::all()

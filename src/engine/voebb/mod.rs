@@ -3,7 +3,7 @@
 //! This engine exists for one reason: the KOBV record does **not** know which branch
 //! holds a VÖBB copy (verified: `924 $b DE-609` and nothing else), and a work is
 //! scattered over many KOBV records, so a branch filter there could never prove absence.
-//! voebb.de has one entry per edition listing every branch. Evidence in `plan/voebb.md`.
+//! voebb.de has one entry per edition listing every branch.
 //!
 //! The site is aDISWeb: session-bound, form-driven, and it answers a broken form with
 //! **HTTP 200 and a `/noaccess` page** — a lost cookie, a stale `requestCount`, a missing
@@ -56,8 +56,7 @@ const ROWS_PER_PAGE: u32 = 22;
 /// How many result pages this tool is willing to walk for one window.
 ///
 /// Every page past the first is a further request on a session that must be replayed in
-/// order, so a deep window is both slow and a load on the house. Ten pages is where
-/// `plan/voebb.md` draws the line.
+/// order, so a deep window is both slow and a load on the house.
 const MAX_PAGES: u32 = 10;
 
 /// The last result position a VÖBB window may reach.
@@ -78,7 +77,7 @@ pub struct Voebb<'f> {
 /// no record blibs can read" are opposite statements: the first is an empty result
 /// (exit 1 in `show`), the second is a failure to read something that may well be there.
 /// Collapsing them makes the tool say a record does not exist when all it did was fail to
-/// parse the page — the silent wrong answer `CLAUDE.md` forbids above all others.
+/// parse the page — the silent wrong answer this crate forbids above all others.
 enum Detail {
     /// The page, parsed. Boxed because it is much the largest of the three and clippy is
     /// right that a `Result` should not pay for it on every call.
@@ -269,8 +268,7 @@ impl Catalog for Voebb<'_> {
     ///
     /// The branch facet is a real upstream filter (71 hits → 35, exactly the number the
     /// facet states), so `at[].total` is the branch's own count and the window pages
-    /// through the *filtered* list. The window problem of `plan/cli.md` does not arise
-    /// here.
+    /// through the *filtered* list. The window problem does not arise here.
     ///
     /// The records carry only what a result row states — id, title, responsibility, year,
     /// material type. Copies come from the record pages in [`Self::fill_availability`],
@@ -388,7 +386,7 @@ impl Catalog for Voebb<'_> {
     ///
     /// ## Where this path parts from the search path, and why
     ///
-    /// Both go through [`Self::detail`], so an unreadable **item table** costs the record
+    /// Both go through `Self::detail`, so an unreadable **item table** costs the record
     /// its copies in either form: [`parse_detail`](detail::parse_detail) keeps the record
     /// and attaches the note, `show` prints both and exits 0. That is the shape both
     /// measured failures had, and it is one rule in one function.

@@ -5,8 +5,8 @@
 //! before every other parser and turns it into
 //! [`crate::error::UnexpectedError::VoebbNoAccess`], exit 6.
 //!
-//! `plan/voebb.md` lists three signals, cheapest first: the end URL ends in `/noaccess`,
-//! the document has **no `<form>`** (every real page has `Form0`), and the text says
+//! Three signals mark such a page, cheapest first: the end URL ends in `/noaccess`, the
+//! document has **no `<form>`** (every real page has `Form0`), and the text says
 //! *Bitte schließen Sie diesen Reiter*. The URL is the client's to check; this function
 //! has only the body, so it uses the other two — and requires both, so that a page that
 //! merely lost its form produces a selector error naming what is missing instead of a

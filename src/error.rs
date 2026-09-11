@@ -361,9 +361,9 @@ fn nothing_available_message(total: Option<u64>, judged: usize, unstated: usize)
 /// selectors no longer match may become a note instead of taking nine sound hits down with
 /// it. The next case was not a document at all. `--at TU,HU --page 30` came back as exit 5
 /// with **no block whatsoever**, because TU's 1106 hits end where HU's 2005 are still
-/// running, and TU's refusal was raised as the whole invocation's
-/// (`plan/feedback_round_3.md` §1.2). Nothing about kind could have caught that; the thing
-/// the two cases share is that neither failure owned the run.
+/// running, and TU's refusal was raised as the whole invocation's. Nothing about kind
+/// could have caught that; the thing the two cases share is that neither failure owned
+/// the run.
 ///
 /// So this names the owner, and every level that composes work applies **one** rule to it:
 /// a failure is raised by whatever it owns, and becomes a note inside anything larger.
@@ -566,7 +566,7 @@ pub enum UsageError {
     /// The identifier index ignores the check digit, so a typo returns the *wrong* book.
     ///
     /// The leading word is not always "ISBN": an 8-digit input is an ISSN, and a length
-    /// that fits neither scheme cannot claim one — [`IsbnProblem::scheme_word`] picks it.
+    /// that fits neither scheme cannot claim one — `IsbnProblem::scheme_word` picks it.
     #[error("invalid {} {input:?}: {problem}", .problem.scheme_word())]
     Isbn {
         /// What the user typed.
@@ -1325,8 +1325,8 @@ impl RejectedError {
     }
 
     /// The remedy depends on *which* diagnostic came back, so it hangs off the URI. The
-    /// codes are the ones measured against `k2` (`plan/scraping.md` §A.5,
-    /// `plan/cql-verified.md`); several of them can only mean a bug in blibs, and say so.
+    /// codes are the ones measured against `k2`; several of them can only mean a bug in
+    /// blibs, and say so.
     pub fn hint(&self) -> Option<String> {
         let hint = match self {
             RejectedError::Diagnostic { uri, .. } => match diagnostic_code(uri) {
@@ -1452,9 +1452,8 @@ pub enum UnexpectedError {
     /// is single-use ([`crate::http::Replay::SingleUse`]): a slow answer used to be cut off
     /// at ten seconds and the identical payload sent again, which spent the session's
     /// `requestCount` a second time and produced exactly this page — so a search the server
-    /// had answered correctly reached the user as "the site has changed"
-    /// (`plan/feedback_round_3.md` §1.1). A slow host is now a
-    /// [`NetworkError::Timeout`] and says so; what is left here is the site's own state,
+    /// had answered correctly reached the user as "the site has changed". A slow host is
+    /// now a [`NetworkError::Timeout`] and says so; what is left here is the site's own state,
     /// which is what the hint may finally talk about.
     #[error("the voebb.de session was lost during {step}")]
     VoebbNoAccess {
@@ -1933,15 +1932,14 @@ mod tests {
         assert_eq!(ExitCode::Unexpected.code(), 6);
     }
 
-    /// The exact object from `plan/cli.md` § Fehler — members, order and wording.
+    /// The exact error object — members, order and wording.
     ///
     /// The `hint` moved with §1.11/§3.7: it used to say "run `blibs libraries --find
     /// <name>` to look up a library", a pointer into a list that contains no branch, and
     /// it never mentioned that `--at` splits on commas. It moved once more in phase 6:
     /// `blibs libraries VOEBB` listed the branches of *one* house and left the reader to
     /// guess which, while `--branches` — which did not exist when the first wording was
-    /// written — lists every branch of every house. `plan/cli.md` carries the old wording
-    /// and is corrected in the same phase.
+    /// written — lists every branch of every house.
     #[test]
     fn unknown_library_serialises_exactly_as_specified() {
         let error: Error = UsageError::UnknownLibrary {
@@ -2266,7 +2264,7 @@ mod tests {
     }
 
     /// An empty result is exit 1, and its text must distinguish "the catalogue has
-    /// nothing" from "the window had nothing" — `plan/cli.md` pins this wording.
+    /// nothing" from "the window had nothing". The wording is pinned by this test.
     #[test]
     fn a_filtered_out_window_says_so_and_exits_one() {
         let outcome = Outcome::Empty(EmptyReason::FilteredOut {

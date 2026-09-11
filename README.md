@@ -48,6 +48,12 @@ cargo build --release
 
 Requires Rust 1.88 or later (edition 2024) — let-chains, which both blibs and `scraper` use.
 
+The crate also builds a library target, because the binary and the integration tests are
+built from it. **It is not a public API**: nothing under `blibs::` carries a stability
+guarantee, and any release may rename or remove any of it. What is stable is what this
+file documents — the command line, the JSON schema, the `notes[].kind` vocabulary and the
+exit codes.
+
 ## Quickstart
 
 ```sh

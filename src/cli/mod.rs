@@ -41,7 +41,7 @@ pub use validate::{validate, validate_libraries, validate_show};
 
 /// Examples and the exit-code table, printed under the top-level help.
 ///
-/// The exit codes are part of the public interface (`plan/cli.md`), and an agent that
+/// The exit codes are part of the public interface, and an agent that
 /// reads only `--help` must find them there rather than in a repository somewhere.
 const AFTER_HELP: &str = "\
 Examples:
@@ -795,8 +795,8 @@ mod tests {
     use super::*;
     use crate::error::{Error, UsageError};
 
-    /// §3.1 of `plan/feedback_round_3.md`, measured: `blibs --json search Kafka --format
-    /// buch` pointed the hint at `blibs --help`, which does not even list `--format` —
+    /// Measured: `blibs --json search Kafka --format buch` pointed the hint at
+    /// `blibs --help`, which does not even list `--format` —
     /// clap only attaches `--format`'s owning page to the *human* rendering, and there it
     /// does so on its own, outside anything this crate builds.
     ///

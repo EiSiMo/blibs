@@ -1,7 +1,7 @@
 //! One bibliographic record and what is known about its copies.
 //!
 //! The field order in these structs is the field order of the JSON document. It is part
-//! of the contract in `plan/cli.md`; reordering is a break, not a cosmetic change.
+//! of the JSON contract; reordering is a break, not a cosmetic change.
 
 use crate::model::{Isil, RecordId};
 
@@ -440,7 +440,7 @@ mod tests {
     use super::*;
 
     /// Every leader combination observed in the 1396-record sample, plus the two shifted
-    /// leaders. Source: `plan/marc-mapping.md` § format.
+    /// leaders.
     #[test]
     fn the_observed_leader_combinations_map_as_measured() {
         let cases = [

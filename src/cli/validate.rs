@@ -40,8 +40,8 @@ use crate::select::Filters;
 /// The characters that would be truncation operators in a catalogue that had any.
 const WILDCARDS: [char; 2] = ['*', '?'];
 
-/// Written forms of a range. The ASCII hyphen is the one `plan/cli.md` names; the dashes
-/// and the ellipsis are what a copy from a printed citation produces, and all of them
+/// Written forms of a range. The ASCII hyphen is the one a user types; the dashes and the
+/// ellipsis are what a copy from a printed citation produces, and all of them
 /// would come back as zero hits without a word of explanation.
 const RANGE_MARKERS: [&str; 4] = ["-", "\u{2013}", "\u{2014}", ".."];
 
@@ -168,7 +168,7 @@ pub fn validate_show(args: &ShowArgs, json: bool, cache: bool) -> Result<ShowPla
 /// Validate a `libraries` invocation.
 ///
 /// `--near` is where most of the refusing happens: it takes coordinates or a library,
-/// blibs geocodes nothing, and [`point`] tells the four ways of missing that apart.
+/// blibs geocodes nothing, and `point` tells the four ways of missing that apart.
 ///
 /// **A positional key is resolved here, and a miss is a usage error** — the same exit 2,
 /// the same `did you mean STABI?` that `--at STABI2` gives. The key names one library the
@@ -567,15 +567,15 @@ fn bibliographic_variant(code: &str) -> Option<&'static str> {
 /// **Whose refusal it is, is the whole point.** Until 2026-09-09 one VÖBB branch anywhere
 /// in `--at` made this the invocation's error, so `--at HU,AGB --page 20 --limit 20` was
 /// exit 2 with no block at all although HU reaches record 400 without effort — one
-/// location's ceiling deciding for every other, which is the unevenness
-/// `plan/feedback_round_3.md` §1.2 reported for the KOBV side one step later. The
+/// location's ceiling deciding for every other, which is the same unevenness the KOBV
+/// side had one step later. The
 /// returned keys are the locations that are *not* searched; they get an empty block and
 /// [`crate::model::note_kinds::LOCATION_WINDOW_TOO_DEEP`], and every other location
 /// answers.
 ///
 /// **Exit 2 survives for the run that is nothing but those locations**, and it stays exit
-/// 2 rather than becoming the KOBV side's exit 5 (`plan/cli.md` § *Exit-Codes*): here the
-/// ceiling is known before a byte goes out, so the refusal can be a usage error, and no
+/// 2 rather than becoming the KOBV side's exit 5: here the ceiling is known before a byte
+/// goes out, so the refusal can be a usage error, and no
 /// note can help a user whose every block would be empty.
 ///
 /// The window that is measured is the one the user is asking the service for, which is
@@ -881,7 +881,7 @@ mod tests {
         }
     }
 
-    // ---- the table "Was cli abfangen muss" from plan/cli.md, one test per row ----
+    // ---- everything `cli` has to catch before a byte goes out, one test per row ----
 
     /// Truncation does not exist (diagnostic 1/48), and it is refused wherever it is
     /// typed — a wildcard in `--title` fails exactly as one in a free term does.
@@ -1383,7 +1383,7 @@ mod tests {
     /// The other half of the same rule: with **nothing but** VÖBB locations there is no
     /// block left for an empty one to stand beside, so the invocation stays exit 2 — and
     /// stays exit 2 rather than turning into the KOBV side's exit 5, because this ceiling
-    /// is known before a byte goes out (`plan/cli.md` § *Exit-Codes*).
+    /// is known before a byte goes out.
     #[test]
     fn a_run_of_nothing_but_voebb_locations_is_still_a_usage_error() {
         let deep = &[

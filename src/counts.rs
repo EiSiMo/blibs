@@ -47,7 +47,7 @@ mod tests {
     use super::*;
 
     /// The singular is the case the callers get wrong, because the plural is what every
-    /// example in `plan/cli.md` shows.
+    /// documented example shows.
     #[test]
     fn one_is_singular_and_everything_else_is_plural() {
         assert_eq!(records(1), "1 record");

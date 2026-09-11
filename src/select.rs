@@ -105,7 +105,7 @@ impl PageCut {
 /// against `sru.kobv.de/k2` directly, so this is not a parsing artefact. Two things make
 /// that worth fixing here rather than tolerating: `records[]` promises each record exactly
 /// once, and a repeat would otherwise cost a second availability request for a status
-/// already known, against the one-request-per-*displayed*-record rule in `CLAUDE.md`.
+/// already known, against the one-request-per-*displayed*-record rule.
 ///
 /// Runs before filtering, sorting and paging, so every later count is over distinct
 /// records. Returns how many were dropped, because silence would make the tool disagree
@@ -171,8 +171,8 @@ pub fn sort(records: &mut [Record], by: SortKey, at: Option<&Location>) {
         SortKey::Year => {
             records.sort_by_cached_key(|record| (record.year.is_none(), Reverse(record.year)));
         }
-        // By the *displayed* title, article included (`plan/marc-mapping.md`, decision 9):
-        // in a terminal it must be visible what the list was sorted by.
+        // By the *displayed* title, article included: in a terminal it must be visible
+        // what the list was sorted by.
         SortKey::Title => records.sort_by_cached_key(|record| collation_key(&record.title)),
         SortKey::Author => records.sort_by_cached_key(author_key),
         SortKey::Availability => {
@@ -259,8 +259,8 @@ pub fn take_page(records: Vec<Record>, cut: PageCut) -> Vec<Record> {
 /// Cut **every location's block** to `limit` records and keep only what some block still
 /// shows.
 ///
-/// `--limit` is a promise per block (`plan/cli.md` § *Menschliche Ausgabe*): `--at
-/// HU,STABI --limit 2` is two lines under each heading, not two lines in total shared
+/// `--limit` is a promise per block: `--at HU,STABI --limit 2` is two lines under each
+/// heading, not two lines in total shared
 /// out between them. Cutting the merged list instead would let the library that ranks
 /// better take the whole page and leave the other block empty — which reads exactly like
 /// "nothing there".
@@ -1400,8 +1400,8 @@ mod tests {
         assert_eq!(titles, ["Ähre", "Alpha", "zeta"]);
     }
 
-    /// Decision 9 in `plan/marc-mapping.md`: the *displayed* title, article included —
-    /// a list that starts with "Der" and claims to be alphabetical reads like a bug, so
+    /// The *displayed* title, article included — a list that starts with "Der" and
+    /// claims to be alphabetical reads like a bug, so
     /// the sort must match what the terminal shows.
     #[test]
     fn title_sorts_with_the_article_because_that_is_what_is_shown() {

@@ -22,8 +22,8 @@ pub const PORTAL_AJAX: &str = "https://portal.kobv.de/AJAX/JSON";
 /// The only SRU operation this tool performs.
 const OPERATION: &str = "searchRetrieve";
 
-/// The SRU version. 2.0 is what the endpoint answers and what every measurement in
-/// `plan/scraping.md` was taken against.
+/// The SRU version. 2.0 is what the endpoint answers and what every measurement was taken
+/// against.
 const VERSION: &str = "2.0";
 
 /// MARCXML, never `dc`: the Dublin Core mapping loses the holdings in `924`, which are
@@ -36,10 +36,9 @@ const AVAILABILITY_METHOD: &str = "getAvailability";
 /// Build a search request. Pure: takes a query and a window, returns a [`Request`].
 ///
 /// The query travels as `x-pquery`, never as `query`: same indexes and same counts, plus
-/// Bib-1 attribute `1044`, which is the only way to filter by holdings upstream
-/// (`plan/scraping.md` §A.4a). `maximumRecords` comes from a
-/// [`SruPageSize`](crate::model::SruPageSize) and can therefore never exceed the 50 above
-/// which the service truncates silently.
+/// Bib-1 attribute `1044`, which is the only way to filter by holdings upstream.
+/// `maximumRecords` comes from a [`SruPageSize`](crate::model::SruPageSize) and can
+/// therefore never exceed the 50 above which the service truncates silently.
 pub fn search_request(query: &Pqf, window: FetchWindow) -> Request {
     Request::get(SRU_BASE)
         .query("operation", OPERATION)
@@ -126,9 +125,9 @@ mod tests {
         super::super::pqf::search(&spec, &[Isil::new("DE-11")]).expect("the spec has a term")
     }
 
-    /// The parameter set of `plan/scraping.md` §A.3/§A.4a, in the order it was measured
-    /// in. The PQF reaches the wire percent-encoded and unaltered — that encoding is what
-    /// [`Request::url`] is tested for; here the raw pairs are what matters.
+    /// The measured parameter set, in the order it was measured in. The PQF reaches the
+    /// wire percent-encoded and unaltered — that encoding is what [`Request::url`] is
+    /// tested for; here the raw pairs are what matters.
     #[test]
     fn a_search_request_carries_the_measured_parameters() {
         let window = FetchWindow::plan(Limit::DEFAULT, Page::FIRST, false);

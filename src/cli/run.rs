@@ -989,7 +989,7 @@ fn show_branch(
 /// What a listing invocation asks for, and therefore which shape the answer has.
 ///
 /// Three shapes rather than one, because they answer three different questions: the plain
-/// listing is the 123 houses whose columns `plan/cli.md` pins; `--find` is grouped, so that
+/// listing is the 123 houses in their fixed columns; `--find` is grouped, so that
 /// a house can never be pushed off the answer by its own branches; and `--branches` and
 /// `--near` are flat lists of entries in which a house and a branch stand side by side.
 enum Listing {

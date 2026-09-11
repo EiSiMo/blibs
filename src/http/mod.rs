@@ -6,7 +6,7 @@
 //! fixture-backed implementation for it. There is no environment switch and no test
 //! back door in the binary.
 //!
-//! Upstream etiquette is enforced here and is not configurable (`CLAUDE.md`):
+//! Upstream etiquette is enforced here and is not configurable:
 //!
 //! - at most [`limit::cap_for`] requests in flight per host — six by default, one for
 //!   a host that measured worse under concurrency,
@@ -88,11 +88,10 @@ pub enum CachePolicy {
 /// answer lost on the way back. Retrying is the right guess only when both of those
 /// possibilities lead to the same place.
 ///
-/// This is the fix for the worst measured failure of the tool
-/// (`plan/feedback_round_3.md` §1.1): a voebb.de form submission that took 11 s against a
-/// 10 s deadline was retried, the replay spent the session's `requestCount` a second time,
-/// the site answered `/noaccess`, and a search the server had answered correctly was
-/// reported to the user as "the site has changed".
+/// This is the fix for the worst measured failure of the tool: a voebb.de form submission
+/// that took 11 s against a 10 s deadline was retried, the replay spent the session's
+/// `requestCount` a second time, the site answered `/noaccess`, and a search the server had
+/// answered correctly was reported to the user as "the site has changed".
 ///
 /// **429 and 503 are unaffected**, and deliberately so: there the server answered, and its
 /// answer is that it did not do the work. Nothing was consumed, so the backoff in
@@ -320,7 +319,7 @@ pub trait Fetch: Sync {
 /// Fetch a request and parse it, retrying once against the network if a **cached** body
 /// is what failed to parse.
 ///
-/// A cache may only ever change latency, never a result (`CLAUDE.md`). A corrupted entry
+/// A cache may only ever change latency, never a result. A corrupted entry
 /// breaks that rule twice over: it fails, and it keeps failing, because nothing evicts it.
 /// So a parse failure on a cached body drops the entry ([`Fetch::forget`]) and asks again
 /// — with the request **unchanged**, cache policy included. That matters: this arm is
@@ -407,7 +406,7 @@ impl Http {
     ///
     /// **The agent carries no deadline of its own.** How long to wait depends on the host
     /// ([`limit::timeout_for`]) and one agent serves all three of them, so the budget is
-    /// set on every request instead, in [`Http::send_once`] — the single place a request
+    /// set on every request instead, in `Http::send_once` — the single place a request
     /// leaves this process. A second number here would be one that has to agree with that
     /// one, and two numbers that must agree are one number too many.
     ///
@@ -796,7 +795,7 @@ mod tests {
         *lock(&used)
     }
 
-    /// The failure of `plan/feedback_round_3.md` §1.1, in one assertion: a voebb.de form
+    /// The worst measured failure of the tool, in one assertion: a voebb.de form
     /// submission that times out is **not** sent again. The replay would spend the
     /// session's `requestCount` a second time, and voebb.de answers that with `/noaccess`
     /// — so the retry could never have helped and was guaranteed to destroy the session it
@@ -868,7 +867,7 @@ mod tests {
 
     /// What a voebb.de timeout **is**, now that it is no longer converted into a lost
     /// session: exit 3, `timeout`, and not a document failure — a slow host must never
-    /// again be reported as a site that changed shape (`plan/cli.md` § *Exit-Codes*).
+    /// again be reported as a site that changed shape.
     #[test]
     fn a_single_use_timeout_is_a_network_error_and_never_a_document_error() {
         let error = with_retry(&single_use_post(), |_| Err(Failure::TimedOut))
@@ -1112,8 +1111,8 @@ mod tests {
         }
     }
 
-    /// `plan/feedback_round_2.md` §3.7: a discarded cache entry has to be replaced in the
-    /// *same* run, not just made to fail more gracefully. This proves the whole cycle: a
+    /// A discarded cache entry has to be replaced in the *same* run, not just made to
+    /// fail more gracefully. This proves the whole cycle: a
     /// poisoned entry costs exactly one extra upstream call, and the entry it leaves
     /// behind is the fresh body — a second `fetch_parsed` for the same request reads it
     /// straight from the cache and never touches the network again.

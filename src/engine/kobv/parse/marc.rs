@@ -19,9 +19,9 @@
 use roxmltree::Node;
 
 /// The alternate-script field. Dropped while parsing, so that no caller downstream has to
-/// remember to exclude it. See `plan/marc-mapping.md` § `880`: the Latin transliteration
-/// is in the regular field and the original script in the `880`, so keeping both would
-/// print every title and every author twice.
+/// remember to exclude it. The Latin transliteration is in the regular field and the
+/// original script in the `880`, so keeping both would print every title and every author
+/// twice.
 const ALTERNATE_SCRIPT_TAG: &str = "880";
 
 /// A parsed MARC record.
@@ -41,7 +41,7 @@ impl MarcRecord {
     ///
     /// Leader and control fields are stored **verbatim**; only subfield values go through
     /// [`clean`]. The `008` field is a fixed-length string whose spaces are positions —
-    /// collapsing them would shift every offset (`plan/marc-mapping.md` § `008`).
+    /// collapsing them would shift every offset.
     pub fn from_node(node: Node<'_, '_>) -> Self {
         let mut leader = String::new();
         let mut controls = Vec::new();
@@ -222,8 +222,7 @@ impl Leader<'_> {
 
 /// Clean a MARC text value.
 ///
-/// Guards the four control characters that reach the terminal from this index
-/// (`plan/marc-mapping.md` § Steuerzeichen im Text):
+/// Guards the four control characters that reach the terminal from this index:
 ///
 /// - U+0098 / U+009C bracket the non-sorting article **inside the field content**, and in
 ///   `b3kat_BV044513648` they are the only place that information exists — `245 ind2` is

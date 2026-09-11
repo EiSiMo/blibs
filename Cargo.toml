@@ -4,11 +4,21 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 description = "Search the libraries of Berlin and Brandenburg from the command line."
-license = "GPL-3.0"
+license = "GPL-3.0-or-later"
 repository = "https://github.com/EiSiMo/blibs"
 keywords = ["library", "catalogue", "kobv", "voebb", "cli"]
 categories = ["command-line-utilities"]
 
+# The parser fixtures are 1.4 MB of saved HTML, MARCXML and JSON. They are the evidence
+# behind every parser test and they stay in the repository — but `cargo install blibs`
+# would download them to build a binary that never reads one: every `include_str!` that
+# touches them sits inside a `#[cfg(test)]` module. Excluding them keeps the published
+# crate to the code it actually compiles; `cargo test` runs from a clone, not a tarball.
+exclude = ["tests/fixtures/**"]
+
+# The library target exists because `main.rs` is a thin shell over `cli::run` and the
+# integration tests in `tests/` reach the modules through it. It is **not** a public API:
+# see the stability note at the top of `src/lib.rs`.
 [lib]
 name = "blibs"
 path = "src/lib.rs"

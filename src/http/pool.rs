@@ -2,8 +2,7 @@
 //!
 //! `std::thread::scope` rather than an async runtime or a thread-pool crate: the tool
 //! makes at most a few dozen requests per invocation, they are all I/O-bound, and a
-//! scoped pool can borrow `&dyn Fetch` without an `Arc`. The argument is in
-//! `plan/client.md`.
+//! scoped pool can borrow `&dyn Fetch` without an `Arc`.
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};

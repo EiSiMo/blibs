@@ -1,8 +1,7 @@
 //! Building the Z39.50 prefix query.
 //!
 //! PQF, not CQL. Same indexes, same hit counts, plus the one attribute CQL lacks: `1044`
-//! (ISIL), which restricts a search to an institution upstream. Verified 2026-09-06,
-//! `plan/scraping.md` §A.4a.
+//! (ISIL), which restricts a search to an institution upstream. Verified 2026-09-06.
 //!
 //! Two rules keep this safe. **User input is never written raw into a query**: every term
 //! is quoted, and a `"` inside a term is removed before quoting, which makes every other
@@ -67,8 +66,7 @@ impl Pqf {
 
     /// Reject a query that would come back as diagnostic 1/2 (HTTP 414). The measured
     /// limit lies somewhere between ~1200 and ~2400 URL characters and was never pinned
-    /// down; 1000 is the conservative cut-off from `plan/cql-verified.md` § *Leere und
-    /// überlange Eingaben*.
+    /// down; 1000 is the conservative cut-off.
     fn checked(self) -> Result<Self, UsageError> {
         let chars = self.char_len();
         if chars >= MAX_QUERY_CHARS {
@@ -270,7 +268,7 @@ mod tests {
         Isil::new(code)
     }
 
-    // --- the mapping table of `plan/cli.md`, one test per row ---
+    // --- the mapping table from argument to query, one test per row ---
 
     #[test]
     fn free_words_are_quoted_one_by_one() {

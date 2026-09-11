@@ -133,8 +133,8 @@ impl FetchWindow {
     /// Stepping the raw records instead is what this used to do, and it lost matches: a
     /// page-1 window of 50 raw records could hold 16 matches of which 5 were shown, and
     /// page 2 jumped to raw record 51 — the other 11 were reachable from no page at all,
-    /// under a heading that claimed to continue the count. Filters are window-bound
-    /// (`plan/cli.md` § *Das Fensterproblem*); paging them has to be window-bound too.
+    /// under a heading that claimed to continue the count. Filters are window-bound;
+    /// paging them has to be window-bound too.
     pub fn plan(limit: Limit, page: Page, anchored: bool) -> Self {
         if anchored {
             return Self {

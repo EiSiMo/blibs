@@ -53,8 +53,8 @@ pub struct Library {
 impl Library {
     /// The canonical alias, i.e. the one the tool prints and accepts first.
     ///
-    /// `None` for a house that has none — the list carries no invented abbreviations
-    /// (`plan/libraries.md` §5, rule 5), and such a house is addressed by its ISIL.
+    /// `None` for a house that has none — the list carries no invented abbreviations, and
+    /// such a house is addressed by its ISIL.
     pub fn alias(&self) -> Option<&str> {
         self.aliases.first().map(String::as_str)
     }

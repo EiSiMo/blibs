@@ -1,7 +1,7 @@
 //! What was asked, where it was asked, and what came back.
 //!
 //! [`SearchResult`] and [`ShowResult`] are the two JSON documents. Their member order is
-//! the documents' member order and part of the contract in `plan/cli.md`.
+//! the documents' member order and part of the JSON contract.
 
 use crate::model::{Engine, FetchWindow, Format, Isil, Page, Record, RecordId, Status};
 
@@ -257,8 +257,8 @@ pub struct AtBlock {
 /// your window", voebb's is blibs refusing to walk that far before a byte goes out. A
 /// `past_the_last_result: true` on a VÖBB branch would claim the branch has fewer hits
 /// than the page asked for, which nobody ever looked up. Renaming a published member is a
-/// contract break (`plan/cli.md` § JSON), so the shape that can hold the second reason is
-/// the shape to publish first.
+/// contract break, so the shape that can hold the second reason is the shape to publish
+/// first.
 ///
 /// Both leave the same trace otherwise: an empty block, no total, and a note of the
 /// matching `kind` naming the locations.
@@ -616,9 +616,9 @@ pub mod note_kinds {
     /// The same record, with nothing to read: an electronic title whose lending link
     /// states **no** loan status this tool knows.
     ///
-    /// Two sources, both measured: Overdrive prints no parenthesis at all
-    /// (`plan/feedback_round_2.md` §3.6), and a wording nobody has seen must never become
-    /// a guess. The note carries the link's raw text so that a new wording shows up
+    /// Two sources, both measured: Overdrive prints no parenthesis at all, and a wording
+    /// nobody has seen must never become a guess. The note carries the link's raw text so
+    /// that a new wording shows up
     /// instead of being swallowed, and the holding stays [`crate::model::Status::Unknown`].
     pub const VOEBB_ONLINE_STATE_UNSTATED: &str = "voebb_online_state_unstated";
 
@@ -710,8 +710,8 @@ pub mod note_kinds {
     /// different depths: measured 2026-09-07, `--at TU,HU --page 30 --limit 50` needs
     /// record 1451, which HU's 2005 hits reach and TU's 1106 do not. Until this tag
     /// existed, TU's refusal was the whole invocation's and the user got neither block —
-    /// the failure of one location sold as the failure of the run
-    /// (`plan/feedback_round_3.md` §1.2, [`crate::error::Blast`]).
+    /// the failure of one location sold as the failure of the run (see
+    /// [`crate::error::Blast`]).
     ///
     /// It says nothing about what the location holds. The count that came back beside the
     /// refusal is not to be believed either — a rejected SRU envelope may state
@@ -1687,7 +1687,7 @@ mod tests {
     }
 
     /// The JSON document is the agent-facing contract: member **names and order** are
-    /// fixed by `plan/cli.md`, missing values are `null` or `[]` and never an empty
+    /// fixed, missing values are `null` or `[]` and never an empty
     /// string. Adding a member is allowed and shows up here as a snapshot diff to be
     /// reviewed; renaming, reordering or removing one is a break.
     #[test]
@@ -1706,7 +1706,7 @@ mod tests {
         );
     }
 
-    /// The record members, in the order `plan/cli.md` fixes them. Spelled out separately
+    /// The record members, in the order the contract fixes them. Spelled out separately
     /// from the snapshot so that a reordering names itself instead of showing up as a
     /// wall of diff.
     #[test]

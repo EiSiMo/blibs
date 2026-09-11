@@ -135,8 +135,9 @@ pub fn parse_results(html: &str) -> Result<ResultPage, Error> {
 ///
 /// Both halves are required. `p.wichtig` on its own is not read as "no hits": the class
 /// is aDISWeb's general one for a prominent message, so a page carrying one for some
-/// other reason must still fail loudly rather than be reported as an empty result —
-/// `CLAUDE.md` allows exactly one direction of doubt here.
+/// other reason must still fail loudly rather than be reported as an empty result. Doubt
+/// runs in exactly one direction here: towards the loud failure, never towards the empty
+/// answer.
 fn states_no_hits(document: &Html) -> bool {
     document.select(&selectors().notice).any(|notice| {
         let text = collapse(&text_of(notice));
@@ -500,9 +501,8 @@ mod tests {
     }
 
     /// The advanced form words the same emptiness differently — "Kein Treffer im
-    /// Suchbereich …" rather than "war erfolglos" — which is why the first fix left
-    /// `--title "Prometheus LernAtlas" Skelett --at AGB`, the case `plan/next.md` point 9
-    /// was reported against, still failing.
+    /// Suchbereich …" rather than "war erfolglos" — which is why the first fix left the
+    /// reported case `--title "Prometheus LernAtlas" Skelett --at AGB` still failing.
     #[test]
     fn the_advanced_forms_wording_for_nothing_found_is_zero_hits_too() {
         let page = parsed(EMPTY_ADVANCED);

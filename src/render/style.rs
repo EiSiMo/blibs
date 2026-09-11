@@ -367,7 +367,7 @@ mod tests {
         assert!(!legend.contains('○'));
     }
 
-    /// The example in `plan/cli.md`, both forms.
+    /// The legend example, both forms.
     #[test]
     fn the_legend_says_what_the_symbols_mean_where_they_are_shown() {
         let style = Style::plain(80);

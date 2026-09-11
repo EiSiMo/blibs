@@ -25,9 +25,9 @@
 //! work whose volumes are records of their own (`detail_multivolume`); absent with a
 //! lending link is an electronic title whose loan state sits in the *text* of that link
 //! (`detail_online`, `detail_online_available`, `detail_overdrive`) and is read from
-//! there by [`lending_status`]; absent with no lending link at all is an electronic title
+//! there by `lending_status`; absent with no lending link at all is an electronic title
 //! whose access is a plain `URL` row and whose loan state is stated nowhere
-//! (`detail_online_url`, [`online_access_url`]). Each empty item list carries a note
+//! (`detail_online_url`, `online_access_url`). Each empty item list carries a note
 //! saying which — an empty list on its own is indistinguishable from "held nowhere",
 //! which is the worst answer this tool can give.
 //!
@@ -596,7 +596,7 @@ fn online_access_url(bibliographic: &Bibliographic) -> Option<&str> {
 
 /// The two loan states an e-lending link states about itself, folded.
 ///
-/// Transcribed from the live site (`plan/voebb.md`); the three measured wordings are
+/// Transcribed from the live site; the three measured wordings are
 ///
 /// ```text
 /// Zugang zum Titel erhalten Sie hier. (Das Medium ist verfügbar / Ausleihe keine Vormerkung möglich)
@@ -987,12 +987,11 @@ fn marker_text(cell: ElementRef<'_>) -> String {
 
 /// The return date of a copy that is out, as ISO-8601, or `None`.
 ///
-/// `plan/voebb.md` §9 says a return date "steht nirgends in der Tabelle", checked against
-/// 46 copies. That was true of those 46 and is not true of the catalogue: the availability
-/// cell reads `Ausgeliehen -  Fällig am: 22.9.2026`, eight times on `voebb_SAK34906286`
-/// and once on the plain novel `voebb_SAK34954522` (measured 2026-09-08). It is the answer
-/// to "when is it back", which is a question `plan/usecases.md` asks and this parser was
-/// throwing away.
+/// A survey of 46 copies found a return date nowhere in the table. That was true of those
+/// 46 and is not true of the catalogue: the availability cell reads
+/// `Ausgeliehen -  Fällig am: 22.9.2026`, eight times on `voebb_SAK34906286` and once on
+/// the plain novel `voebb_SAK34954522` (measured 2026-09-08). It is the answer to "when is
+/// it back", a question users ask and this parser was throwing away.
 ///
 /// It is read from the same **marker** as the status ([`status_marker`]) and decides
 /// nothing about it: the traffic light comes from the marker's class ([`status_of`]), so a
@@ -1138,9 +1137,9 @@ fn status_of(
 
 /// Whether the order column says this copy cannot leave the building.
 ///
-/// The three markers measured in `plan/voebb.md` §9: `Präsenzbestand`, `nicht entleihbar`
-/// and `Nicht bestellbar`. They are read from `Bestellmöglichkeit` because the
-/// availability column says `Verfügbar` for all of them.
+/// The three measured markers are `Präsenzbestand`, `nicht entleihbar` and
+/// `Nicht bestellbar`. They are read from `Bestellmöglichkeit` because the availability
+/// column says `Verfügbar` for all of them.
 fn is_reference(order_option: Option<&str>) -> bool {
     let Some(order) = order_option.map(fold) else {
         return false;
@@ -1163,9 +1162,9 @@ fn is_reference(order_option: Option<&str>) -> bool {
 /// Each shape is compared first against the branch names (full, short, and the part of
 /// the full name behind the last separator) and only then against the list's explicit
 /// `match` strings, so that a house named in both places is found under its own name.
-/// Everything is folded (`plan/libraries.md`), an ambiguous hit counts as no hit, and a
-/// miss is not an error: 40 of the 43 distinct names in the fixtures resolve, and the
-/// three that do not are houses the list does not carry.
+/// Everything is folded, an ambiguous hit counts as no hit, and a miss is not an error:
+/// 40 of the 43 distinct names in the fixtures resolve, and the three that do not are
+/// houses the list does not carry.
 fn branch_of(library: &str) -> Option<&'static Branch> {
     let candidates = name_candidates(library);
     for names in [branch_names, branch_match_strings] {
@@ -1995,10 +1994,10 @@ mod tests {
         }
     }
 
-    /// `plan/voebb.md` §9 says a return date "steht nirgends", measured over 46 copies.
-    /// It is in the availability cell behind the status word, on both a console game and
-    /// a plain novel (2026-09-08). ISO-8601 out, because the day *and* the month arrive
-    /// unpadded and an agent must not have to parse `22.9.2026`.
+    /// A survey of 46 copies found a return date nowhere. It is in the availability cell
+    /// behind the status word, on both a console game and a plain novel (2026-09-08).
+    /// ISO-8601 out, because the day *and* the month arrive unpadded and an agent must not
+    /// have to parse `22.9.2026`.
     #[test]
     fn a_copy_on_loan_carries_the_return_date_the_cell_states() {
         let page = parsed(DUE_DATES, "SAK34906286");
@@ -2566,8 +2565,8 @@ mod tests {
     ///
     /// It used to be an error, and the sentence it was written for still holds: an empty
     /// copy list on its own reads as "held nowhere". What changed is only *where* the
-    /// noise goes. `CLAUDE.md`'s rule is that a missing selector must never become an
-    /// empty result; a note carrying the selector, tagged for agents and printed for
+    /// noise goes. The rule is that a missing selector must never become an empty
+    /// result; a note carrying the selector, tagged for agents and printed for
     /// humans, keeps that promise while leaving the other records of the window alone.
     #[test]
     fn a_missing_item_table_without_a_lending_link_is_a_loud_note() {

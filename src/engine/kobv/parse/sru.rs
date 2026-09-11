@@ -621,8 +621,8 @@ mod tests {
         assert_eq!(marc_ids(&response), ["kobvindex_SLB42822"]);
     }
 
-    /// Records and a top-level diagnostic can arrive together — measured with `sortKeys`
-    /// (`plan/scraping.md` §A.5). Both are parsed; `check` still refuses.
+    /// Records and a top-level diagnostic can arrive together — measured with `sortKeys`.
+    /// Both are parsed; `check` still refuses.
     #[test]
     fn records_and_a_top_level_diagnostic_can_arrive_together() {
         let body = r#"<?xml version="1.0"?>

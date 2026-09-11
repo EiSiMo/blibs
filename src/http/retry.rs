@@ -10,8 +10,7 @@
 //! acted, and a request whose sending consumes state there is therefore never sent twice.
 //! **How long** to wait for one answer is a property of the host
 //! ([`crate::http::limit::timeout_for`]) — this module holds no deadline, because a single
-//! one for every service was what turned a slow answer into a destroyed session
-//! (`plan/feedback_round_3.md` §1.1).
+//! one for every service was what turned a slow answer into a destroyed session.
 //!
 //! Neither service announces throttling: no `Retry-After`, no `RateLimit-*`. The schedule
 //! below is therefore fixed rather than negotiated, and nothing in this module reads a

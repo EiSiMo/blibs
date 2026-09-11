@@ -11,7 +11,7 @@
 ///
 /// Punctuation and spacing are **kept**: `--find` matches substrings, and dropping the
 /// separators would let `am See` match `Amsee`. Alias comparison does not care either
-/// way — aliases are `[A-Z0-9]{2,10}` by the rules in `plan/libraries.md` §5.
+/// way — aliases are `[A-Z0-9]{2,10}`.
 pub fn fold(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for upper in s.chars() {

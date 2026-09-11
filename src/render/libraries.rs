@@ -32,7 +32,7 @@ use crate::render::human::{push_field, write_fields, write_line, write_row};
 use crate::render::table::{Cell, Column, Layout};
 
 /// The narrowest the shorthand column of the house table may be — the width the example
-/// in `plan/cli.md` is written at.
+/// output is written at.
 const HOUSE_KEY: usize = 8;
 /// The narrowest the ISIL column may be, for the same reason.
 const ISIL_COLUMN: usize = 10;
@@ -46,9 +46,9 @@ const WHEREABOUTS_MIN: usize = 15;
 
 /// Render the house table: shorthand, ISIL, short name, full name, city.
 ///
-/// Houses only, and it stays that way: this is the listing whose columns `plan/cli.md`
-/// pins character for character, and the 211 branches are one `--branches` away rather
-/// than mixed into it.
+/// Houses only, and it stays that way: this is the listing whose columns are pinned
+/// character for character, and the 211 branches are one `--branches` away rather than
+/// mixed into it.
 pub fn houses(rows: &[&Library], out: &mut dyn Write, style: Style) -> io::Result<()> {
     let alias_width = column_width(HOUSE_KEY, rows.iter().map(|row| row.alias().unwrap_or("")));
     let isil_width = column_width(ISIL_COLUMN, rows.iter().map(|row| row.isil.as_str()));
@@ -376,8 +376,7 @@ fn plural<'a>(count: usize, one: &'a str, many: &'a str) -> &'a str {
 
 /// Render one library in detail: what the list knows and nothing it does not.
 ///
-/// Opening hours are deliberately absent — the compiled list would be days out of date
-/// (`plan/cli.md`, `plan/libraries.md`).
+/// Opening hours are deliberately absent — the compiled list would be days out of date.
 pub fn library_detail(library: &Library, out: &mut dyn Write, style: Style) -> io::Result<()> {
     write_line(out, &library.name, 0, style.bold(), style)?;
     writeln!(out)?;
@@ -426,10 +425,9 @@ pub fn library_detail(library: &Library, out: &mut dyn Write, style: Style) -> i
 /// The branches of one house, each with the key that searches it.
 ///
 /// The key, not only the name: this listing is the one place a branch without a shorthand
-/// becomes addressable at all, and a name with nothing to type next to it is a dead end
-/// (`plan/libraries.md` §11.9). It is [`branch_location`]'s key — the same one `--at`
-/// resolves — padded to the widest, because the keys come in several lengths and a ragged
-/// column reads as two columns.
+/// becomes addressable at all, and a name with nothing to type next to it is a dead end.
+/// It is [`branch_location`]'s key — the same one `--at` resolves — padded to the widest,
+/// because the keys come in several lengths and a ragged column reads as two columns.
 ///
 /// The name is [`distinguishing_name`]: these are the branches of one house standing next
 /// to each other, and the directory's 60-character cut falls exactly where two of them
@@ -599,7 +597,7 @@ fn push_search_field(fields: &mut Vec<(String, String)>, at: &Location) {
 mod tests {
     use super::*;
 
-    /// The width the examples in `plan/cli.md` were written for.
+    /// The width the examples were written for.
     const WIDE: usize = 100;
 
     fn rendered(f: impl FnOnce(&mut Vec<u8>) -> io::Result<()>) -> String {
@@ -622,7 +620,7 @@ mod tests {
         }
     }
 
-    /// The library table of `plan/cli.md`, character for character.
+    /// The house table, character for character.
     #[test]
     fn the_library_table_is_reproduced() {
         let wanted = ["DE-1", "DE-11", "DE-B1533", "DE-609"];

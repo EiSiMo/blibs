@@ -32,6 +32,21 @@
 //! interprets a payload. And a missing structure is never rendered as an empty result:
 //! an empty list is indistinguishable from "no hits", which is the worst answer this tool
 //! can give an agent — so a missing element becomes a named error instead.
+//!
+//! # This library is not a public API
+//!
+//! **The interface of `blibs` is the `blibs` command**, and for an agent the `--json`
+//! document it prints. Everything below this line is an implementation detail that is
+//! published only because the binary and the integration tests are built from it: a
+//! library target is the one way `tests/` can reach these modules at all.
+//!
+//! So **nothing here carries a stability guarantee**. Types, traits, function signatures
+//! and whole modules may change, be renamed or disappear in any release, including a
+//! patch release, without a deprecation and without a note in the changelog. Depending on
+//! this crate as a library means pinning an exact version and expecting to rewrite.
+//!
+//! What *is* stable is documented in the README: the command-line surface, the JSON
+//! schema, the `notes[].kind` vocabulary and the exit codes.
 
 pub mod cli;
 pub mod counts;

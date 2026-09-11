@@ -4,7 +4,7 @@
 //! the action URL and the nine hidden fields, `identity` and `requestCount` among them.
 //! Both of those are **single-use** — `identity` changes with every response and
 //! `requestCount` counts up — and getting either wrong produces a `/noaccess` page with
-//! status 200 (`plan/voebb.md` § *Die Seite*).
+//! status 200.
 //!
 //! That is why the session is a value that is threaded through the client and **replaced
 //! wholesale** after every answer ([`Session::advance`]) rather than something written by

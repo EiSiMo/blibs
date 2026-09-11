@@ -10,9 +10,8 @@ use crate::model::{BranchRef, Engine, Holding, Isil, Location};
 /// It is not a house but a union of branches, and a KOBV record only ever says
 /// `DE-609` — never which branch holds the copy. Naming one of its branches is therefore
 /// the single case in which a location is answered by the `voebb` engine instead of by
-/// `kobv`; every other branch cannot be searched on its own at all. The rule is
-/// documented in CLAUDE.md § *Two engines* and in `plan/voebb.md`; nothing else in the
-/// crate branches on an ISIL.
+/// `kobv`; every other branch cannot be searched on its own at all. This is the one
+/// exception: nothing else in the crate branches on an ISIL.
 pub const VOEBB_NETWORK: &str = "DE-609";
 
 /// How the VÖBB is named in a block heading. The list's `short_name` for the network is
@@ -42,8 +41,8 @@ const DIRECTORY_NAME_WIDTH: usize = 60;
 /// name being searched for.
 pub const PATH_SEPARATOR: char = '/';
 
-/// What a key the user typed named. Institutions and branches share one alias namespace
-/// (`plan/libraries.md` §5, rule 9), so one lookup answers for both.
+/// What a key the user typed named. Institutions and branches share one alias namespace,
+/// so one lookup answers for both.
 ///
 /// This is the **whole** result of reading a key — it says what was named and nothing
 /// about what may be done with it. Whether a branch can be *searched* is a separate
@@ -83,14 +82,13 @@ impl Entry {
 ///
 /// **The single lookup in the crate.** `--at` reaches it through [`resolve`] and
 /// `blibs libraries <key>` and `--near <key>` reach it directly, so a key that names
-/// something in one cannot fail to name it in the other. Four steps, in the order of
-/// `plan/libraries.md` §6:
+/// something in one cannot fail to name it in the other. Four steps, in this order:
 ///
 /// 1. an alias, of a house or of one of the few branches that have one (case-folded),
 /// 2. a house's ISIL (case-insensitively),
 /// 3. a **branch key**: its KOBV id, or its own ISIL where it has one — see
-///    [`by_branch_key`] for why the id is the one that always works,
-/// 4. a **path**, `HU/Germanistik`, matched inside the named house by [`by_path`].
+///    `by_branch_key` for why the id is the one that always works,
+/// 4. a **path**, `HU/Germanistik`, matched inside the named house by `by_path`.
 ///
 /// An unknown key is a usage error carrying up to three near-miss suggestions (see
 /// [`suggest`]), never a silent non-match and never an empty result: "there is no such
@@ -144,7 +142,7 @@ pub fn resolve(input: &str) -> Result<Location, UsageError> {
     Ok(location)
 }
 
-/// Alias, then house ISIL, then branch key — the order of `plan/libraries.md` §6.
+/// Alias, then house ISIL, then branch key.
 ///
 /// The path step is **not** here: it can fail with an ambiguity that has to reach the
 /// user, and an `Option` has nowhere to put it. [`look_up`] runs it after this.
@@ -210,7 +208,7 @@ fn by_branch_key(typed: &str) -> Option<Entry> {
 /// fragment is matched against both (see [`short_name_is_cut`]).
 ///
 /// Several branches under one stage are [`UsageError::AmbiguousBranch`], never a pick:
-/// branch short names are *not* unique inside a house (`plan/libraries.md` §8.3).
+/// branch short names are *not* unique inside a house.
 fn by_path(typed: &str, house: &str, name: &str) -> Result<Entry, UsageError> {
     let parent = match lookup(house) {
         Some(Entry::Institution(library)) => library,
@@ -416,12 +414,11 @@ pub fn institution_location(library: &Library) -> Location {
 /// library network goes to `voebb`, where the house facet filters upstream and the result
 /// is complete. Every other branch goes to `kobv`, where its house is filtered upstream
 /// and the branch itself is read off the copies — the availability answer names one per
-/// copy (`bibids=`), which the record never does. The two are not the same kind of
-/// answer, and `plan/cli.md` § *Das Fensterproblem* says which is which; nothing here
-/// branches on a specific ISIL beyond that one comparison.
+/// copy (`bibids=`), which the record never does. The two are not the same kind of answer;
+/// nothing here branches on a specific ISIL beyond that one comparison.
 ///
 /// `key` is what names this branch back: its shorthand, its own ISIL, or its KOBV id.
-/// An ISIL a *house* also carries is skipped, because [`lookup`] answers that with the
+/// An ISIL a *house* also carries is skipped, because `lookup` answers that with the
 /// house — a key that resolves to something else is not a key.
 ///
 /// [`crate::model::BranchRef::name`] carries the branch's `short_name`, not its full
@@ -429,9 +426,9 @@ pub fn institution_location(library: &Library) -> Location {
 /// heading has room for and which the voebb.de house facet never repeats. The facet
 /// labels its checkboxes `<district>: <house>`, and that second half equals `short_name`
 /// for 42 of the 84 labels in `tests/fixtures/voebb/results.html` — including both
-/// aliased branches, `AGB` and `BSTB`. Matching the remaining labels is the facet
-/// parser's problem (`plan/voebb.md`), not this function's: it must never guess, and a
-/// label it cannot place has to be a named error rather than an empty filter.
+/// aliased branches, `AGB` and `BSTB`. Matching the remaining labels is the facet parser's
+/// problem, not this function's: it must never guess, and a label it cannot place has to be
+/// a named error rather than an empty filter.
 pub fn branch_location(library: &Library, branch: &Branch) -> Location {
     let own_isil = branch
         .isil
@@ -542,7 +539,7 @@ pub fn shares_isil(branch: &Branch) -> Vec<Entry> {
 /// entirely — there is nothing in the result that looks wrong, so the only place this can
 /// be said is beside the key itself.
 ///
-/// The answer is derived from the same order [`lookup`] walks, not from a rule about which
+/// The answer is derived from the same order `lookup` walks, not from a rule about which
 /// kind of entry wins, so it stays true if that order ever changes.
 pub fn isil_answers_elsewhere(branch: &Branch) -> Option<Entry> {
     let isil = branch.isil.as_deref()?;
@@ -555,14 +552,14 @@ pub fn isil_answers_elsewhere(branch: &Branch) -> Option<Entry> {
 /// The mirror of [`shares_isil`], and the direction the user actually travels: that one
 /// starts at a branch and asks what else claims the key printed beside it, this one starts
 /// at the word in `--at` and asks what that word does not reach. Both read the same
-/// [`claimants`] list, so the two can never disagree about which codes are shared.
+/// `claimants` list, so the two can never disagree about which codes are shared.
 ///
 /// Empty for every key that names one place, which is nearly all of them: an alias, a KOBV
-/// id and 136 of the 137 branch ISILs. A non-empty answer is the silent case — [`lookup`]
+/// id and 136 of the 137 branch ISILs. A non-empty answer is the silent case — `lookup`
 /// resolves the key to the first claimant, the search runs, it succeeds, and it says
 /// nothing at all about the entries standing behind it.
 ///
-/// The order is [`claimants`]' order, so the caller may name the entries the way the
+/// The order is `claimants`' order, so the caller may name the entries the way the
 /// resolution would have reached them. Nothing here compares against a particular code:
 /// the collision is found by asking what two entries of the list claim, so it appears the
 /// day the data file grows one and disappears the day the file stops.
@@ -610,9 +607,9 @@ pub fn by_isil(isil: &Isil) -> Option<&'static Library> {
 
 /// Look up an institution by the name the KOBV portal uses in the availability fragment.
 ///
-/// This is the fallback path of the three-step match in `plan/scraping.md` §B.5.1; the
-/// comparison is folded so that a stray double space or a differently spelled umlaut in
-/// the portal's HTML does not drop a whole item group.
+/// This is the fallback path of the three-step match; the comparison is folded so that a
+/// stray double space or a differently spelled umlaut in the portal's HTML does not drop a
+/// whole item group.
 pub fn by_portal_name(name: &str) -> Option<&'static Library> {
     let wanted = fold(name.trim());
     all().iter().find(|library| {
@@ -714,8 +711,8 @@ pub fn find_entries(query: &str) -> Vec<Found> {
         .collect()
 }
 
-/// The fields of a house that `--find` searches: what `plan/libraries.md` §6 names, plus
-/// the two keys the listing prints.
+/// The fields of a house that `--find` searches: its names and its city, plus every key it
+/// can be addressed by.
 fn matches_text(library: &Library, folded_query: &str) -> bool {
     let fields = [
         &library.short_name,
@@ -814,7 +811,7 @@ pub fn branch_count() -> usize {
 ///
 /// **Never `None` and never empty.** An ISIL that is not in the list renders as the bare
 /// code — an unknown library must never make a holding disappear. The full name is what
-/// the JSON contract in `plan/cli.md` puts in `library` ("Humboldt-Universität zu Berlin,
+/// the JSON contract puts in `library` ("Humboldt-Universität zu Berlin,
 /// Universitätsbibliothek, …"); the short one lives in `short_name` and comes from
 /// [`short_name_for`].
 pub fn display_name(isil: &Isil) -> String {
@@ -871,7 +868,7 @@ pub fn name_holding(holding: &mut Holding) {
 /// The canonical alias of an ISIL, for the `alias` field of a holding.
 ///
 /// `None` where the list carries no spoken abbreviation for the house — the list holds no
-/// invented ones (`plan/libraries.md` §5, rule 5).
+/// invented ones.
 pub fn alias_for(isil: &Isil) -> Option<&'static str> {
     by_isil(isil).and_then(Library::alias)
 }
@@ -891,8 +888,8 @@ pub fn alias_for(isil: &Isil) -> Option<&'static str> {
 ///    does not match half the list (`CHARITEE` → `CHARITE`, `VIADRINAA` → `VIADRINA`).
 ///
 /// Branch aliases (`AGB`, `BSTB`, `PHILBIB`, …) are candidates on the same footing as
-/// institution aliases — the list has one alias namespace (`plan/libraries.md` §5, rule
-/// 9) and `suggest` does not care which kind it is offering.
+/// institution aliases — the list has one alias namespace and `suggest` does not care
+/// which kind it is offering.
 ///
 /// Suggestions only ever *offer*; nothing here picks a library on the user's behalf. A
 /// name search belongs to `libraries --find`, not here — the hint text points there.
