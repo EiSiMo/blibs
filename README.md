@@ -533,4 +533,4 @@ counts        → the English phrases for a count, shared by error and render
 
 ## Licence
 
-GPL-3.0. See [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](LICENSE).
