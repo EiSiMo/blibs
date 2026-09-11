@@ -33,12 +33,13 @@ path = "src/main.rs"
 [dependencies]
 # Argument parsing. `derive` keeps the CLI contract next to the types it fills;
 # `wrap_help` reflows the long help that `blibs` prints when called without arguments.
-# `suggestions` turns a typo'd subcommand into a pointer, which the exit-code-2 contract in
-# plan/cli.md asks for; it is a default feature, so it is not listed here and
+# `suggestions` turns a typo'd subcommand into a pointer instead of a bare "unrecognized",
+# which is what exit code 2 promises; it is a default feature, so it is not listed here and
 # `default-features = false` would silently drop it.
 clap = { version = "4.6.6", features = ["derive", "wrap_help"] }
 
-# HTTP client. Blocking and thread-based on purpose (no async runtime, see plan/client.md);
+# HTTP client. Blocking and thread-based on purpose: a query fans out to at most a few
+# dozen requests against two hosts, which a thread pool serves without an async runtime;
 # `cookies` is required because voebb.de is session-bound, rustls arrives via the defaults.
 ureq = { version = "3.4.1", features = ["cookies"] }
 
@@ -47,7 +48,9 @@ ureq = { version = "3.4.1", features = ["cookies"] }
 serde = { version = "1.0.229", features = ["derive"] }
 
 # `preserve_order` is not cosmetic: the availability response is matched positionally
-# against the key order of `isilAvailability` (CLAUDE.md, plan/scraping.md §B.5.1).
+# against the key order of `isilAvailability`, because the HTML fragment it describes
+# carries no ISIL of its own. With the keys reordered, every copy lands at the wrong
+# library.
 serde_json = { version = "1.0.151", features = ["preserve_order"] }
 
 # One error enum with structured fields and a Display that says what failed.
@@ -61,7 +64,7 @@ roxmltree = "0.21.1"
 # A real parser is mandatory here — a failed selector must be nameable in an error.
 scraper = "0.27.0"
 
-# Cache keys: sha256 over method + host + path + sorted query (plan/client.md).
+# Cache keys: sha256 over method + host + path + sorted query.
 sha2 = "0.11.0"
 
 # Terminal column widths must be computed on CJK and combining text, not on `str::len`.
@@ -104,7 +107,7 @@ module_name_repetitions = "allow"
 # Almost every accessor in `model` is a candidate; the annotation would outnumber the code.
 must_use_candidate = "allow"
 # Every fallible function in this crate returns the single `Error` enum, whose variants
-# carry their own remediation text (CLAUDE.md). Failure modes are documented in prose in
+# carry their own remediation text. Failure modes are documented in prose in
 # the doc comment instead of in a boilerplate `# Errors` section.
 missing_errors_doc = "allow"
 # Same reasoning: panics are documented where they exist, and no path reachable from user
