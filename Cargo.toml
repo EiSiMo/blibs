@@ -14,7 +14,10 @@ categories = ["command-line-utilities"]
 # would download them to build a binary that never reads one: every `include_str!` that
 # touches them sits inside a `#[cfg(test)]` module. Excluding them keeps the published
 # crate to the code it actually compiles; `cargo test` runs from a clone, not a tarball.
-exclude = ["tests/fixtures/**"]
+exclude = ["tests/fixtures/**", "docs/**"]
+
+# The screenshots under `docs/` are the same case: crates.io renders the README by rewriting
+# relative image paths onto the repository, so it never reads the files from the tarball.
 
 # The library target exists because `main.rs` is a thin shell over `cli::run` and the
 # integration tests in `tests/` reach the modules through it. It is **not** a public API:

@@ -243,9 +243,10 @@ pub enum Command {
     /// The bibliographic record first, then every library that holds it with its copies,
     /// shelfmarks and status.
     ///
-    /// A copy that is out never carries a due date. Due dates and holds live behind a
-    /// library account and blibs signs in nowhere, so it says the copy is on loan and
-    /// stops there rather than suggesting a date it cannot know.
+    /// A due date is printed where the catalogue prints one: voebb.de states it beside a
+    /// copy that is out, KOBV states none at all. A hold lives behind a library account
+    /// and blibs signs in nowhere, so a copy the catalogue says nothing about stays a
+    /// bare "on loan" rather than carrying a date it cannot know.
     Show(ShowArgs),
 
     /// List, search and locate the libraries blibs knows.
