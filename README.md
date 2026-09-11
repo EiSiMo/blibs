@@ -10,11 +10,11 @@ Search the libraries of Berlin and Brandenburg from the command line.
 
 [Install](#install) · [Usage](#usage) · [For machines](#for-machines)
 
-![blibs search --author Kafka --title Prozess --at AGB](docs/search.png)
+![blibs search --author Kafka --title Prozess --at AGB --format book](docs/search.png)
 
-A green light means a copy is on the shelf right now, red means it is out, `?` means the
-catalogue was asked and stated nothing. Under each hit stand the copies of that library:
-where they are, their shelfmark, their status.
+A green light means a copy is on the shelf right now, red means it is out — and where the
+catalogue states nothing, `blibs` prints `?` rather than a guess. Under each hit stand the
+copies of that library: where they are, their shelfmark, their status.
 
 ## Install
 
@@ -64,7 +64,7 @@ sort and filter by neither, and the output says so rather than implying otherwis
 
 ### One title in full
 
-![blibs show almatuudk_BV021739966 --at UDK,ZLB](docs/show.png)
+![blibs show voebb_SAK35132792](docs/show.png)
 
 The id comes from the search output and carries the catalogue it belongs to. `--at` lists
 your libraries first and, for a branch, narrows the copies to that branch.
