@@ -297,10 +297,11 @@ pub struct SearchArgs {
     /// Author, editor or translator.
     ///
     /// Always searched as a word list, never as a phrase, and the order of the name
-    /// therefore does not matter. The index holds authority forms: "Kafka, Franz" finds
-    /// 2914 records as a phrase while "Franz Kafka" as a phrase finds 40, so a name
-    /// written the natural way would otherwise find almost nothing. Roles are never filtered — an
-    /// editor or translator you search for stays findable.
+    /// therefore does not matter. The index holds authority forms such as "Kafka, Franz",
+    /// and as a phrase the natural order finds two orders of magnitude fewer records than
+    /// the inverted one, so a name written the natural way would otherwise find almost
+    /// nothing. Roles are never filtered — an editor or translator you search for stays
+    /// findable.
     #[arg(long, value_name = "NAME")]
     pub author: Option<String>,
 

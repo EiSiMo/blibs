@@ -17,7 +17,7 @@
 //! Everything runs **sequentially on one session**: the session is a state, and
 //! concurrency on it is undefined. The transport agrees — voebb.de is capped at one
 //! request in flight ([`crate::http::limit`]), so even the stateless record pages of
-//! [`super::Voebb::fill_availability`] go out one at a time.
+//! [`crate::model::Catalog::fill_availability`] go out one at a time.
 
 use crate::error::{Error, UnexpectedError};
 use crate::http::{CachePolicy, Fetch, Replay, Request};

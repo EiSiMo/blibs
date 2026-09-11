@@ -39,6 +39,8 @@ the Berlin public library network (VÖBB) holds a given copy.
 ## Installation
 
 ```sh
+cargo install blibs
+# or, from a clone:
 cargo install --path .
 # or, for a local build:
 cargo build --release
@@ -373,6 +375,8 @@ field is *absent* when there is nothing to say, rather than an empty array.
 | `branch_from_copies` | ✓ | ✓ | a KOBV branch was sieved from the copies; no total, never absence |
 | `branch_needs_copies` | ✓ | ✓ | `--no-availability` left no copies to read the branch from |
 | `location_key_ambiguous` | ✓ | ✓ | the `--at` key is claimed by several libraries; the first one answered |
+| `location_past_the_last_result` | ✓ | | the window begins past that location's last result; its block is empty and states no total |
+| `location_window_too_deep` | ✓ | | the page lies deeper than that catalogue can be paged; nothing was asked, nothing is said |
 | `location_other_catalogue` | | ✓ | `--at` names a location the other catalogue answers for |
 | `serial_volumes_unknown` | | ✓ | one status for the title, and the record states no run of its own |
 | `loan_without_due_date` | | ✓ | a copy is out and states **no** date; for that copy only a patron login has one |
@@ -433,8 +437,10 @@ next.
 ## Good to know
 
 - **`--author` is always searched as a word list, never a phrase.** The author index holds
-  authority forms: as a phrase, `"Kafka, Franz"` finds 2914 records and `"Franz Kafka"`
-  finds 40, so a natural name is split into words instead.
+  authority forms (`Kafka, Franz`), so a phrase in the natural name order finds two orders
+  of magnitude fewer records than the same name inverted — measured against the index
+  itself, and a ratio rather than a count because the catalogue grows. A name is therefore
+  split into words, which finds them written either way round.
 - **`--year` means "was running in this year", not "was published in this year".** For a
   journal that ran 1923–1991, `--year 1960` matches and `--year 1922` does not.
 - **`--sort`, `--format` and `--language` only see the fetched window**, not the whole

@@ -619,7 +619,7 @@ pub mod note_kinds {
     /// Two sources, both measured: Overdrive prints no parenthesis at all
     /// (`plan/feedback_round_2.md` §3.6), and a wording nobody has seen must never become
     /// a guess. The note carries the link's raw text so that a new wording shows up
-    /// instead of being swallowed, and the holding stays [`Status::Unknown`].
+    /// instead of being swallowed, and the holding stays [`crate::model::Status::Unknown`].
     pub const VOEBB_ONLINE_STATE_UNSTATED: &str = "voebb_online_state_unstated";
 
     /// The third shape of an electronic title, and a completely regular one: no copies,
@@ -632,7 +632,7 @@ pub mod note_kinds {
     ///
     /// Its own tag rather than [`VOEBB_ONLINE_ONLY`]'s, because the two answer different
     /// questions: a lending link states a loan state and this states none at all. The
-    /// holding is [`Status::Unknown`] — whether the resolver's target is free to read is
+    /// holding is [`crate::model::Status::Unknown`] — whether the resolver's target is free to read is
     /// something voebb.de does not say, and a guess here would be a promise the tool
     /// cannot keep.
     ///
@@ -649,7 +649,7 @@ pub mod note_kinds {
     /// The granularity is the point. A single unknown page used to abort the whole
     /// invocation with `selector "table#resptable-1" matched nothing`, so nine sound hits
     /// were thrown away for the tenth (measured 2026-09-08, `--author "von Schirach"
-    /// --at AGB`). Now the record keeps its place with [`Status::Unknown`], and this note
+    /// --at AGB`). Now the record keeps its place with [`crate::model::Status::Unknown`], and this note
     /// carries the selector that stopped matching plus where to report it — the two
     /// things the old error message was right to say.
     ///
@@ -855,7 +855,7 @@ pub struct ShowAt {
     /// The engine that answers for this location.
     pub engine: Engine,
     /// The record's traffic light **at this location**: summarised over the copies that
-    /// stand there, and [`Status::Unknown`] — never [`Status::Unavailable`] — when the
+    /// stand there, and [`crate::model::Status::Unknown`] — never [`Status::Unavailable`] — when the
     /// location holds none, because nothing was said about it.
     pub status: Status,
 }
