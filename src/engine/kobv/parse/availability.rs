@@ -32,7 +32,7 @@
 use std::sync::OnceLock;
 
 use scraper::{ElementRef, Html, Selector};
-use serde::de::{MapAccess, Visitor};
+use serde::de::{MapAccess, SeqAccess, Visitor};
 
 use crate::error::{Error, UnexpectedError};
 use crate::libraries;
@@ -610,11 +610,19 @@ struct IsilEntry {
 /// copies, so it is read through a `visit_map` that appends. A map type would leave the
 /// order to `serde_json`'s `preserve_order` feature — which is set, but correctness must
 /// not depend on a line in `Cargo.toml` staying there.
+///
+/// **An empty one arrives as `[]`, not `{}`.** The portal is PHP, and `json_encode` writes
+/// an empty array as a JSON list — so the response that names no library at all carries
+/// `"isilAvailability":[]`. That is the same answer as `{}` and is read as one. A
+/// *non-empty* list is still an error: it would have lost the ISIL keys, and without them
+/// no traffic light can be put on a library.
 struct OrderedIsils(Vec<(String, IsilEntry)>);
 
 impl<'de> serde::Deserialize<'de> for OrderedIsils {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        deserializer.deserialize_map(OrderedIsilsVisitor)
+        // `deserialize_any`, not `deserialize_map`: `serde_json` rejects a list before a
+        // map-only request ever reaches `visit_seq`.
+        deserializer.deserialize_any(OrderedIsilsVisitor)
     }
 }
 
@@ -634,6 +642,17 @@ impl<'de> Visitor<'de> for OrderedIsilsVisitor {
             entries.push(entry);
         }
         Ok(OrderedIsils(entries))
+    }
+
+    /// PHP's empty array. See [`OrderedIsils`].
+    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+        if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+            return Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Seq,
+                &"a map of ISIL to availability (a list is only read when it is empty)",
+            ));
+        }
+        Ok(OrderedIsils(Vec::new()))
     }
 }
 
@@ -1161,6 +1180,51 @@ mod tests {
             parse(r#"{"data":{"html":"<p/>"}}"#).expect_err("`isilAvailability` is required");
         assert_eq!(error.kind(), "missing_structure");
         assert!(error.to_string().contains("isilAvailability"));
+    }
+
+    /// The body from the 2026-11-23 report, rebuilt: the live service did not answer this
+    /// way again, so it is not a measured fixture. The real header-only table plus PHP's
+    /// empty array. Before the fix this failed with the reported message word for word,
+    /// at column 446 instead of 435 — the portal's leading whitespace varies.
+    const EMPTY_LIST: &str = concat!(
+        r#"{"data":{"html":"            \n<table class=\"result-availability-items\">\n"#,
+        r#"        <thead>\n    <tr>\n"#,
+        r#"        <th class=\"detail_caption\">Library<\/th>\n"#,
+        r#"        <th class=\"detail_caption\">Location<\/th>\n"#,
+        r#"        <th class=\"detail_caption\">Call Number<\/th>\n"#,
+        r#"                <th class=\"detail_caption\">Availability<\/th>\n"#,
+        r#"    <\/tr>\n    <\/thead>\n    <\/table>\n","#,
+        r#""overallAvailability":"black","hasAvailability":false,"#,
+        r#""isilAvailability":[],"availText":"Unbekannt"}}"#,
+    );
+
+    #[test]
+    fn an_empty_isil_list_is_an_empty_map() {
+        let response = parsed(EMPTY_LIST);
+        assert!(response.by_isil.is_empty());
+        assert!(response.groups.is_empty());
+
+        let mut holdings = vec![holding("DE-1")];
+        merge(&response, &mut holdings);
+        assert_eq!(holdings.len(), 1, "the catalogue's holding must survive");
+        assert_eq!(isils_of(&holdings), ["DE-1"]);
+    }
+
+    #[test]
+    fn a_non_empty_isil_list_is_still_malformed() {
+        let json = EMPTY_LIST.replace(
+            r#""isilAvailability":[]"#,
+            r#""isilAvailability":[{"color":"green"}]"#,
+        );
+        let error = parse(&json).expect_err("a list has lost the ISIL keys");
+        assert_eq!(error.kind(), "malformed_json");
+    }
+
+    fn isils_of(holdings: &[Holding]) -> Vec<&str> {
+        holdings
+            .iter()
+            .filter_map(|holding| holding.isil.as_ref().map(Isil::as_str))
+            .collect()
     }
 
     fn holding(isil: &str) -> Holding {
